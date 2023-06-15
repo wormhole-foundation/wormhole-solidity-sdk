@@ -61,7 +61,7 @@ contract WormholeSDKTest is WormholeRelayerTest {
             1e17,
             50_000
         );
-        performDelivery(1);
+        performDelivery();
 
         vm.selectFork(targetFork);
         require(55 == toy.payloadReceived());

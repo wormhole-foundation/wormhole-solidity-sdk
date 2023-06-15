@@ -143,22 +143,30 @@ contract WormholeSimulator {
     /**
      * @notice Finds published Wormhole events in forge logs
      * @param logs The forge Vm.log captured when recording events during test execution
-     * @param numMessages The expected number of Wormhole events in the forge logs
      */
-    function fetchWormholeMessageFromLog(
-        Vm.Log[] memory logs,
-        uint8 numMessages
-    ) public pure returns (Vm.Log[] memory) {
-        // create log array to save published messages
-        Vm.Log[] memory published = new Vm.Log[](numMessages);
-
-        uint8 publishedIndex = 0;
+    function fetchWormholeMessageFromLog(Vm.Log[] memory logs)
+        public
+        pure
+        returns (Vm.Log[] memory)
+    {
+        uint256 count = 0;
         for (uint256 i = 0; i < logs.length; i++) {
             if (
-                logs[i].topics[0] ==
-                keccak256(
-                    "LogMessagePublished(address,uint64,uint32,bytes,uint8)"
-                )
+                logs[i].topics[0]
+                    == keccak256("LogMessagePublished(address,uint64,uint32,bytes,uint8)")
+            ) {
+                count += 1;
+            }
+        }
+
+        // create log array to save published messages
+        Vm.Log[] memory published = new Vm.Log[](count);
+
+        uint256 publishedIndex = 0;
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (
+                logs[i].topics[0]
+                    == keccak256("LogMessagePublished(address,uint64,uint32,bytes,uint8)")
             ) {
                 published[publishedIndex] = logs[i];
                 publishedIndex += 1;

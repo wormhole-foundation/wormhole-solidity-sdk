@@ -28,6 +28,21 @@ struct DeliveryInstruction {
     VaaKey[] vaaKeys;
 }
 
+struct RedeliveryInstruction {
+    VaaKey deliveryVaaKey;
+    uint16 targetChain;
+    uint256 newRequestedReceiverValue;
+    bytes newEncodedExecutionInfo;
+    bytes32 newSourceDeliveryProvider;
+    bytes32 newSenderAddress;
+}
+
+struct DeliveryOverride {
+    uint256 newReceiverValue;
+    bytes newExecutionInfo;
+    bytes32 redeliveryHash;
+}
+
 function decodeDeliveryInstruction(
     bytes memory encoded
 ) pure returns (DeliveryInstruction memory strct) {
@@ -54,6 +69,26 @@ function decodeDeliveryInstruction(
 
     checkLength(encoded, offset);
 }
+
+function decodeRedeliveryInstruction(bytes memory encoded)
+        pure
+        returns (RedeliveryInstruction memory strct)
+    {
+        uint256 offset = checkUint8(encoded, 0, PAYLOAD_ID_REDELIVERY_INSTRUCTION);
+
+        uint256 newRequestedReceiverValue;
+
+        (strct.deliveryVaaKey, offset) = decodeVaaKey(encoded, offset);
+        (strct.targetChain, offset) = encoded.asUint16Unchecked(offset);
+        (newRequestedReceiverValue, offset) = encoded.asUint256Unchecked(offset);
+        (strct.newEncodedExecutionInfo, offset) = decodeBytes(encoded, offset);
+        (strct.newSourceDeliveryProvider, offset) = encoded.asBytes32Unchecked(offset);
+        (strct.newSenderAddress, offset) = encoded.asBytes32Unchecked(offset);
+
+        strct.newRequestedReceiverValue = newRequestedReceiverValue;
+
+        checkLength(encoded, offset);
+    }
 
 function encodeVaaKeyArray(
     VaaKey[] memory vaaKeys
@@ -136,4 +171,14 @@ function checkLength(bytes memory encoded, uint256 expected) pure {
     if (encoded.length != expected) {
         revert InvalidPayloadLength(encoded.length, expected);
     }
+}
+
+
+function encode(DeliveryOverride memory strct) pure returns (bytes memory encoded) {
+        encoded = abi.encodePacked(
+            VERSION_DELIVERY_OVERRIDE,
+            strct.newReceiverValue,
+            encodeBytes(strct.newExecutionInfo),
+            strct.redeliveryHash
+        );
 }
