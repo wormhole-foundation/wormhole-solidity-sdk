@@ -5,11 +5,11 @@ import "../../src/interfaces/IWormholeRelayer.sol";
 import "../../src/interfaces/IWormhole.sol";
 import "../../src/interfaces/ITokenBridge.sol";
 
-import "./MockWormholeRelayer.sol";
 import "./helpers/WormholeSimulator.sol";
 import "./ERC20Mock.sol";
 import "./helpers/DeliveryInstructionDecoder.sol";
 import "./helpers/ExecutionParameters.sol";
+import "./helpers/MockOffchainRelayer.sol";
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
@@ -48,6 +48,8 @@ abstract contract WormholeRelayerTest is Test {
     IWormhole public wormholeTarget =
         IWormhole(0x88505117CA88e7dd2eC6EA1E13f0948db2D50D56);
 
+    MockOffchainRelayer public mockOffchainRelayer;
+
     function setUpSource() public virtual;
 
     function setUpTarget() public virtual;
@@ -71,52 +73,24 @@ abstract contract WormholeRelayerTest is Test {
         setUpTarget();
 
         vm.selectFork(sourceFork);
+
+        
+        mockOffchainRelayer = new MockOffchainRelayer(address(wormholeSource), address(guardianSource), vm);
+        mockOffchainRelayer.registerChain(sourceChain, address(relayerSource), sourceFork);
+        mockOffchainRelayer.registerChain(targetChain, address(relayerTarget), targetFork);
+        vm.makePersistent(address(mockOffchainRelayer));
+
     }
 
-    function performDelivery(uint8 numVaas) public {
-        Vm.Log[] memory logs = vm.getRecordedLogs();
+    function performDelivery() public {
+        
+        performDelivery(vm.getRecordedLogs());
+    }
+
+    function performDelivery(Vm.Log[] memory logs) public {
+
         require(logs.length > 0, "no events recorded");
-        require(numVaas > 0, "numVaas must be greater than 0");
-
-        // find published wormhole messages from log
-        Vm.Log[] memory publishedMessages = guardianSource
-            .fetchWormholeMessageFromLog(logs, numVaas);
-
-        // simulate signing the Wormhole message
-        // NOTE: in the wormhole-sdk, signed Wormhole messages are referred to as signed VAAs
-        bytes memory deliveryVaa = guardianSource.fetchSignedMessageFromLogs(
-            publishedMessages[numVaas - 1],
-            sourceChain
-        );
-
-        bytes[] memory additionalVaas = new bytes[](numVaas - 1);
-        for (uint8 i = 0; i < numVaas - 1; i++) {
-            additionalVaas[i] = guardianSource.fetchSignedMessageFromLogs(
-                publishedMessages[i],
-                sourceChain
-            );
-        }
-
-        vm.selectFork(targetFork);
-
-        IWormhole.VM memory deliveryParsed = wormholeTarget.parseVM(
-            deliveryVaa
-        );
-        DeliveryInstruction memory ix = decodeDeliveryInstruction(
-            deliveryParsed.payload
-        );
-        EvmExecutionInfoV1 memory execInfo = decodeEvmExecutionInfoV1(
-            ix.encodedExecutionInfo
-        );
-
-        relayerTarget.deliver{
-            value: ix.requestedReceiverValue +
-                ix.extraReceiverValue +
-                execInfo.targetChainRefundPerGasUnused *
-                execInfo.gasLimit
-        }(additionalVaas, deliveryVaa, payable(address(this)), new bytes(0));
-
-        vm.selectFork(sourceFork);
+        mockOffchainRelayer.relay(logs);
     }
 
     function createAndAttestToken(uint fork) public returns (ERC20Mock token) {
@@ -134,8 +108,7 @@ abstract contract WormholeRelayerTest is Test {
             ? guardianSource
             : guardianTarget;
         Vm.Log memory log = guardian.fetchWormholeMessageFromLog(
-            vm.getRecordedLogs(),
-            1
+            vm.getRecordedLogs()
         )[0];
         uint16 chainId = fork == sourceFork ? sourceChain : targetChain;
         bytes memory attestation = guardian.fetchSignedMessageFromLogs(
