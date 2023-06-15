@@ -66,4 +66,29 @@ contract WormholeSDKTest is WormholeRelayerTest {
         vm.selectFork(targetFork);
         require(55 == toy.payloadReceived());
     }
+
+    function testSendTokenSource() public {
+        vm.recordLogs();
+
+        Toy toySource = new Toy(address(relayerSource));
+
+        (uint cost, ) = relayerSource.quoteEVMDeliveryPrice(
+            sourceChain,
+            1e17,
+            50_000
+        );
+        relayerSource.sendPayloadToEvm{value: cost}(
+            sourceChain,
+            address(toySource),
+            abi.encode(56),
+            1e17,
+            50_000
+        );
+
+        performDelivery();
+
+        require(56 == toySource.payloadReceived());
+
+
+    }
 }

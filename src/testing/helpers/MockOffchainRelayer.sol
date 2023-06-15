@@ -50,17 +50,6 @@ contract MockOffchainRelayer {
         return pastEncodedDeliveryVAA[keccak256(abi.encodePacked(chainId, deliveryVAASequence))];
     }
 
-    function setInfo(
-        uint16 chainId,
-        uint64 deliveryVAASequence,
-        bytes[] memory encodedVMs,
-        bytes memory encodedDeliveryVAA
-    ) internal {
-        pastEncodedVMs[keccak256(abi.encodePacked(chainId, deliveryVAASequence))] = encodedVMs;
-        pastEncodedDeliveryVAA[keccak256(abi.encodePacked(chainId, deliveryVAASequence))] =
-            encodedDeliveryVAA;
-    }
-
     function registerChain(uint16 chainId, address wormholeRelayerContractAddress, uint fork) public {
         wormholeRelayerContracts[chainId] = wormholeRelayerContractAddress;
         forks[chainId] = fork;
@@ -114,6 +103,17 @@ contract MockOffchainRelayer {
 
     function relay(bytes memory deliveryOverrides) public {
         relay(vm.getRecordedLogs(), deliveryOverrides);
+    }
+
+    function setInfo(
+        uint16 chainId,
+        uint64 deliveryVAASequence,
+        bytes[] memory encodedVMs,
+        bytes memory encodedDeliveryVAA
+    ) internal {
+        bytes32 key = keccak256(abi.encodePacked(chainId, deliveryVAASequence));
+        pastEncodedVMs[key] = encodedVMs;
+        pastEncodedDeliveryVAA[key] = encodedDeliveryVAA;
     }
 
     function genericRelay(
