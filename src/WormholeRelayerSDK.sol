@@ -12,14 +12,15 @@ import "forge-std/console.sol";
 
 abstract contract Base {
     IWormholeRelayer public immutable wormholeRelayer;
-    IWormhole public immutable wormhole;
 
     mapping(bytes32 => bool) seenDeliveryVaaHashes;
+
+    address owner;
     mapping(uint16 => bytes32) registeredSenders;
 
-    constructor(address _wormholeRelayer, address _wormhole) {
+    constructor(address _wormholeRelayer) {
         wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
-        wormhole = IWormhole(_wormhole);
+        owner = msg.sender;
     }
 
     modifier onlyWormholeRelayer() {
@@ -45,16 +46,19 @@ abstract contract Base {
      * Assumes only one sender per chain is valid
      * Sender is the address that called 'send' on the Wormhole Relayer contract on the source chain)
      */
-    function setRegisteredSender(uint16 sourceChain, bytes32 sourceAddress) internal {
+    function setRegisteredSender(uint16 sourceChain, bytes32 sourceAddress) public {
+        require(msg.sender == owner, "Not allowed to set registered sender");
         registeredSenders[sourceChain] = sourceAddress;
     }
 }
 
 abstract contract TokenBase is Base {
     ITokenBridge public immutable tokenBridge;
+    IWormhole public immutable wormhole;
 
-    constructor(address _wormholeRelayer, address _tokenBridge, address _wormhole) Base(_wormholeRelayer, _wormhole) {
+    constructor(address _wormholeRelayer, address _tokenBridge, address _wormhole) Base(_wormholeRelayer) {
         tokenBridge = ITokenBridge(_tokenBridge);
+        wormhole = IWormhole(_wormhole);
     }
 }
 
@@ -153,7 +157,6 @@ abstract contract TokenReceiver is TokenBase {
             tokenBridge.completeTransferWithPayload(additionalVaas[i]);
             transfers[i] = transfer;
         }
-        
         // call into overriden method 
         receivePayloadAndTokens(payload, transfers, sourceAddress, sourceChain, deliveryHash);
     }

@@ -8,25 +8,30 @@ import "../src/interfaces/IERC20.sol";
 
 import "../src/testing/WormholeRelayerTest.sol";
 
+import "../src/WormholeRelayerSDK.sol";
+import "../src/Utils.sol";
+
 import "forge-std/console.sol";
 
-contract Toy is IWormholeReceiver {
+
+contract Toy is Base {
     IWormholeRelayer relayer;
 
     uint public payloadReceived;
 
-    constructor(address _wormholeRelayer) {
-        relayer = IWormholeRelayer(_wormholeRelayer);
-    }
+    constructor(address _wormholeRelayer) Base(_wormholeRelayer) {}
 
     function receiveWormholeMessages(
         bytes memory payload,
         bytes[] memory additionalVaas,
-        bytes32, //sourceAddress,
-        uint16, //sourceChain,
-        bytes32 //deliveryHash
-    ) public payable {
-        require(msg.sender == address(relayer), "Only relayer can call");
+        bytes32 sourceAddress,
+        uint16 sourceChain,
+        bytes32 deliveryHash
+    ) public payable 
+        onlyWormholeRelayer
+        replayProtect(deliveryHash)
+        isRegisteredSender(sourceChain, sourceAddress)
+    {
         payloadReceived = abi.decode(payload, (uint));
 
         console.log("Toy received message");
@@ -42,10 +47,12 @@ contract WormholeSDKTest is WormholeRelayerTest {
 
     function setUpSource() public override {
         toySource = new Toy(address(relayerSource));
+        toySource.setRegisteredSender(targetChain, toWormholeFormat(address(this)));
     }
 
     function setUpTarget() public override {
         toyTarget = new Toy(address(relayerTarget));
+        toyTarget.setRegisteredSender(sourceChain, toWormholeFormat(address(this)));
     }
 
     function testSendMessage() public {
@@ -53,14 +60,14 @@ contract WormholeSDKTest is WormholeRelayerTest {
         (uint cost, ) = relayerSource.quoteEVMDeliveryPrice(
             targetChain,
             1e17,
-            50_000
+            100_000
         );
         relayerSource.sendPayloadToEvm{value: cost}(
             targetChain,
             address(toyTarget),
             abi.encode(55),
             1e17,
-            50_000
+            100_000
         );
         performDelivery();
 
@@ -76,14 +83,14 @@ contract WormholeSDKTest is WormholeRelayerTest {
         (uint cost, ) = relayerTarget.quoteEVMDeliveryPrice(
             sourceChain,
             1e17,
-            50_000
+            100_000
         );
         relayerTarget.sendPayloadToEvm{value: cost}(
             sourceChain,
             address(toySource),
             abi.encode(56),
             1e17,
-            50_000
+            100_000
         );
         performDelivery();
 
