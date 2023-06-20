@@ -73,10 +73,20 @@ abstract contract TokenSender is TokenBase {
         uint16 targetChain,
         address targetAddress
     ) internal returns (VaaKey memory) {
+        return transferTokens(token, amount, targetChain, targetAddress, bytes(""));
+    }
+
+    function transferTokens(
+        address token,
+        uint256 amount,
+        uint16 targetChain,
+        address targetAddress,
+        bytes memory payload
+    ) internal returns (VaaKey memory) {
         IERC20(token).approve(address(tokenBridge), amount);
-        uint64 sequence = tokenBridge.transferTokens{
+        uint64 sequence = tokenBridge.transferTokensWithPayload{
             value: wormhole.messageFee()
-        }(token, amount, targetChain, toWormholeFormat(targetAddress), 0, 0);
+        }(token, amount, targetChain, toWormholeFormat(targetAddress), 0, payload);
         return
             VaaKey({
                 emitterAddress: toWormholeFormat(address(tokenBridge)),
