@@ -15,6 +15,7 @@ using BytesParsing for bytes;
 
 contract MockOffchainRelayer {
 
+    uint16 chainIdOfWormholeAndGuardianUtilities;
     IWormhole relayerWormhole;
     WormholeSimulator relayerWormholeSimulator;
 
@@ -34,6 +35,7 @@ contract MockOffchainRelayer {
         relayerWormhole = IWormhole(_wormhole);
         relayerWormholeSimulator = WormholeSimulator(_wormholeSimulator);
         vm = vm_;
+        chainIdOfWormholeAndGuardianUtilities = relayerWormhole.chainId();
     }
 
     function getPastEncodedVMs(
@@ -78,6 +80,9 @@ contract MockOffchainRelayer {
        
         uint16 chainId = chainIdFromFork[vm.activeFork()];
         require(wormholeRelayerContracts[chainId] != address(0), "Chain not registered with MockOffchainRelayer");
+
+        vm.selectFork(forks[chainIdOfWormholeAndGuardianUtilities]);
+
         Vm.Log[] memory entries = relayerWormholeSimulator.fetchWormholeMessageFromLog(logs);
         bytes[] memory encodedVMs = new bytes[](entries.length);
         for (uint256 i = 0; i < encodedVMs.length; i++) {
