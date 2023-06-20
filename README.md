@@ -2,5 +2,5 @@
 
 ## Installation
 ```sh
-    forge install JoeHowarth/wormhole-relayer-sdk
+    forge install wormhole-foundation/wormhole-relayer-solidity-sdk
 ```
