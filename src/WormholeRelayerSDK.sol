@@ -7,7 +7,6 @@ import "./interfaces/ITokenBridge.sol";
 import "./interfaces/IERC20.sol";
 
 import "./Utils.sol";
-import "./ReplayProtection.sol";
 
 import "forge-std/console.sol";
 
