@@ -13,26 +13,30 @@ import "forge-std/console.sol";
 
 abstract contract Base {
     IWormholeRelayer public immutable wormholeRelayer;
-    ITokenBridge public immutable tokenBridge;
     IWormhole public immutable wormhole;
 
     constructor(
         address _wormholeRelayer,
-        address _tokenBridge,
         address _wormhole
     ) {
         wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
-        tokenBridge = ITokenBridge(_tokenBridge);
         wormhole = IWormhole(_wormhole);
     }
 }
 
-abstract contract TokenSender is Base {
+abstract contract TokenBase is Base {
+    ITokenBridge public immutable tokenBridge;
+
     constructor(
         address _wormholeRelayer,
         address _tokenBridge,
         address _wormhole
-    ) Base(_wormholeRelayer, _tokenBridge, _wormhole) {}
+    ) Base(_wormholeRelayer, _wormhole) {
+        tokenBridge = ITokenBridge(_tokenBridge);
+    }
+}
+
+abstract contract TokenSender is TokenBase {
 
     function transferTokens(
         address token,
