@@ -78,6 +78,8 @@ abstract contract WormholeRelayerTest is Test {
         mockOffchainRelayer = new MockOffchainRelayer(address(wormholeSource), address(guardianSource), vm);
         mockOffchainRelayer.registerChain(sourceChain, address(relayerSource), sourceFork);
         mockOffchainRelayer.registerChain(targetChain, address(relayerTarget), targetFork);
+
+        // Allow the offchain relayer to work on both source and target fork
         vm.makePersistent(address(mockOffchainRelayer));
 
     }

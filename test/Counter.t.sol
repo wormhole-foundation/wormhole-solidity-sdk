@@ -31,23 +31,24 @@ contract Toy is IWormholeReceiver {
 
         console.log("Toy received message");
         console.log("Payload", payloadReceived);
-        console.log("Num additional vaas", additionalVaas.length);
+        console.log("Value Received", msg.value);
     }
 }
 
 contract WormholeSDKTest is WormholeRelayerTest {
-    IERC20 token;
-    Toy toy;
+
+    Toy toySource;
+    Toy toyTarget;
 
     function setUpSource() public override {
-        token = createAndAttestToken(sourceFork);
+        toySource = new Toy(address(relayerSource));
     }
 
     function setUpTarget() public override {
-        toy = new Toy(address(relayerTarget));
+        toyTarget = new Toy(address(relayerTarget));
     }
 
-    function testSendToken() public {
+    function testSendMessage() public {
         vm.recordLogs();
         (uint cost, ) = relayerSource.quoteEVMDeliveryPrice(
             targetChain,
@@ -56,7 +57,7 @@ contract WormholeSDKTest is WormholeRelayerTest {
         );
         relayerSource.sendPayloadToEvm{value: cost}(
             targetChain,
-            address(toy),
+            address(toyTarget),
             abi.encode(55),
             1e17,
             50_000
@@ -64,29 +65,29 @@ contract WormholeSDKTest is WormholeRelayerTest {
         performDelivery();
 
         vm.selectFork(targetFork);
-        require(55 == toy.payloadReceived());
+        require(55 == toyTarget.payloadReceived());
     }
 
-    function testSendTokenSource() public {
+    function testSendMessageSource() public {
+        
+        vm.selectFork(targetFork);
         vm.recordLogs();
 
-        Toy toySource = new Toy(address(relayerSource));
-
-        (uint cost, ) = relayerSource.quoteEVMDeliveryPrice(
+        (uint cost, ) = relayerTarget.quoteEVMDeliveryPrice(
             sourceChain,
             1e17,
             50_000
         );
-        relayerSource.sendPayloadToEvm{value: cost}(
+        relayerTarget.sendPayloadToEvm{value: cost}(
             sourceChain,
             address(toySource),
             abi.encode(56),
             1e17,
             50_000
         );
-
         performDelivery();
 
+        vm.selectFork(sourceFork);
         require(56 == toySource.payloadReceived());
 
 
