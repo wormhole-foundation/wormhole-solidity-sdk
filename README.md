@@ -1,4 +1,6 @@
 # wormhole-relayer-sdk
 
-Installation
+## Installation
+```sh
     forge install JoeHowarth/wormhole-relayer-sdk
+```
