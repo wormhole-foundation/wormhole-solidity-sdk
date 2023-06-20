@@ -120,12 +120,12 @@ abstract contract TokenSender is TokenBase {
         uint256 amount
     ) internal returns (uint64) {
         VaaKey[] memory vaaKeys = new VaaKey[](1);
-        vaaKeys[0] = transferTokens(token, amount, targetChain, targetAddress, payload);
+        vaaKeys[0] = transferTokens(token, amount, targetChain, targetAddress);
 
         return wormholeRelayer.sendVaasToEvm{value: cost}(
             targetChain,
             targetAddress,
-            new bytes(0), // payload is encoded in tokenTransfer
+            payload,
             receiverValue,
             gasLimit,
             vaaKeys
@@ -141,33 +141,19 @@ abstract contract TokenReceiver is TokenBase {
         uint16 sourceChain,
         bytes32 deliveryHash
     ) external payable {
-        uint256 numTransfers = 0;
         ITokenBridge.TransferWithPayload[] memory transfers =
             new ITokenBridge.TransferWithPayload[](additionalVaas.length);
 
         for (uint256 i = 0; i < additionalVaas.length; ++i) {
             IWormhole.VM memory parsed = wormhole.parseVM(additionalVaas[i]);
-            if (parsed.emitterAddress != tokenBridge.bridgeContracts(parsed.emitterChainId)) {
-                // should we allow non-transfer vaas here?
-                continue;
-            }
+            require (parsed.emitterAddress == tokenBridge.bridgeContracts(parsed.emitterChainId), "Not a Token Bridge VAA");
             ITokenBridge.TransferWithPayload memory transfer = tokenBridge.parseTransferWithPayload(parsed.payload);
-            if (transfer.to != toWormholeFormat(address(this)) || transfer.toChain != wormhole.chainId()) {
-                continue;
-            }
-            // unused return value, read from parsed transfer instead
+            require (transfer.to == toWormholeFormat(address(this)) && transfer.toChain == wormhole.chainId(), "Token was not sent to this address");   
+
             tokenBridge.completeTransferWithPayload(additionalVaas[i]);
-            transfers[numTransfers++] = transfer;
+            transfers[i] = transfer;
         }
-
-        // if payload not set on deliveryVaa but nested inside tokenTransfer, use that
-        if (payload.length == 0 && transfers.length > 0 && transfers[0].payload.length > 0) {
-            receivePayloadAndTokens(
-                transfers[0].payload, transfers, sourceAddress, sourceChain, deliveryHash
-            );
-            return;
-        }
-
+        
         // call into overriden method 
         receivePayloadAndTokens(payload, transfers, sourceAddress, sourceChain, deliveryHash);
     }
