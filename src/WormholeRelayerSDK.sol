@@ -7,32 +7,65 @@ import "./interfaces/ITokenBridge.sol";
 import "./interfaces/IERC20.sol";
 
 import "./Utils.sol";
-import "./ReplayProtection.sol";
 
 import "forge-std/console.sol";
 
 abstract contract Base {
     IWormholeRelayer public immutable wormholeRelayer;
-    ITokenBridge public immutable tokenBridge;
     IWormhole public immutable wormhole;
+    
+    mapping(bytes32 => bool) seenDeliveryVaaHashes;
+    mapping(uint16 => bytes32) registeredSenders;
 
     constructor(
         address _wormholeRelayer,
-        address _tokenBridge,
         address _wormhole
     ) {
         wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
-        tokenBridge = ITokenBridge(_tokenBridge);
         wormhole = IWormhole(_wormhole);
+    }
+
+    modifier onlyWormholeRelayer() {
+        require(msg.sender == address(wormholeRelayer), "Msg.sender is not Wormhole Relayer");
+        _;
+    }
+
+    modifier replayProtect(bytes32 deliveryHash) {
+        require(!seenDeliveryVaaHashes[deliveryHash], "Message already processed");
+        seenDeliveryVaaHashes[deliveryHash] = true;
+        _;
+    }
+
+    modifier isRegisteredSender(uint16 sourceChain, bytes32 sourceAddress) {
+        require(registeredSenders[sourceChain] == sourceAddress, "Not registered sender");
+        _;
+    }
+
+    /**
+     * Sets the registered address for 'sourceChain' to 'sourceAddress'
+     * So that for messages from 'sourceChain', only ones from 'sourceAddress' are valid
+     * 
+     * Assumes only one sender per chain is valid
+     * Sender is the address that called 'send' on the Wormhole Relayer contract on the source chain)
+     */
+    function setRegisteredSender(uint16 sourceChain, bytes32 sourceAddress) internal {
+        registeredSenders[sourceChain] = sourceAddress;
     }
 }
 
-abstract contract TokenSender is Base {
+abstract contract TokenBase is Base {
+    ITokenBridge public immutable tokenBridge;
+
     constructor(
         address _wormholeRelayer,
         address _tokenBridge,
         address _wormhole
-    ) Base(_wormholeRelayer, _tokenBridge, _wormhole) {}
+    ) Base(_wormholeRelayer, _wormhole) {
+        tokenBridge = ITokenBridge(_tokenBridge);
+    }
+}
+
+abstract contract TokenSender is TokenBase {
 
     function transferTokens(
         address token,
@@ -40,10 +73,20 @@ abstract contract TokenSender is Base {
         uint16 targetChain,
         address targetAddress
     ) internal returns (VaaKey memory) {
+        return transferTokens(token, amount, targetChain, targetAddress, bytes(""));
+    }
+
+    function transferTokens(
+        address token,
+        uint256 amount,
+        uint16 targetChain,
+        address targetAddress,
+        bytes memory payload
+    ) internal returns (VaaKey memory) {
         IERC20(token).approve(address(tokenBridge), amount);
-        uint64 sequence = tokenBridge.transferTokens{
+        uint64 sequence = tokenBridge.transferTokensWithPayload{
             value: wormhole.messageFee()
-        }(token, amount, targetChain, toWormholeFormat(targetAddress), 0, 0);
+        }(token, amount, targetChain, toWormholeFormat(targetAddress), 0, payload);
         return
             VaaKey({
                 emitterAddress: toWormholeFormat(address(tokenBridge)),
