@@ -2,19 +2,19 @@
 
 The purpose of this SDK is to provide helpers to take your existing single-chain solidity application cross-chain
 
-## Installing this SDK into your repository with Foundry
+### Installing this SDK into your repository with Foundry
 
 ```bash
 forge install wormhole-foundation/wormhole-relayer-solidity-sdk
 ```
 
-## Example Usage
+### Example Usage
 
 [HelloWormhole - Simple cross-chain message sending application](https://github.com/JoeHowarth/hello-wormhole)
 
 [HelloToken - Simple cross-chain token sending application](https://github.com/JoeHowarth/hello-tokens)
 
-## SDK Summary
+### SDK Summary
 
 - Includes interfaces to interact with contracts in the Wormhole ecosystem (src/interfaces)
 - Includes the base class ‘Base’ with helpers for common actions that will typically need to be done within ‘receiveWormholeMessages’:
