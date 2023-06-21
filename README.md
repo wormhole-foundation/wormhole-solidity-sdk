@@ -1,4 +1,4 @@
-# Wormhole Relayer Solidity SDK Docs
+# Wormhole Relayer Solidity SDK
 
 The purpose of this SDK is to provide helpers to take your existing single-chain solidity application cross-chain
 
