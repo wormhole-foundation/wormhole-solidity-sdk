@@ -2,8 +2,9 @@
 
 The purpose of this SDK is to provide helpers to take your existing single-chain solidity application cross-chain
 
-### Installing this SDK into your repository with Foundry
+### Installation
 
+**Foundary**
 ```bash
 forge install wormhole-foundation/wormhole-relayer-solidity-sdk
 ```
