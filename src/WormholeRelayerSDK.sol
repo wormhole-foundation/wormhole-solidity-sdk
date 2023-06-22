@@ -157,12 +157,24 @@ abstract contract TokenReceiver is TokenBase {
             tokenBridge.completeTransferWithPayload(additionalVaas[i]);
             transfers[i] = transfer;
         }
-        // call into overriden method 
-        receiveTokensWithPayloads(transfers, sourceAddress, sourceChain, deliveryHash);
+        
+        if(additionalVaas.length > 0) {
+            // call into overriden method 
+            receiveTokensWithPayloads(transfers, sourceAddress, sourceChain, deliveryHash);
+        } else {
+            receivePayload(payload, sourceAddress, sourceChain, deliveryHash);
+        }
     }
 
     function receiveTokensWithPayloads(
         ITokenBridge.TransferWithPayload[] memory transfers,
+        bytes32 sourceAddress,
+        uint16 sourceChain,
+        bytes32 deliveryHash
+    ) internal virtual {}
+
+    function receivePayload(
+        bytes memory payload,
         bytes32 sourceAddress,
         uint16 sourceChain,
         bytes32 deliveryHash
