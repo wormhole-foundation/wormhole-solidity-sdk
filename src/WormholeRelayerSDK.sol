@@ -149,7 +149,7 @@ abstract contract TokenSender is TokenBase {
         VaaKey[] memory vaaKeys = new VaaKey[](1);
         vaaKeys[0] = transferTokens(token, amount, targetChain, targetAddress, payload);
 
-        return wormholeRelayer.forwardVaasToEvm{value: forwardMsgValue}(
+        wormholeRelayer.forwardVaasToEvm{value: forwardMsgValue}(
             targetChain,
             targetAddress,
             bytes(""),
