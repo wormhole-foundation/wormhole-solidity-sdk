@@ -61,10 +61,14 @@ abstract contract TokenBase is Base {
         wormhole = IWormhole(_wormhole);
     }
 
-    function getDecimals(address tokenAddress) internal returns (uint8 decimals) {
+    function getDecimals(address tokenAddress) internal view returns (uint8 decimals) {
         // query decimals
         (,bytes memory queriedDecimals) = address(tokenAddress).staticcall(abi.encodeWithSignature("decimals()"));
         decimals = abi.decode(queriedDecimals, (uint8));
+    }
+
+    function getTokenAddressOnThisChain(uint16 tokenHomeChain, bytes32 tokenHomeAddress) internal view returns (address tokenAddressOnThisChain) {
+        return tokenHomeChain == wormhole.chainId() ? fromWormholeFormat(tokenHomeAddress) : tokenBridge.wrappedAsset(tokenHomeChain, tokenHomeAddress);
     }
 }
 
@@ -194,7 +198,7 @@ abstract contract TokenReceiver is TokenBase {
 
             tokenBridge.completeTransferWithPayload(additionalVaas[i]);
 
-            address thisChainTokenAddress = transfer.tokenChain == wormhole.chainId() ? fromWormholeFormat(transfer.tokenAddress) : tokenBridge.wrappedAsset(transfer.tokenChain, transfer.tokenAddress);
+            address thisChainTokenAddress = getTokenAddressOnThisChain(transfer.tokenChain, transfer.tokenAddress);
             uint8 decimals = getDecimals(thisChainTokenAddress);
             uint256 denormalizedAmount = transfer.amount;
             if(decimals > 8) denormalizedAmount *= uint256(10) ** (decimals - 8);
@@ -219,5 +223,5 @@ abstract contract TokenReceiver is TokenBase {
         uint16 sourceChain,
         bytes32 deliveryHash
     ) internal virtual {}
-    
+
 }
