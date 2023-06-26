@@ -23,7 +23,7 @@ contract Toy is Base {
 
     function receiveWormholeMessages(
         bytes memory payload,
-        bytes[] memory additionalVaas,
+        bytes[] memory,
         bytes32 sourceAddress,
         uint16 sourceChain,
         bytes32 deliveryHash
