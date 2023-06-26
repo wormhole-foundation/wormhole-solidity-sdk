@@ -124,12 +124,12 @@ abstract contract TokenSender is TokenBase {
         uint256 amount
     ) internal returns (uint64) {
         VaaKey[] memory vaaKeys = new VaaKey[](1);
-        vaaKeys[0] = transferTokens(token, amount, targetChain, targetAddress, payload);
+        vaaKeys[0] = transferTokens(token, amount, targetChain, targetAddress);
 
         return wormholeRelayer.sendVaasToEvm{value: cost}(
             targetChain,
             targetAddress,
-            bytes(""),
+            payload,
             receiverValue,
             gasLimit,
             vaaKeys
@@ -147,12 +147,12 @@ abstract contract TokenSender is TokenBase {
         uint256 amount
     ) internal {
         VaaKey[] memory vaaKeys = new VaaKey[](1);
-        vaaKeys[0] = transferTokens(token, amount, targetChain, targetAddress, payload);
+        vaaKeys[0] = transferTokens(token, amount, targetChain, targetAddress);
 
         wormholeRelayer.forwardVaasToEvm{value: forwardMsgValue}(
             targetChain,
             targetAddress,
-            bytes(""),
+            payload,
             receiverValue,
             gasLimit,
             vaaKeys
@@ -181,15 +181,12 @@ abstract contract TokenReceiver is TokenBase {
             transfers[i] = transfer;
         }
         
-        if(additionalVaas.length > 0) {
-            // call into overriden method 
-            receiveTokensWithPayloads(transfers, sourceAddress, sourceChain, deliveryHash);
-        } else {
-            receivePayload(payload, sourceAddress, sourceChain, deliveryHash);
-        }
+        // call into overriden method 
+        receivePayloadAndTokens(payload, transfers, sourceAddress, sourceChain, deliveryHash);
     }
 
-    function receiveTokensWithPayloads(
+    function receivePayloadAndTokens(
+        bytes memory payload,
         ITokenBridge.TransferWithPayload[] memory transfers,
         bytes32 sourceAddress,
         uint16 sourceChain,
