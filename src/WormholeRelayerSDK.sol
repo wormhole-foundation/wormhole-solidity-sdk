@@ -60,6 +60,12 @@ abstract contract TokenBase is Base {
         tokenBridge = ITokenBridge(_tokenBridge);
         wormhole = IWormhole(_wormhole);
     }
+
+    function getDecimals(address tokenAddress) internal returns (uint8 decimals) {
+        // query decimals
+        (,bytes memory queriedDecimals) = address(tokenAddress).staticcall(abi.encodeWithSignature("decimals()"));
+        decimals = abi.decode(queriedDecimals, (uint8));
+    }
 }
 
 abstract contract TokenSender is TokenBase {
@@ -161,6 +167,15 @@ abstract contract TokenSender is TokenBase {
 }
 
 abstract contract TokenReceiver is TokenBase {
+
+    struct TokenReceived {
+        bytes32 tokenHomeAddress;
+        uint16 tokenHomeChain;
+        address tokenAddress; // wrapped address if tokenHomeChain !== this chain, else tokenHomeAddress (in evm address format)
+        uint256 amount;
+        uint256 amountNormalized; // if decimals > 8, normalized to 8 decimal places 
+    }
+
     function receiveWormholeMessages(
         bytes memory payload,
         bytes[] memory additionalVaas,
@@ -168,8 +183,8 @@ abstract contract TokenReceiver is TokenBase {
         uint16 sourceChain,
         bytes32 deliveryHash
     ) external payable {
-        ITokenBridge.TransferWithPayload[] memory transfers =
-            new ITokenBridge.TransferWithPayload[](additionalVaas.length);
+        TokenReceived[] memory receivedTokens =
+            new TokenReceived[](additionalVaas.length);
 
         for (uint256 i = 0; i < additionalVaas.length; ++i) {
             IWormhole.VM memory parsed = wormhole.parseVM(additionalVaas[i]);
@@ -178,25 +193,31 @@ abstract contract TokenReceiver is TokenBase {
             require (transfer.to == toWormholeFormat(address(this)) && transfer.toChain == wormhole.chainId(), "Token was not sent to this address");   
 
             tokenBridge.completeTransferWithPayload(additionalVaas[i]);
-            transfers[i] = transfer;
+
+            address thisChainTokenAddress = transfer.tokenChain == wormhole.chainId() ? fromWormholeFormat(transfer.tokenAddress) : tokenBridge.wrappedAsset(transfer.tokenChain, transfer.tokenAddress);
+            uint8 decimals = getDecimals(thisChainTokenAddress);
+            uint256 denormalizedAmount = transfer.amount;
+            if(decimals > 8) denormalizedAmount *= uint256(10) ** (decimals - 8);
+            
+            receivedTokens[i] = TokenReceived({
+                tokenHomeAddress: transfer.tokenAddress,
+                tokenHomeChain: transfer.tokenChain,
+                tokenAddress: thisChainTokenAddress,
+                amount: denormalizedAmount,
+                amountNormalized: transfer.amount
+            });
         }
         
         // call into overriden method 
-        receivePayloadAndTokens(payload, transfers, sourceAddress, sourceChain, deliveryHash);
+        receivePayloadAndTokens(payload, receivedTokens, sourceAddress, sourceChain, deliveryHash);
     }
 
     function receivePayloadAndTokens(
         bytes memory payload,
-        ITokenBridge.TransferWithPayload[] memory transfers,
+        TokenReceived[] memory receivedTokens,
         bytes32 sourceAddress,
         uint16 sourceChain,
         bytes32 deliveryHash
     ) internal virtual {}
-
-    function receivePayload(
-        bytes memory payload,
-        bytes32 sourceAddress,
-        uint16 sourceChain,
-        bytes32 deliveryHash
-    ) internal virtual {}
+    
 }
