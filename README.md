@@ -6,7 +6,7 @@ The purpose of this SDK is to provide helpers to take your existing single-chain
 
 **Foundry and Forge**
 ```bash
-forge install wormhole-foundation/wormhole-relayer-solidity-sdk
+forge install wormhole-foundation/wormhole-solidity-sdk
 ```
 
 ### Example Usage
