@@ -41,23 +41,20 @@ interface ITokenBridge {
         bytes32 module;
         uint8 action;
         uint16 chainId;
-
         uint16 emitterChainID;
         bytes32 emitterAddress;
     }
 
-     struct UpgradeContract {
+    struct UpgradeContract {
         bytes32 module;
         uint8 action;
         uint16 chainId;
-
         bytes32 newContract;
     }
 
     struct RecoverChainId {
         bytes32 module;
         uint8 action;
-
         uint256 evmChainId;
         uint16 newChainId;
     }
@@ -68,13 +65,33 @@ interface ITokenBridge {
 
     function attestToken(address tokenAddress, uint32 nonce) external payable returns (uint64 sequence);
 
-    function wrapAndTransferETH(uint16 recipientChain, bytes32 recipient, uint256 arbiterFee, uint32 nonce) external payable returns (uint64 sequence);
+    function wrapAndTransferETH(uint16 recipientChain, bytes32 recipient, uint256 arbiterFee, uint32 nonce)
+        external
+        payable
+        returns (uint64 sequence);
 
-    function wrapAndTransferETHWithPayload(uint16 recipientChain, bytes32 recipient, uint32 nonce, bytes memory payload) external payable returns (uint64 sequence);
+    function wrapAndTransferETHWithPayload(uint16 recipientChain, bytes32 recipient, uint32 nonce, bytes memory payload)
+        external
+        payable
+        returns (uint64 sequence);
 
-    function transferTokens(address token, uint256 amount, uint16 recipientChain, bytes32 recipient, uint256 arbiterFee, uint32 nonce) external payable returns (uint64 sequence);
+    function transferTokens(
+        address token,
+        uint256 amount,
+        uint16 recipientChain,
+        bytes32 recipient,
+        uint256 arbiterFee,
+        uint32 nonce
+    ) external payable returns (uint64 sequence);
 
-    function transferTokensWithPayload(address token, uint256 amount, uint16 recipientChain, bytes32 recipient, uint32 nonce, bytes memory payload) external payable returns (uint64 sequence);
+    function transferTokensWithPayload(
+        address token,
+        uint256 amount,
+        uint16 recipientChain,
+        bytes32 recipient,
+        uint32 nonce,
+        bytes memory payload
+    ) external payable returns (uint64 sequence);
 
     function updateWrapped(bytes memory encodedVm) external returns (address token);
 
@@ -92,7 +109,10 @@ interface ITokenBridge {
 
     function encodeTransfer(Transfer memory transfer) external pure returns (bytes memory encoded);
 
-    function encodeTransferWithPayload(TransferWithPayload memory transfer) external pure returns (bytes memory encoded);
+    function encodeTransferWithPayload(TransferWithPayload memory transfer)
+        external
+        pure
+        returns (bytes memory encoded);
 
     function parsePayloadID(bytes memory encoded) external pure returns (uint8 payloadID);
 
@@ -100,7 +120,10 @@ interface ITokenBridge {
 
     function parseTransfer(bytes memory encoded) external pure returns (Transfer memory transfer);
 
-    function parseTransferWithPayload(bytes memory encoded) external pure returns (TransferWithPayload memory transfer);
+    function parseTransferWithPayload(bytes memory encoded)
+        external
+        pure
+        returns (TransferWithPayload memory transfer);
 
     function governanceActionIsConsumed(bytes32 hash) external view returns (bool);
 
@@ -148,5 +171,8 @@ interface ITokenBridge {
 
     function parseUpgrade(bytes memory encoded) external pure returns (UpgradeContract memory chain);
 
-    function parseRecoverChainId(bytes memory encodedRecoverChainId) external pure returns (RecoverChainId memory rci);
+    function parseRecoverChainId(bytes memory encodedRecoverChainId)
+        external
+        pure
+        returns (RecoverChainId memory rci);
 }

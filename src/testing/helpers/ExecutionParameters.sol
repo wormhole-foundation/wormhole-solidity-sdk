@@ -28,31 +28,19 @@ struct EvmExecutionInfoV1 {
     uint256 targetChainRefundPerGasUnused;
 }
 
-function decodeExecutionParamsVersion(bytes memory data)
-    pure
-    returns (ExecutionParamsVersion version)
-{
+function decodeExecutionParamsVersion(bytes memory data) pure returns (ExecutionParamsVersion version) {
     (version) = abi.decode(data, (ExecutionParamsVersion));
 }
 
-function decodeExecutionInfoVersion(bytes memory data)
-    pure
-    returns (ExecutionInfoVersion version)
-{
+function decodeExecutionInfoVersion(bytes memory data) pure returns (ExecutionInfoVersion version) {
     (version) = abi.decode(data, (ExecutionInfoVersion));
 }
 
-function encodeEvmExecutionParamsV1(EvmExecutionParamsV1 memory executionParams)
-    pure
-    returns (bytes memory)
-{
+function encodeEvmExecutionParamsV1(EvmExecutionParamsV1 memory executionParams) pure returns (bytes memory) {
     return abi.encode(uint8(ExecutionParamsVersion.EVM_V1), executionParams.gasLimit);
 }
 
-function decodeEvmExecutionParamsV1(bytes memory data)
-    pure
-    returns (EvmExecutionParamsV1 memory executionParams)
-{
+function decodeEvmExecutionParamsV1(bytes memory data) pure returns (EvmExecutionParamsV1 memory executionParams) {
     uint8 version;
     (version, executionParams.gasLimit) = abi.decode(data, (uint8, uint256));
 
@@ -61,21 +49,13 @@ function decodeEvmExecutionParamsV1(bytes memory data)
     }
 }
 
-function encodeEvmExecutionInfoV1(EvmExecutionInfoV1 memory executionInfo)
-    pure
-    returns (bytes memory)
-{
+function encodeEvmExecutionInfoV1(EvmExecutionInfoV1 memory executionInfo) pure returns (bytes memory) {
     return abi.encode(
-        uint8(ExecutionInfoVersion.EVM_V1),
-        executionInfo.gasLimit,
-        executionInfo.targetChainRefundPerGasUnused
+        uint8(ExecutionInfoVersion.EVM_V1), executionInfo.gasLimit, executionInfo.targetChainRefundPerGasUnused
     );
 }
 
-function decodeEvmExecutionInfoV1(bytes memory data)
-    pure
-    returns (EvmExecutionInfoV1 memory executionInfo)
-{
+function decodeEvmExecutionInfoV1(bytes memory data) pure returns (EvmExecutionInfoV1 memory executionInfo) {
     uint8 version;
     (version, executionInfo.gasLimit, executionInfo.targetChainRefundPerGasUnused) =
         abi.decode(data, (uint8, uint256, uint256));
@@ -85,10 +65,6 @@ function decodeEvmExecutionInfoV1(bytes memory data)
     }
 }
 
-function getEmptyEvmExecutionParamsV1()
-    pure
-    returns (EvmExecutionParamsV1 memory executionParams)
-{
+function getEmptyEvmExecutionParamsV1() pure returns (EvmExecutionParamsV1 memory executionParams) {
     executionParams.gasLimit = 0;
 }
-

@@ -8,7 +8,8 @@ function toWormholeFormat(address addr) pure returns (bytes32) {
 }
 
 function fromWormholeFormat(bytes32 whFormatAddress) pure returns (address) {
-    if (uint256(whFormatAddress) >> 160 != 0)
+    if (uint256(whFormatAddress) >> 160 != 0) {
         revert NotAnEvmAddress(whFormatAddress);
+    }
     return address(uint160(uint256(whFormatAddress)));
 }

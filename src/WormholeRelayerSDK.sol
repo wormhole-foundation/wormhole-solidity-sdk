@@ -63,17 +63,22 @@ abstract contract TokenBase is Base {
 
     function getDecimals(address tokenAddress) internal view returns (uint8 decimals) {
         // query decimals
-        (,bytes memory queriedDecimals) = address(tokenAddress).staticcall(abi.encodeWithSignature("decimals()"));
+        (, bytes memory queriedDecimals) = address(tokenAddress).staticcall(abi.encodeWithSignature("decimals()"));
         decimals = abi.decode(queriedDecimals, (uint8));
     }
 
-    function getTokenAddressOnThisChain(uint16 tokenHomeChain, bytes32 tokenHomeAddress) internal view returns (address tokenAddressOnThisChain) {
-        return tokenHomeChain == wormhole.chainId() ? fromWormholeFormat(tokenHomeAddress) : tokenBridge.wrappedAsset(tokenHomeChain, tokenHomeAddress);
+    function getTokenAddressOnThisChain(uint16 tokenHomeChain, bytes32 tokenHomeAddress)
+        internal
+        view
+        returns (address tokenAddressOnThisChain)
+    {
+        return tokenHomeChain == wormhole.chainId()
+            ? fromWormholeFormat(tokenHomeAddress)
+            : tokenBridge.wrappedAsset(tokenHomeChain, tokenHomeAddress);
     }
 }
 
 abstract contract TokenSender is TokenBase {
-
     /**
      * transferTokens wraps common boilerplate for sending tokens to another chain using IWormholeRelayer
      * - approves tokenBridge to spend 'amount' of 'token'
@@ -94,13 +99,13 @@ abstract contract TokenSender is TokenBase {
 
     /**
      * transferTokens wraps common boilerplate for sending tokens to another chain using IWormholeRelayer.
-     * A payload can be included in the transfer vaa. By including a payload here instead of the deliveryVaa, 
+     * A payload can be included in the transfer vaa. By including a payload here instead of the deliveryVaa,
      * fewer trust assumptions are placed on the WormholeRelayer contract.
-     * 
+     *
      * - approves tokenBridge to spend 'amount' of 'token'
-     * - emits token transfer VAA 
+     * - emits token transfer VAA
      * - returns VAA key for inclusion in WormholeRelayer `additionalVaas` argument
-     * 
+     *
      * Note: this function uses transferTokensWithPayload instead of transferTokens since the former requires that only the targetAddress
      *       can redeem transfers. Otherwise it's possible for another address to redeem the transfer before the targetContract is invoked by
      *       the offchain relayer and the target contract would have to be hardened against this.
@@ -137,12 +142,7 @@ abstract contract TokenSender is TokenBase {
         vaaKeys[0] = transferTokens(token, amount, targetChain, targetAddress);
 
         return wormholeRelayer.sendVaasToEvm{value: cost}(
-            targetChain,
-            targetAddress,
-            payload,
-            receiverValue,
-            gasLimit,
-            vaaKeys
+            targetChain, targetAddress, payload, receiverValue, gasLimit, vaaKeys
         );
     }
 
@@ -160,24 +160,18 @@ abstract contract TokenSender is TokenBase {
         vaaKeys[0] = transferTokens(token, amount, targetChain, targetAddress);
 
         wormholeRelayer.forwardVaasToEvm{value: forwardMsgValue}(
-            targetChain,
-            targetAddress,
-            payload,
-            receiverValue,
-            gasLimit,
-            vaaKeys
+            targetChain, targetAddress, payload, receiverValue, gasLimit, vaaKeys
         );
     }
 }
 
 abstract contract TokenReceiver is TokenBase {
-
     struct TokenReceived {
         bytes32 tokenHomeAddress;
         uint16 tokenHomeChain;
         address tokenAddress; // wrapped address if tokenHomeChain !== this chain, else tokenHomeAddress (in evm address format)
         uint256 amount;
-        uint256 amountNormalized; // if decimals > 8, normalized to 8 decimal places 
+        uint256 amountNormalized; // if decimals > 8, normalized to 8 decimal places
     }
 
     function receiveWormholeMessages(
@@ -187,22 +181,26 @@ abstract contract TokenReceiver is TokenBase {
         uint16 sourceChain,
         bytes32 deliveryHash
     ) external payable {
-        TokenReceived[] memory receivedTokens =
-            new TokenReceived[](additionalVaas.length);
+        TokenReceived[] memory receivedTokens = new TokenReceived[](additionalVaas.length);
 
         for (uint256 i = 0; i < additionalVaas.length; ++i) {
             IWormhole.VM memory parsed = wormhole.parseVM(additionalVaas[i]);
-            require (parsed.emitterAddress == tokenBridge.bridgeContracts(parsed.emitterChainId), "Not a Token Bridge VAA");
+            require(
+                parsed.emitterAddress == tokenBridge.bridgeContracts(parsed.emitterChainId), "Not a Token Bridge VAA"
+            );
             ITokenBridge.TransferWithPayload memory transfer = tokenBridge.parseTransferWithPayload(parsed.payload);
-            require (transfer.to == toWormholeFormat(address(this)) && transfer.toChain == wormhole.chainId(), "Token was not sent to this address");   
+            require(
+                transfer.to == toWormholeFormat(address(this)) && transfer.toChain == wormhole.chainId(),
+                "Token was not sent to this address"
+            );
 
             tokenBridge.completeTransferWithPayload(additionalVaas[i]);
 
             address thisChainTokenAddress = getTokenAddressOnThisChain(transfer.tokenChain, transfer.tokenAddress);
             uint8 decimals = getDecimals(thisChainTokenAddress);
             uint256 denormalizedAmount = transfer.amount;
-            if(decimals > 8) denormalizedAmount *= uint256(10) ** (decimals - 8);
-            
+            if (decimals > 8) denormalizedAmount *= uint256(10) ** (decimals - 8);
+
             receivedTokens[i] = TokenReceived({
                 tokenHomeAddress: transfer.tokenAddress,
                 tokenHomeChain: transfer.tokenChain,
@@ -211,8 +209,8 @@ abstract contract TokenReceiver is TokenBase {
                 amountNormalized: transfer.amount
             });
         }
-        
-        // call into overriden method 
+
+        // call into overriden method
         receivePayloadAndTokens(payload, receivedTokens, sourceAddress, sourceChain, deliveryHash);
     }
 
@@ -223,5 +221,4 @@ abstract contract TokenReceiver is TokenBase {
         uint16 sourceChain,
         bytes32 deliveryHash
     ) internal virtual {}
-
 }

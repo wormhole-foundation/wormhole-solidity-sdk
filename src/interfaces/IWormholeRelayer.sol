@@ -16,9 +16,7 @@ struct VaaKey {
 }
 
 interface IWormholeRelayerBase {
-    event SendEvent(
-        uint64 indexed sequence, uint256 deliveryQuote, uint256 paymentForExtraReceiverValue
-    );
+    event SendEvent(uint64 indexed sequence, uint256 deliveryQuote, uint256 paymentForExtraReceiverValue);
 
     function getRegisteredWormholeRelayerContract(uint16 chainId) external view returns (bytes32);
 }
@@ -29,7 +27,6 @@ interface IWormholeRelayerBase {
  *   relayed to destination contract(s) of their choice.
  */
 interface IWormholeRelayerSend is IWormholeRelayerBase {
-
     function sendPayloadToEvm(
         uint16 targetChain,
         address targetAddress,
@@ -67,7 +64,6 @@ interface IWormholeRelayerSend is IWormholeRelayerBase {
         uint16 refundChain,
         address refundAddress
     ) external payable returns (uint64 sequence);
-
 
     function sendToEvm(
         uint16 targetChain,
@@ -158,11 +154,10 @@ interface IWormholeRelayerSend is IWormholeRelayerBase {
         address newDeliveryProviderAddress
     ) external payable returns (uint64 sequence);
 
-    function quoteEVMDeliveryPrice(
-        uint16 targetChain,
-        uint256 receiverValue,
-        uint256 gasLimit
-    ) external view returns (uint256 nativePriceQuote, uint256 targetChainRefundPerGasUnused);
+    function quoteEVMDeliveryPrice(uint16 targetChain, uint256 receiverValue, uint256 gasLimit)
+        external
+        view
+        returns (uint256 nativePriceQuote, uint256 targetChainRefundPerGasUnused);
 
     function quoteEVMDeliveryPrice(
         uint16 targetChain,
@@ -178,11 +173,10 @@ interface IWormholeRelayerSend is IWormholeRelayerBase {
         address deliveryProviderAddress
     ) external view returns (uint256 nativePriceQuote, bytes memory encodedExecutionInfo);
 
-    function quoteNativeForChain(
-        uint16 targetChain,
-        uint256 currentChainAmount,
-        address deliveryProviderAddress
-    ) external view returns (uint256 targetChainAmount);
+    function quoteNativeForChain(uint16 targetChain, uint256 currentChainAmount, address deliveryProviderAddress)
+        external
+        view
+        returns (uint256 targetChainAmount);
 
     /**
      * @notice Returns the address of the current default delivery provider

@@ -13,11 +13,10 @@ import "../src/Utils.sol";
 
 import "forge-std/console.sol";
 
-
 contract Toy is Base {
     IWormholeRelayer relayer;
 
-    uint public payloadReceived;
+    uint256 public payloadReceived;
 
     constructor(address _wormholeRelayer) Base(_wormholeRelayer) {}
 
@@ -27,12 +26,8 @@ contract Toy is Base {
         bytes32 sourceAddress,
         uint16 sourceChain,
         bytes32 deliveryHash
-    ) public payable 
-        onlyWormholeRelayer
-        replayProtect(deliveryHash)
-        isRegisteredSender(sourceChain, sourceAddress)
-    {
-        payloadReceived = abi.decode(payload, (uint));
+    ) public payable onlyWormholeRelayer replayProtect(deliveryHash) isRegisteredSender(sourceChain, sourceAddress) {
+        payloadReceived = abi.decode(payload, (uint256));
 
         console.log("Toy received message");
         console.log("Payload", payloadReceived);
@@ -41,7 +36,6 @@ contract Toy is Base {
 }
 
 contract WormholeSDKTest is WormholeRelayerTest {
-
     Toy toySource;
     Toy toyTarget;
 
@@ -57,18 +51,8 @@ contract WormholeSDKTest is WormholeRelayerTest {
 
     function testSendMessage() public {
         vm.recordLogs();
-        (uint cost, ) = relayerSource.quoteEVMDeliveryPrice(
-            targetChain,
-            1e17,
-            100_000
-        );
-        relayerSource.sendPayloadToEvm{value: cost}(
-            targetChain,
-            address(toyTarget),
-            abi.encode(55),
-            1e17,
-            100_000
-        );
+        (uint256 cost,) = relayerSource.quoteEVMDeliveryPrice(targetChain, 1e17, 100_000);
+        relayerSource.sendPayloadToEvm{value: cost}(targetChain, address(toyTarget), abi.encode(55), 1e17, 100_000);
         performDelivery();
 
         vm.selectFork(targetFork);
@@ -76,27 +60,14 @@ contract WormholeSDKTest is WormholeRelayerTest {
     }
 
     function testSendMessageSource() public {
-        
         vm.selectFork(targetFork);
         vm.recordLogs();
 
-        (uint cost, ) = relayerTarget.quoteEVMDeliveryPrice(
-            sourceChain,
-            1e17,
-            100_000
-        );
-        relayerTarget.sendPayloadToEvm{value: cost}(
-            sourceChain,
-            address(toySource),
-            abi.encode(56),
-            1e17,
-            100_000
-        );
+        (uint256 cost,) = relayerTarget.quoteEVMDeliveryPrice(sourceChain, 1e17, 100_000);
+        relayerTarget.sendPayloadToEvm{value: cost}(sourceChain, address(toySource), abi.encode(56), 1e17, 100_000);
         performDelivery();
 
         vm.selectFork(sourceFork);
         require(56 == toySource.payloadReceived());
-
-
     }
 }

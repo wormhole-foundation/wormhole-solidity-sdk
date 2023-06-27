@@ -43,9 +43,7 @@ struct DeliveryOverride {
     bytes32 redeliveryHash;
 }
 
-function decodeDeliveryInstruction(
-    bytes memory encoded
-) pure returns (DeliveryInstruction memory strct) {
+function decodeDeliveryInstruction(bytes memory encoded) pure returns (DeliveryInstruction memory strct) {
     uint256 offset = checkUint8(encoded, 0, PAYLOAD_ID_DELIVERY_INSTRUCTION);
 
     uint256 requestedReceiverValue;
@@ -70,32 +68,27 @@ function decodeDeliveryInstruction(
     checkLength(encoded, offset);
 }
 
-function decodeRedeliveryInstruction(bytes memory encoded)
-        pure
-        returns (RedeliveryInstruction memory strct)
-    {
-        uint256 offset = checkUint8(encoded, 0, PAYLOAD_ID_REDELIVERY_INSTRUCTION);
+function decodeRedeliveryInstruction(bytes memory encoded) pure returns (RedeliveryInstruction memory strct) {
+    uint256 offset = checkUint8(encoded, 0, PAYLOAD_ID_REDELIVERY_INSTRUCTION);
 
-        uint256 newRequestedReceiverValue;
+    uint256 newRequestedReceiverValue;
 
-        (strct.deliveryVaaKey, offset) = decodeVaaKey(encoded, offset);
-        (strct.targetChain, offset) = encoded.asUint16Unchecked(offset);
-        (newRequestedReceiverValue, offset) = encoded.asUint256Unchecked(offset);
-        (strct.newEncodedExecutionInfo, offset) = decodeBytes(encoded, offset);
-        (strct.newSourceDeliveryProvider, offset) = encoded.asBytes32Unchecked(offset);
-        (strct.newSenderAddress, offset) = encoded.asBytes32Unchecked(offset);
+    (strct.deliveryVaaKey, offset) = decodeVaaKey(encoded, offset);
+    (strct.targetChain, offset) = encoded.asUint16Unchecked(offset);
+    (newRequestedReceiverValue, offset) = encoded.asUint256Unchecked(offset);
+    (strct.newEncodedExecutionInfo, offset) = decodeBytes(encoded, offset);
+    (strct.newSourceDeliveryProvider, offset) = encoded.asBytes32Unchecked(offset);
+    (strct.newSenderAddress, offset) = encoded.asBytes32Unchecked(offset);
 
-        strct.newRequestedReceiverValue = newRequestedReceiverValue;
+    strct.newRequestedReceiverValue = newRequestedReceiverValue;
 
-        checkLength(encoded, offset);
-    }
+    checkLength(encoded, offset);
+}
 
-function encodeVaaKeyArray(
-    VaaKey[] memory vaaKeys
-) pure returns (bytes memory encoded) {
+function encodeVaaKeyArray(VaaKey[] memory vaaKeys) pure returns (bytes memory encoded) {
     assert(vaaKeys.length < type(uint8).max);
     encoded = abi.encodePacked(uint8(vaaKeys.length));
-    for (uint256 i = 0; i < vaaKeys.length; ) {
+    for (uint256 i = 0; i < vaaKeys.length;) {
         encoded = abi.encodePacked(encoded, encodeVaaKey(vaaKeys[i]));
         unchecked {
             ++i;
@@ -103,14 +96,14 @@ function encodeVaaKeyArray(
     }
 }
 
-function decodeVaaKeyArray(
-    bytes memory encoded,
-    uint256 startOffset
-) pure returns (VaaKey[] memory vaaKeys, uint256 offset) {
+function decodeVaaKeyArray(bytes memory encoded, uint256 startOffset)
+    pure
+    returns (VaaKey[] memory vaaKeys, uint256 offset)
+{
     uint8 vaaKeysLength;
     (vaaKeysLength, offset) = encoded.asUint8Unchecked(startOffset);
     vaaKeys = new VaaKey[](vaaKeysLength);
-    for (uint256 i = 0; i < vaaKeys.length; ) {
+    for (uint256 i = 0; i < vaaKeys.length;) {
         (vaaKeys[i], offset) = decodeVaaKey(encoded, offset);
         unchecked {
             ++i;
@@ -118,22 +111,11 @@ function decodeVaaKeyArray(
     }
 }
 
-function encodeVaaKey(
-    VaaKey memory vaaKey
-) pure returns (bytes memory encoded) {
-    encoded = abi.encodePacked(
-        encoded,
-        VERSION_VAAKEY,
-        vaaKey.chainId,
-        vaaKey.emitterAddress,
-        vaaKey.sequence
-    );
+function encodeVaaKey(VaaKey memory vaaKey) pure returns (bytes memory encoded) {
+    encoded = abi.encodePacked(encoded, VERSION_VAAKEY, vaaKey.chainId, vaaKey.emitterAddress, vaaKey.sequence);
 }
 
-function decodeVaaKey(
-    bytes memory encoded,
-    uint256 startOffset
-) pure returns (VaaKey memory vaaKey, uint256 offset) {
+function decodeVaaKey(bytes memory encoded, uint256 startOffset) pure returns (VaaKey memory vaaKey, uint256 offset) {
     offset = checkUint8(encoded, startOffset, VERSION_VAAKEY);
     (vaaKey.chainId, offset) = encoded.asUint16Unchecked(offset);
     (vaaKey.emitterAddress, offset) = encoded.asBytes32Unchecked(offset);
@@ -146,20 +128,13 @@ function encodeBytes(bytes memory payload) pure returns (bytes memory encoded) {
     encoded = abi.encodePacked(uint32(payload.length), payload);
 }
 
-function decodeBytes(
-    bytes memory encoded,
-    uint256 startOffset
-) pure returns (bytes memory payload, uint256 offset) {
+function decodeBytes(bytes memory encoded, uint256 startOffset) pure returns (bytes memory payload, uint256 offset) {
     uint32 payloadLength;
     (payloadLength, offset) = encoded.asUint32Unchecked(startOffset);
     (payload, offset) = encoded.sliceUnchecked(offset, payloadLength);
 }
 
-function checkUint8(
-    bytes memory encoded,
-    uint256 startOffset,
-    uint8 expectedPayloadId
-) pure returns (uint256 offset) {
+function checkUint8(bytes memory encoded, uint256 startOffset, uint8 expectedPayloadId) pure returns (uint256 offset) {
     uint8 parsedPayloadId;
     (parsedPayloadId, offset) = encoded.asUint8Unchecked(startOffset);
     if (parsedPayloadId != expectedPayloadId) {
@@ -173,12 +148,8 @@ function checkLength(bytes memory encoded, uint256 expected) pure {
     }
 }
 
-
 function encode(DeliveryOverride memory strct) pure returns (bytes memory encoded) {
-        encoded = abi.encodePacked(
-            VERSION_DELIVERY_OVERRIDE,
-            strct.newReceiverValue,
-            encodeBytes(strct.newExecutionInfo),
-            strct.redeliveryHash
-        );
+    encoded = abi.encodePacked(
+        VERSION_DELIVERY_OVERRIDE, strct.newReceiverValue, encodeBytes(strct.newExecutionInfo), strct.redeliveryHash
+    );
 }
