@@ -18,7 +18,7 @@ contract Toy is Base {
 
     uint256 public payloadReceived;
 
-    constructor(address _wormholeRelayer) Base(_wormholeRelayer) {}
+    constructor(address _wormholeRelayer, address _wormhole) Base(_wormholeRelayer, _wormhole) {}
 
     function receiveWormholeMessages(
         bytes memory payload,
@@ -40,12 +40,12 @@ contract WormholeSDKTest is WormholeRelayerTest {
     Toy toyTarget;
 
     function setUpSource() public override {
-        toySource = new Toy(address(relayerSource));
+        toySource = new Toy(address(relayerSource), address(wormholeSource));
         toySource.setRegisteredSender(targetChain, toWormholeFormat(address(this)));
     }
 
     function setUpTarget() public override {
-        toyTarget = new Toy(address(relayerTarget));
+        toyTarget = new Toy(address(relayerTarget), address(wormholeTarget));
         toyTarget.setRegisteredSender(sourceChain, toWormholeFormat(address(this)));
     }
 

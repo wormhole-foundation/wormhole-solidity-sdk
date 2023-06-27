@@ -12,14 +12,16 @@ import "forge-std/console.sol";
 
 abstract contract Base {
     IWormholeRelayer public immutable wormholeRelayer;
+    IWormhole public immutable wormhole;
 
     mapping(bytes32 => bool) seenDeliveryVaaHashes;
 
     address owner;
     mapping(uint16 => bytes32) registeredSenders;
 
-    constructor(address _wormholeRelayer) {
+    constructor(address _wormholeRelayer, address _wormhole) {
         wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
+        wormhole = IWormhole(_wormhole);
         owner = msg.sender;
     }
 
@@ -54,11 +56,9 @@ abstract contract Base {
 
 abstract contract TokenBase is Base {
     ITokenBridge public immutable tokenBridge;
-    IWormhole public immutable wormhole;
 
-    constructor(address _wormholeRelayer, address _tokenBridge, address _wormhole) Base(_wormholeRelayer) {
+    constructor(address _wormholeRelayer, address _tokenBridge, address _wormhole) Base(_wormholeRelayer, _wormhole) {
         tokenBridge = ITokenBridge(_tokenBridge);
-        wormhole = IWormhole(_wormhole);
     }
 
     function getDecimals(address tokenAddress) internal view returns (uint8 decimals) {
