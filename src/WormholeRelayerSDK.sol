@@ -16,13 +16,13 @@ abstract contract Base {
 
     mapping(bytes32 => bool) seenDeliveryVaaHashes;
 
-    address owner;
+    address registrationOwner;
     mapping(uint16 => bytes32) registeredSenders;
 
     constructor(address _wormholeRelayer, address _wormhole) {
         wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
         wormhole = IWormhole(_wormhole);
-        owner = msg.sender;
+        registrationOwner = msg.sender;
     }
 
     modifier onlyWormholeRelayer() {
@@ -49,7 +49,7 @@ abstract contract Base {
      * Sender is the address that called 'send' on the Wormhole Relayer contract on the source chain)
      */
     function setRegisteredSender(uint16 sourceChain, bytes32 sourceAddress) public {
-        require(msg.sender == owner, "Not allowed to set registered sender");
+        require(msg.sender == registrationOwner, "Not allowed to set registered sender");
         registeredSenders[sourceChain] = sourceAddress;
     }
 }
