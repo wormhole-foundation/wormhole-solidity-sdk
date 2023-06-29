@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import "./interfaces/IWormholeReceiver.sol";
 import "./interfaces/IWormholeRelayer.sol";
 import "./interfaces/ITokenBridge.sol";
-import "./interfaces/IERC20.sol";
+import {IERC20} from "./interfaces/IERC20.sol";
 
 import "./Utils.sol";
 
@@ -134,13 +134,13 @@ abstract contract TokenSender is TokenBase {
         bytes memory payload,
         uint256 receiverValue,
         uint256 gasLimit,
-        uint256 cost,
         address token,
         uint256 amount
     ) internal returns (uint64) {
         VaaKey[] memory vaaKeys = new VaaKey[](1);
         vaaKeys[0] = transferTokens(token, amount, targetChain, targetAddress);
 
+        (uint256 cost,) = wormholeRelayer.quoteEVMDeliveryPrice(targetChain, receiverValue, gasLimit);
         return wormholeRelayer.sendVaasToEvm{value: cost}(
             targetChain, targetAddress, payload, receiverValue, gasLimit, vaaKeys
         );
