@@ -22,7 +22,7 @@ interface IWormholeReceiver {
      * The invocation of this function corresponding to the `send` request will have msg.value equal
      *   to the receiverValue specified in the send request.
      *
-     * If the invocation of this function reverts or exceeds the gas limit 
+     * If the invocation of this function reverts or exceeds the gas limit
      *   specified by the send requester, this delivery will result in a `ReceiverFailure`.
      *
      * @param payload - an arbitrary message which was included in the delivery by the
