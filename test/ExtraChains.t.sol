@@ -14,11 +14,8 @@ import "../src/Utils.sol";
 import "forge-std/console.sol";
 import {Toy} from "./Fork.t.sol";
 
-contract ChooseChainsTest is WormholeRelayerTest {
-    Toy toyBSC;
-    Toy toyPolygon;
-    Toy toyAvax;
-    Toy toyCelo;
+contract ExtraChainsTest is WormholeRelayerTest {
+    mapping(uint16 => Toy) toys;
 
     constructor() WormholeRelayerTest() {
         ChainInfo[] memory chains = new ChainInfo[](4);
@@ -29,61 +26,31 @@ contract ChooseChainsTest is WormholeRelayerTest {
         setActiveForks(chains);
     }
 
-    function setUpSource() public override {
-        require(wormholeSource.chainId() == 4);
-        toyBSC = new Toy(address(relayerSource), address(wormholeSource));
-        toyBSC.setRegisteredSender(targetChain, toWormholeFormat(address(this)));
+    function setUpFork(ActiveFork memory fork) public override {
+        toys[fork.chainId] = new Toy(address(fork.relayer), address(fork.wormhole));
+        toys[fork.chainId].setRegisteredSender(4, toWormholeFormat(address(this)));
+        toys[fork.chainId].setRegisteredSender(5, toWormholeFormat(address(this)));
+        toys[fork.chainId].setRegisteredSender(6, toWormholeFormat(address(this)));
+        toys[fork.chainId].setRegisteredSender(14, toWormholeFormat(address(this)));
     }
 
-    function setUpTarget() public override {
-        require(wormholeTarget.chainId() == 5);
-        toyPolygon = new Toy(address(relayerTarget), address(wormholeTarget));
-        toyPolygon.setRegisteredSender(sourceChain, toWormholeFormat(address(this)));
-    }
-
-    function setUpOther(ActiveFork memory fork) public override {
-        if (fork.chainId == 6) {
-            toyAvax = new Toy(address(fork.relayer), address(fork.wormhole));
-            toyAvax.setRegisteredSender(14, toWormholeFormat(address(this)));
-        } else if (fork.chainId == 14) {
-            toyCelo = new Toy(address(fork.relayer), address(fork.wormhole));
-            toyCelo.setRegisteredSender(6, toWormholeFormat(address(this)));
-        }
-    }
-
-    function testSendMessage() public {
-        vm.recordLogs();
-        (uint256 cost,) = relayerSource.quoteEVMDeliveryPrice(targetChain, 1e17, 100_000);
-        relayerSource.sendPayloadToEvm{value: cost}(targetChain, address(toyPolygon), abi.encode(55), 1e17, 100_000);
-        performDelivery();
-
-        vm.selectFork(targetFork);
-        require(55 == toyPolygon.payloadReceived());
-    }
-
-    function testSendMessageSource() public {
-        vm.selectFork(targetFork);
-        vm.recordLogs();
-
-        (uint256 cost,) = relayerTarget.quoteEVMDeliveryPrice(sourceChain, 1e17, 100_000);
-        relayerTarget.sendPayloadToEvm{value: cost}(sourceChain, address(toyBSC), abi.encode(56), 1e17, 100_000);
-        performDelivery();
-
-        vm.selectFork(sourceFork);
-        require(56 == toyBSC.payloadReceived());
-    }
-
-    function testSendMessageOthers() public {
-        ActiveFork memory avax = activeForks[6];
+    function testSendFromCelo() public {
         ActiveFork memory celo = activeForks[14];
-        vm.selectFork(celo.fork);
-        vm.recordLogs();
 
-        (uint256 cost,) = celo.relayer.quoteEVMDeliveryPrice(avax.chainId, 1e17, 100_000);
-        celo.relayer.sendPayloadToEvm{value: cost}(avax.chainId, address(toyAvax), abi.encode(56), 1e17, 100_000);
-        performDelivery();
+        for (uint16 i = 4; i < 7; ++i) {
+            vm.selectFork(celo.fork);
+            vm.recordLogs();
+            ActiveFork memory target = activeForks[i];
 
-        vm.selectFork(avax.fork);
-        require(56 == toyAvax.payloadReceived());
+            (uint256 cost,) = celo.relayer.quoteEVMDeliveryPrice(target.chainId, 1e17, 100_000);
+
+            celo.relayer.sendPayloadToEvm{value: cost}(
+                target.chainId, address(toys[target.chainId]), abi.encode(56), 1e17, 100_000
+            );
+            performDelivery();
+
+            vm.selectFork(target.fork);
+            require(56 == toys[target.chainId].payloadReceived());
+        }
     }
 }

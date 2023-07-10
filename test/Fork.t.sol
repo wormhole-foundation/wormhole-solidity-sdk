@@ -35,7 +35,7 @@ contract Toy is Base {
     }
 }
 
-contract WormholeSDKTest is WormholeRelayerTest {
+contract WormholeSDKTest is WormholeRelayerBasicTest {
     Toy toySource;
     Toy toyTarget;
 

@@ -37,20 +37,9 @@ struct ActiveFork {
 
 abstract contract WormholeRelayerTest is Test {
     /**
-     * @dev virtual function to initialize source chain before each test
+     * @dev virtual function to initialize active forks before each test
      */
-    function setUpSource() public virtual;
-
-    /**
-     * @dev virtual function to initialize target chain before each test
-     */
-    function setUpTarget() public virtual;
-
-    /**
-     * @dev virtual function to initialize other active forks before each test
-     * Note: not called for source/target forks
-     */
-    function setUpOther(ActiveFork memory fork) public virtual {}
+    function setUpFork(ActiveFork memory fork) public virtual;
 
     uint256 constant DEVNET_GUARDIAN_PK = 0xcfb12303a19cde580bb4dd771639b0d26bc68353645571a8cff516ab2ee113a0;
 
@@ -64,40 +53,17 @@ abstract contract WormholeRelayerTest is Test {
 
     MockOffchainRelayer public mockOffchainRelayer;
 
-    /* 
-     * aliases for activeForks
-     */
-
-    ChainInfo public sourceChainInfo;
-    ChainInfo public targetChainInfo;
-
-    uint16 public sourceChain;
-    uint16 public targetChain;
-
-    uint256 public sourceFork;
-    uint256 public targetFork;
-
-    IWormholeRelayer public relayerSource;
-    ITokenBridge public tokenBridgeSource;
-    IWormhole public wormholeSource;
-
-    IWormholeRelayer public relayerTarget;
-    ITokenBridge public tokenBridgeTarget;
-    IWormhole public wormholeTarget;
-
-    WormholeSimulator public guardianSource;
-    WormholeSimulator public guardianTarget;
-
-    /* 
-     * end activeForks aliases 
-     */
-
     constructor() {
         initChainInfo();
-        setTestnetForkChains(6, 14);
+
+        // set default active forks. These can be overridden in your test
+        ChainInfo[] memory forks = new ChainInfo[](2);
+        forks[0] = chainInfosTestnet[6]; // fuji avax
+        forks[1] = chainInfosTestnet[14]; // alfajores celo
+        setActiveForks(forks);
     }
 
-    function setActiveForks(ChainInfo[] memory chainInfos) public {
+    function _setActiveForks(ChainInfo[] memory chainInfos) internal virtual {
         if (chainInfos.length < 2) {
             console.log("setActiveForks: 2 or more forks must be specified");
             revert("setActiveForks: 2 or more forks must be specified");
@@ -117,34 +83,17 @@ abstract contract WormholeRelayerTest is Test {
                 guardian: WormholeSimulator(address(0))
             });
         }
-        sourceChainInfo = chainInfos[0];
-        sourceChain = sourceChainInfo.chainId;
-        relayerSource = sourceChainInfo.relayer;
-        tokenBridgeSource = sourceChainInfo.tokenBridge;
-        wormholeSource = sourceChainInfo.wormhole;
-
-        targetChainInfo = chainInfos[1];
-        targetChain = targetChainInfo.chainId;
-        relayerTarget = targetChainInfo.relayer;
-        tokenBridgeTarget = targetChainInfo.tokenBridge;
-        wormholeTarget = targetChainInfo.wormhole;
     }
 
-    function setTestnetForkChains(uint16 _sourceChain, uint16 _targetChain) public {
-        ChainInfo[] memory forks = new ChainInfo[](2);
-        forks[0] = chainInfosTestnet[_sourceChain];
-        forks[1] = chainInfosTestnet[_targetChain];
-        setActiveForks(forks);
+    function setActiveForks(ChainInfo[] memory chainInfos) public virtual {
+        _setActiveForks(chainInfos);
     }
 
-    function setMainnetForkChains(uint16 _sourceChain, uint16 _targetChain) public {
-        ChainInfo[] memory forks = new ChainInfo[](2);
-        forks[0] = chainInfosMainnet[_sourceChain];
-        forks[1] = chainInfosMainnet[_targetChain];
-        setActiveForks(forks);
+    function setUp() public virtual {
+        _setUp();
     }
 
-    function setUp() public {
+    function _setUp() internal {
         // create fork and guardian for each active fork
         for (uint256 i = 0; i < activeForksList.length; ++i) {
             uint16 chainId = activeForksList[i];
@@ -155,27 +104,17 @@ abstract contract WormholeRelayerTest is Test {
                 DEVNET_GUARDIAN_PK
             );
         }
-        // set up aliases for the source and target forks
-        guardianSource = activeForks[sourceChain].guardian;
-        guardianTarget = activeForks[targetChain].guardian;
-        sourceFork = activeForks[sourceChain].fork;
-        targetFork = activeForks[targetChain].fork;
 
         // run setUp virtual functions for each fork
-        vm.selectFork(sourceFork);
-        setUpSource();
-        vm.selectFork(targetFork);
-        setUpTarget();
         for (uint256 i = 0; i < activeForksList.length; ++i) {
-            uint16 chainId = activeForksList[i];
-            if (chainId != sourceChain && chainId != targetChain) {
-                vm.selectFork(activeForks[chainId].fork);
-                setUpOther(activeForks[chainId]);
-            }
+            ActiveFork memory fork = activeForks[activeForksList[i]];
+            vm.selectFork(fork.fork);
+            setUpFork(fork);
         }
 
-        vm.selectFork(sourceFork);
-        mockOffchainRelayer = new MockOffchainRelayer(address(wormholeSource), address(guardianSource), vm);
+        ActiveFork memory firstFork = activeForks[activeForksList[0]];
+        vm.selectFork(firstFork.fork);
+        mockOffchainRelayer = new MockOffchainRelayer(address(firstFork.wormhole), address(firstFork.guardian), vm);
         // register all active forks with the 'offchain' relayer
         for (uint256 i = 0; i < activeForksList.length; ++i) {
             ActiveFork storage fork = activeForks[activeForksList[i]];
@@ -365,4 +304,103 @@ abstract contract WormholeRelayerTest is Test {
     }
 
     receive() external payable {}
+}
+
+abstract contract WormholeRelayerBasicTest is WormholeRelayerTest {
+    /**
+     * @dev virtual function to initialize source chain before each test
+     */
+    function setUpSource() public virtual;
+
+    /**
+     * @dev virtual function to initialize target chain before each test
+     */
+    function setUpTarget() public virtual;
+
+    /**
+     * @dev virtual function to initialize other active forks before each test
+     * Note: not called for source/target forks
+     */
+    function setUpOther(ActiveFork memory fork) public virtual {}
+
+    /* 
+     * aliases for activeForks
+     */
+
+    ChainInfo public sourceChainInfo;
+    ChainInfo public targetChainInfo;
+
+    uint16 public sourceChain;
+    uint16 public targetChain;
+
+    uint256 public sourceFork;
+    uint256 public targetFork;
+
+    IWormholeRelayer public relayerSource;
+    ITokenBridge public tokenBridgeSource;
+    IWormhole public wormholeSource;
+
+    IWormholeRelayer public relayerTarget;
+    ITokenBridge public tokenBridgeTarget;
+    IWormhole public wormholeTarget;
+
+    WormholeSimulator public guardianSource;
+    WormholeSimulator public guardianTarget;
+
+    /* 
+     * end activeForks aliases 
+     */
+
+    constructor() WormholeRelayerTest() {
+        setTestnetForkChains(6, 14);
+    }
+
+    function setUp() public override {
+        _setUp();
+        // aliases can't be set until after setUp
+        guardianSource = activeForks[activeForksList[0]].guardian;
+        guardianTarget = activeForks[activeForksList[1]].guardian;
+        sourceFork = activeForks[activeForksList[0]].fork;
+        targetFork = activeForks[activeForksList[1]].fork;
+    }
+
+    function setUpFork(ActiveFork memory fork) public override {
+        if (fork.chainId == sourceChain) {
+            setUpSource();
+        } else if (fork.chainId == targetChain) {
+            setUpTarget();
+        } else {
+            setUpOther(fork);
+        }
+    }
+
+    function setActiveForks(ChainInfo[] memory chainInfos) public override {
+        _setActiveForks(chainInfos);
+
+        sourceChainInfo = chainInfos[0];
+        sourceChain = sourceChainInfo.chainId;
+        relayerSource = sourceChainInfo.relayer;
+        tokenBridgeSource = sourceChainInfo.tokenBridge;
+        wormholeSource = sourceChainInfo.wormhole;
+
+        targetChainInfo = chainInfos[1];
+        targetChain = targetChainInfo.chainId;
+        relayerTarget = targetChainInfo.relayer;
+        tokenBridgeTarget = targetChainInfo.tokenBridge;
+        wormholeTarget = targetChainInfo.wormhole;
+    }
+
+    function setTestnetForkChains(uint16 _sourceChain, uint16 _targetChain) public {
+        ChainInfo[] memory forks = new ChainInfo[](2);
+        forks[0] = chainInfosTestnet[_sourceChain];
+        forks[1] = chainInfosTestnet[_targetChain];
+        setActiveForks(forks);
+    }
+
+    function setMainnetForkChains(uint16 _sourceChain, uint16 _targetChain) public {
+        ChainInfo[] memory forks = new ChainInfo[](2);
+        forks[0] = chainInfosMainnet[_sourceChain];
+        forks[1] = chainInfosMainnet[_targetChain];
+        setActiveForks(forks);
+    }
 }

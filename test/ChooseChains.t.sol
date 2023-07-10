@@ -14,11 +14,11 @@ import "../src/Utils.sol";
 import "forge-std/console.sol";
 import {Toy} from "./Fork.t.sol";
 
-contract ChooseChainsTest is WormholeRelayerTest {
+contract ChooseChainsTest is WormholeRelayerBasicTest {
     Toy toySource;
     Toy toyTarget;
 
-    constructor() WormholeRelayerTest() {
+    constructor() {
         setTestnetForkChains(4, 5);
     }
 
