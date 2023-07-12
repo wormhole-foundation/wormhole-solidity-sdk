@@ -37,9 +37,14 @@ struct ActiveFork {
 
 abstract contract WormholeRelayerTest is Test {
     /**
-     * @dev virtual function to initialize active forks before each test
+     * @dev required override to initialize active forks before each test
      */
     function setUpFork(ActiveFork memory fork) public virtual;
+
+    /**
+     * @dev optional override that runs after all forks have been set up
+     */
+    function setUpGeneral() public virtual {}
 
     uint256 constant DEVNET_GUARDIAN_PK = 0xcfb12303a19cde580bb4dd771639b0d26bc68353645571a8cff516ab2ee113a0;
 
@@ -123,6 +128,9 @@ abstract contract WormholeRelayerTest is Test {
 
         // Allow the offchain relayer to work on all forks
         vm.makePersistent(address(mockOffchainRelayer));
+
+        vm.selectFork(firstFork.fork);
+        setUpGeneral();
     }
 
     function performDelivery() public {
@@ -356,6 +364,8 @@ abstract contract WormholeRelayerBasicTest is WormholeRelayerTest {
     }
 
     function setUp() public override {
+        sourceFork = 0;
+        targetFork = 1;
         _setUp();
         // aliases can't be set until after setUp
         guardianSource = activeForks[activeForksList[0]].guardian;
