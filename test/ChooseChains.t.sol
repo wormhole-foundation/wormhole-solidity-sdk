@@ -12,39 +12,24 @@ import "../src/WormholeRelayerSDK.sol";
 import "../src/Utils.sol";
 
 import "forge-std/console.sol";
+import {Toy} from "./Fork.t.sol";
 
-contract Toy is Base {
-    IWormholeRelayer relayer;
-
-    uint256 public payloadReceived;
-
-    constructor(address _wormholeRelayer, address _wormhole) Base(_wormholeRelayer, _wormhole) {}
-
-    function receiveWormholeMessages(
-        bytes memory payload,
-        bytes[] memory,
-        bytes32 sourceAddress,
-        uint16 sourceChain,
-        bytes32 deliveryHash
-    ) public payable onlyWormholeRelayer replayProtect(deliveryHash) isRegisteredSender(sourceChain, sourceAddress) {
-        payloadReceived = abi.decode(payload, (uint256));
-
-        console.log("Toy received message");
-        console.log("Payload", payloadReceived);
-        console.log("Value Received", msg.value);
-    }
-}
-
-contract WormholeSDKTest is WormholeRelayerTest {
+contract ChooseChainsTest is WormholeRelayerBasicTest {
     Toy toySource;
     Toy toyTarget;
 
+    constructor() {
+        setTestnetForkChains(4, 5);
+    }
+
     function setUpSource() public override {
+        require(wormholeSource.chainId() == 4);
         toySource = new Toy(address(relayerSource), address(wormholeSource));
         toySource.setRegisteredSender(targetChain, toWormholeFormat(address(this)));
     }
 
     function setUpTarget() public override {
+        require(wormholeTarget.chainId() == 5);
         toyTarget = new Toy(address(relayerTarget), address(wormholeTarget));
         toyTarget.setRegisteredSender(sourceChain, toWormholeFormat(address(this)));
     }
