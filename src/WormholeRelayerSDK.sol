@@ -146,7 +146,7 @@ abstract contract TokenSender is TokenBase {
         );
     }
 
-    function sendTokenWithPayloadToEvmWithRefund(
+    function sendTokenWithPayloadToEvm(
         uint16 targetChain,
         address targetAddress,
         bytes memory payload,
