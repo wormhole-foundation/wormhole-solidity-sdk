@@ -37,9 +37,9 @@ struct ActiveFork {
 
 abstract contract WormholeRelayerTest is Test {
     /**
-     * @dev required override to initialize active forks before each test
+     * @dev optional override to initialize active forks before each test
      */
-    function setUpFork(ActiveFork memory fork) public virtual;
+    function setUpFork(ActiveFork memory fork) public virtual {}
 
     /**
      * @dev optional override that runs after all forks have been set up
@@ -133,6 +133,10 @@ abstract contract WormholeRelayerTest is Test {
         setUpGeneral();
 
         vm.selectFork(firstFork.fork);
+    }
+
+     function selectChain(uint16 chain) public {
+        vm.selectFork(activeForks[chain].fork);
     }
 
     function performDelivery() public {
