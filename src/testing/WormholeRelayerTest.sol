@@ -131,6 +131,8 @@ abstract contract WormholeRelayerTest is Test {
 
         vm.selectFork(firstFork.fork);
         setUpGeneral();
+
+        vm.selectFork(firstFork.fork);
     }
 
     function performDelivery() public {
@@ -161,6 +163,9 @@ abstract contract WormholeRelayerTest is Test {
         bytes memory attestation = home.guardian.fetchSignedMessageFromLogs(log, home.chainId);
 
         for (uint256 i = 0; i < activeForksList.length; ++i) {
+            if(activeForksList[i] == home.chainId) {
+                continue;
+            }
             ActiveFork memory fork = activeForks[activeForksList[i]];
             vm.selectFork(fork.fork);
             fork.tokenBridge.createWrapped(attestation);

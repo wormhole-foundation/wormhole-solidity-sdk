@@ -146,6 +146,26 @@ abstract contract TokenSender is TokenBase {
         );
     }
 
+    function sendTokenWithPayloadToEvm(
+        uint16 targetChain,
+        address targetAddress,
+        bytes memory payload,
+        uint256 receiverValue,
+        uint256 gasLimit,
+        address token,
+        uint256 amount,
+        uint16 refundChain,
+        address refundAddress
+    ) internal returns (uint64) {
+        VaaKey[] memory vaaKeys = new VaaKey[](1);
+        vaaKeys[0] = transferTokens(token, amount, targetChain, targetAddress);
+
+        (uint256 cost,) = wormholeRelayer.quoteEVMDeliveryPrice(targetChain, receiverValue, gasLimit);
+        return wormholeRelayer.sendVaasToEvm{value: cost}(
+            targetChain, targetAddress, payload, receiverValue, gasLimit, vaaKeys, refundChain, refundAddress
+        );
+    }
+
     function forwardTokenWithPayloadToEvm(
         uint16 targetChain,
         address targetAddress,
