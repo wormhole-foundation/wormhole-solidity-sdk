@@ -8,8 +8,6 @@ import {IERC20} from "./interfaces/IERC20.sol";
 
 import "./Utils.sol";
 
-import "forge-std/console.sol";
-
 abstract contract Base {
     IWormholeRelayer public immutable wormholeRelayer;
     IWormhole public immutable wormhole;
