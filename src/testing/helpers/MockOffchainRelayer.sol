@@ -105,6 +105,7 @@ contract MockOffchainRelayer {
                 if (debugLogging) {
                     console.log("Relaying VAA to chain %s", chainId);
                 }
+                vm.selectFork(forks[chainIdOfWormholeAndGuardianUtilities]);
                 genericRelay(encodedVMs[i], encodedVMs, parsed[i], deliveryOverrides);
             }
         }
