@@ -188,7 +188,7 @@ abstract contract WormholeRelayerTest is Test {
         chainInfosTestnet[6] = ChainInfo({
             chainId: 6,
             name: "fuji - avalanche",
-            url: "https://api.avax-test.network/ext/bc/C/rpc",
+            url: vm.envOr("AVALANCHE_FUJI_RPC_URL", string("https://api.avax-test.network/ext/bc/C/rpc")),
             relayer: IWormholeRelayer(0xA3cF45939bD6260bcFe3D66bc73d60f19e49a8BB),
             tokenBridge: ITokenBridge(0x61E44E506Ca5659E6c0bba9b678586fA2d729756),
             wormhole: IWormhole(0x7bbcE28e64B3F8b84d876Ab298393c38ad7aac4C)
@@ -196,7 +196,7 @@ abstract contract WormholeRelayerTest is Test {
         chainInfosTestnet[14] = ChainInfo({
             chainId: 14,
             name: "alfajores - celo",
-            url: "https://alfajores-forno.celo-testnet.org",
+            url: vm.envOr("CELO_TESTNET_RPC_URL", string("https://alfajores-forno.celo-testnet.org")),
             relayer: IWormholeRelayer(0x306B68267Deb7c5DfCDa3619E22E9Ca39C374f84),
             tokenBridge: ITokenBridge(0x05ca6037eC51F8b712eD2E6Fa72219FEaE74E153),
             wormhole: IWormhole(0x88505117CA88e7dd2eC6EA1E13f0948db2D50D56)
@@ -204,7 +204,7 @@ abstract contract WormholeRelayerTest is Test {
         chainInfosTestnet[4] = ChainInfo({
             chainId: 4,
             name: "bsc testnet",
-            url: "https://bsc-testnet.public.blastapi.io",
+            url: vm.envOr("BSC_TESTNET_RPC_URL", string("https://bsc-testnet.public.blastapi.io")),
             relayer: IWormholeRelayer(0x80aC94316391752A193C1c47E27D382b507c93F3),
             tokenBridge: ITokenBridge(0x9dcF9D205C9De35334D646BeE44b2D2859712A09),
             wormhole: IWormhole(0x68605AD7b15c732a30b1BbC62BE8F2A509D74b4D)
@@ -212,7 +212,7 @@ abstract contract WormholeRelayerTest is Test {
         chainInfosTestnet[5] = ChainInfo({
             chainId: 5,
             name: "polygon mumbai",
-            url: "https://rpc.ankr.com/polygon_mumbai",
+            url: vm.envOr("POLYGON_MUMBAI_RPC_URL", string("https://rpc.ankr.com/polygon_mumbai")),
             relayer: IWormholeRelayer(0x0591C25ebd0580E0d4F27A82Fc2e24E7489CB5e0),
             tokenBridge: ITokenBridge(0x377D55a7928c046E18eEbb61977e714d2a76472a),
             wormhole: IWormhole(0x0CBE91CF822c73C2315FB05100C2F714765d5c20)
@@ -220,7 +220,7 @@ abstract contract WormholeRelayerTest is Test {
         chainInfosTestnet[16] = ChainInfo({
             chainId: 16,
             name: "moonbase alpha - moonbeam",
-            url: "https://rpc.testnet.moonbeam.network",
+            url: vm.envOr("MOONBASE_ALPHA_RPC_URL", string("https://rpc.testnet.moonbeam.network")),
             relayer: IWormholeRelayer(0x0591C25ebd0580E0d4F27A82Fc2e24E7489CB5e0),
             tokenBridge: ITokenBridge(0xbc976D4b9D57E57c3cA52e1Fd136C45FF7955A96),
             wormhole: IWormhole(0xa5B7D85a8f27dd7907dc8FdC21FA5657D5E2F901)
@@ -229,7 +229,7 @@ abstract contract WormholeRelayerTest is Test {
         chainInfosMainnet[2] = ChainInfo({
             chainId: 2,
             name: "ethereum",
-            url: "https://rpc.ankr.com/eth",
+            url: vm.envOr("ETHEREUM_RPC_URL", string("https://rpc.ankr.com/eth")),
             relayer: IWormholeRelayer(0x27428DD2d3DD32A4D7f7C497eAaa23130d894911),
             tokenBridge: ITokenBridge(0x3ee18B2214AFF97000D974cf647E7C347E8fa585),
             wormhole: IWormhole(0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B)
@@ -237,7 +237,7 @@ abstract contract WormholeRelayerTest is Test {
         chainInfosMainnet[4] = ChainInfo({
             chainId: 4,
             name: "bsc",
-            url: "https://bsc-dataseed2.defibit.io",
+            url: vm.envOr("BSC_RPC_URL", string("https://bsc-dataseed2.defibit.io")),
             relayer: IWormholeRelayer(0x27428DD2d3DD32A4D7f7C497eAaa23130d894911),
             tokenBridge: ITokenBridge(0xB6F6D86a8f9879A9c87f643768d9efc38c1Da6E7),
             wormhole: IWormhole(0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B)
@@ -245,7 +245,7 @@ abstract contract WormholeRelayerTest is Test {
         chainInfosMainnet[6] = ChainInfo({
             chainId: 6,
             name: "avalanche",
-            url: "https://rpc.ankr.com/avalanche",
+            url: vm.envOr("AVALANCHE_RPC_URL", string("https://rpc.ankr.com/avalanche")),
             relayer: IWormholeRelayer(0x27428DD2d3DD32A4D7f7C497eAaa23130d894911),
             tokenBridge: ITokenBridge(0x0e082F06FF657D94310cB8cE8B0D9a04541d8052),
             wormhole: IWormhole(0x54a8e5f9c4CbA08F9943965859F6c34eAF03E26c)
@@ -253,7 +253,7 @@ abstract contract WormholeRelayerTest is Test {
         chainInfosMainnet[10] = ChainInfo({
             chainId: 10,
             name: "fantom",
-            url: "https://rpc.ankr.com/fantom",
+            url: vm.envOr("FANTOM_RPC_URL", string("https://rpc.ankr.com/fantom")),
             relayer: IWormholeRelayer(0x27428DD2d3DD32A4D7f7C497eAaa23130d894911),
             tokenBridge: ITokenBridge(0x7C9Fc5741288cDFdD83CeB07f3ea7e22618D79D2),
             wormhole: IWormhole(0x126783A6Cb203a3E35344528B26ca3a0489a1485)
@@ -261,7 +261,7 @@ abstract contract WormholeRelayerTest is Test {
         chainInfosMainnet[13] = ChainInfo({
             chainId: 13,
             name: "klaytn",
-            url: "https://klaytn-mainnet-rpc.allthatnode.com:8551",
+            url: vm.envOr("KLAYTN_RPC_URL", string("https://klaytn-mainnet-rpc.allthatnode.com:8551")),
             relayer: IWormholeRelayer(0x27428DD2d3DD32A4D7f7C497eAaa23130d894911),
             tokenBridge: ITokenBridge(0x5b08ac39EAED75c0439FC750d9FE7E1F9dD0193F),
             wormhole: IWormhole(0x0C21603c4f3a6387e241c0091A7EA39E43E90bb7)
@@ -269,7 +269,7 @@ abstract contract WormholeRelayerTest is Test {
         chainInfosMainnet[14] = ChainInfo({
             chainId: 14,
             name: "celo",
-            url: "https://forno.celo.org",
+            url: vm.envOr("CELO_RPC_URL", string("https://forno.celo.org")),
             relayer: IWormholeRelayer(0x27428DD2d3DD32A4D7f7C497eAaa23130d894911),
             tokenBridge: ITokenBridge(0x796Dff6D74F3E27060B71255Fe517BFb23C93eed),
             wormhole: IWormhole(0xa321448d90d4e5b0A732867c18eA198e75CAC48E)
@@ -277,7 +277,7 @@ abstract contract WormholeRelayerTest is Test {
         chainInfosMainnet[12] = ChainInfo({
             chainId: 12,
             name: "acala",
-            url: "https://eth-rpc-acala.aca-api.network",
+            url: vm.envOr("ACALA_RPC_URL", string("https://eth-rpc-acala.aca-api.network")),
             relayer: IWormholeRelayer(0x27428DD2d3DD32A4D7f7C497eAaa23130d894911),
             tokenBridge: ITokenBridge(0xae9d7fe007b3327AA64A32824Aaac52C42a6E624),
             wormhole: IWormhole(0xa321448d90d4e5b0A732867c18eA198e75CAC48E)
@@ -285,7 +285,7 @@ abstract contract WormholeRelayerTest is Test {
         chainInfosMainnet[11] = ChainInfo({
             chainId: 11,
             name: "karura",
-            url: "https://eth-rpc-karura.aca-api.network",
+            url: vm.envOr("KARURA_RPC_URL", string("https://eth-rpc-karura.aca-api.network")),
             relayer: IWormholeRelayer(0x27428DD2d3DD32A4D7f7C497eAaa23130d894911),
             tokenBridge: ITokenBridge(0xae9d7fe007b3327AA64A32824Aaac52C42a6E624),
             wormhole: IWormhole(0xa321448d90d4e5b0A732867c18eA198e75CAC48E)
@@ -293,7 +293,7 @@ abstract contract WormholeRelayerTest is Test {
         chainInfosMainnet[16] = ChainInfo({
             chainId: 16,
             name: "moombeam",
-            url: "https://rpc.ankr.com/moonbeam",
+            url: vm.envOr("MOOMBEAM_RPC_URL", string("https://rpc.ankr.com/moonbeam")),
             relayer: IWormholeRelayer(0x27428DD2d3DD32A4D7f7C497eAaa23130d894911),
             tokenBridge: ITokenBridge(0xB1731c586ca89a23809861c6103F0b96B3F57D92),
             wormhole: IWormhole(0xC8e2b0cD52Cf01b0Ce87d389Daa3d414d4cE29f3)
@@ -301,7 +301,7 @@ abstract contract WormholeRelayerTest is Test {
         chainInfosMainnet[23] = ChainInfo({
             chainId: 23,
             name: "arbitrum",
-            url: "https://rpc.ankr.com/arbitrum",
+            url: vm.envOr("ARBITRUM_RPC_URL", string("https://rpc.ankr.com/arbitrum")),
             relayer: IWormholeRelayer(0x27428DD2d3DD32A4D7f7C497eAaa23130d894911),
             tokenBridge: ITokenBridge(0x0b2402144Bb366A632D14B83F244D2e0e21bD39c),
             wormhole: IWormhole(0xa5f208e072434bC67592E4C49C1B991BA79BCA46)
@@ -309,7 +309,7 @@ abstract contract WormholeRelayerTest is Test {
         chainInfosMainnet[24] = ChainInfo({
             chainId: 24,
             name: "optimism",
-            url: "https://rpc.ankr.com/arbitrum",
+            url: vm.envOr("OPTIMISM_RPC_URL", string("https://rpc.ankr.com/optimism")),
             relayer: IWormholeRelayer(0x27428DD2d3DD32A4D7f7C497eAaa23130d894911),
             tokenBridge: ITokenBridge(0x1D68124e65faFC907325e3EDbF8c4d84499DAa8b),
             wormhole: IWormhole(0xEe91C335eab126dF5fDB3797EA9d6aD93aeC9722)
