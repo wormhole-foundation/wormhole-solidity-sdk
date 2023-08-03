@@ -418,4 +418,12 @@ abstract contract WormholeRelayerBasicTest is WormholeRelayerTest {
         forks[1] = chainInfosMainnet[_targetChain];
         setActiveForks(forks);
     }
+
+    function setForkChains(bool testnet, uint16 _sourceChain, uint16 _targetChain) public {
+			if (testnet) {
+					setTestnetForkChains(_sourceChain, _targetChain);
+			} 
+		    setMainnetForkChains(_sourceChain, _targetChain);
+    }
+
 }
