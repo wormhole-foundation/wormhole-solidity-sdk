@@ -12,7 +12,7 @@ abstract contract Base {
     IWormholeRelayer public immutable wormholeRelayer;
     IWormhole public immutable wormhole;
 
-    mapping(bytes32 => bool) seenDeliveryVaaHashes;
+    mapping(bytes32 => bool) public seenDeliveryVaaHashes;
 
     address registrationOwner;
     mapping(uint16 => bytes32) registeredSenders;
