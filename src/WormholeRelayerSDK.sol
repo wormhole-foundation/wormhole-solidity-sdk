@@ -6,3 +6,4 @@ import "./interfaces/IWormholeRelayer.sol";
 import "./Utils.sol";
 import {Base} from "./Base.sol";
 import {TokenBase, TokenReceiver, TokenSender} from "./TokenBase.sol";
+import {CCTPBase, CCTPReceiver, CCTPSender} from "./CCTPBase.sol";
