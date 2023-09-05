@@ -85,7 +85,11 @@ abstract contract CCTPSender is CCTPBase {
         returns (MessageKey memory)
     {
         uint64 nonce = circleTokenMessenger.depositForBurnWithCaller(
-            amount, getCCTPDomain(targetChain), toWormholeFormat(targetAddress), USDC, toWormholeFormat(targetAddress)
+            amount,
+            getCCTPDomain(targetChain),
+            addressToBytes32CCTP(targetAddress),
+            USDC,
+            addressToBytes32CCTP(targetAddress)
         );
         return MessageKey(
             CCTPMessageLib.CCTP_KEY_TYPE, abi.encode(CCTPMessageLib.CCTPKey(getCCTPDomain(targetChain), nonce))
@@ -115,8 +119,13 @@ abstract contract CCTPSender is CCTPBase {
             address(0x0),
             wormholeRelayer.getDefaultDeliveryProvider(),
             messageKeys,
+            // new MessageKey[](0),
             CONSISTENCY_LEVEL_FINALIZED
         );
+    }
+
+    function addressToBytes32CCTP(address addr) private pure returns (bytes32) {
+        return bytes32(uint256(uint160(addr)));
     }
 }
 
