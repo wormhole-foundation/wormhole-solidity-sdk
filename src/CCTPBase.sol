@@ -50,8 +50,11 @@ abstract contract CCTPBase is TokenBase {
             return 0;
         } else if (targetChain == 6) {
             return 1;
+        } else if (targetChain == 23) {
+            return 3;
+        } else if (targetChain == 24) {
+            return 2;
         } else {
-            // TODO: Add arbitrum and optimism {
             revert("Wrong CCTP Domain");
         }
     }
@@ -119,7 +122,6 @@ abstract contract CCTPSender is CCTPBase {
             address(0x0),
             wormholeRelayer.getDefaultDeliveryProvider(),
             messageKeys,
-            // new MessageKey[](0),
             CONSISTENCY_LEVEL_FINALIZED
         );
     }
@@ -137,7 +139,7 @@ abstract contract CCTPReceiver is CCTPBase {
         uint16 sourceChain,
         bytes32 deliveryHash
     ) external payable {
-        require(additionalMessages.length > 1, "CCTP: At most one Message is supported");
+        require(additionalMessages.length <= 1, "CCTP: At most one Message is supported");
 
         uint256 amountUSDCReceived;
         if (additionalMessages.length == 1) {

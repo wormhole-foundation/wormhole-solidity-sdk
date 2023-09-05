@@ -185,6 +185,14 @@ abstract contract WormholeRelayerTest is Test {
     }
 
     function initChainInfo() private {
+        chainInfosTestnet[2] = ChainInfo({
+            chainId: 2,
+            name: "goerli - ethereum",
+            url: "https://ethereum-goerli.publicnode.com",
+            relayer: IWormholeRelayer(0x28D8F1Be96f97C1387e94A53e00eCcFb4E75175a),
+            tokenBridge: ITokenBridge(0xF890982f9310df57d00f659cf4fd87e65adEd8d7),
+            wormhole: IWormhole(0x706abc4E45D419950511e474C7B9Ed348A4a716c)
+        });
         chainInfosTestnet[6] = ChainInfo({
             chainId: 6,
             name: "fuji - avalanche",
@@ -224,6 +232,22 @@ abstract contract WormholeRelayerTest is Test {
             relayer: IWormholeRelayer(0x0591C25ebd0580E0d4F27A82Fc2e24E7489CB5e0),
             tokenBridge: ITokenBridge(0xbc976D4b9D57E57c3cA52e1Fd136C45FF7955A96),
             wormhole: IWormhole(0xa5B7D85a8f27dd7907dc8FdC21FA5657D5E2F901)
+        });
+        chainInfosTestnet[23] = ChainInfo({
+            chainId: 23,
+            name: "goerli - arbitrum",
+            url: "https://arbitrum-goerli.publicnode.com",
+            relayer: IWormholeRelayer(0xAd753479354283eEE1b86c9470c84D42f229FF43),
+            tokenBridge: ITokenBridge(0x23908A62110e21C04F3A4e011d24F901F911744A),
+            wormhole: IWormhole(0xC7A204bDBFe983FCD8d8E61D02b475D4073fF97e)
+        });
+        chainInfosTestnet[24] = ChainInfo({
+            chainId: 24,
+            name: "goerli - optimism",
+            url: "https://optimism-goerli.publicnode.com",
+            relayer: IWormholeRelayer(0x01A957A525a5b7A72808bA9D10c389674E459891),
+            tokenBridge: ITokenBridge(0xC7A204bDBFe983FCD8d8E61D02b475D4073fF97e),
+            wormhole: IWormhole(0x6b9C8671cdDC8dEab9c719bB87cBd3e782bA6a35)
         });
 
         chainInfosMainnet[2] = ChainInfo({

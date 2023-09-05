@@ -24,17 +24,38 @@ contract CCTPToy is CCTPSender, CCTPReceiver {
         address _circleMessageTransmitter,
         address _circleTokenMessenger,
         address _USDC
-    ) CCTPBase(_wormholeRelayer, _tokenBridge, _wormhole, _circleMessageTransmitter, _circleTokenMessenger, _USDC) {}
+    )
+        CCTPBase(
+            _wormholeRelayer,
+            _tokenBridge,
+            _wormhole,
+            _circleMessageTransmitter,
+            _circleTokenMessenger,
+            _USDC
+        )
+    {}
 
-    function quoteCrossChainDeposit(uint16 targetChain) public view returns (uint256 cost) {
+    function quoteCrossChainDeposit(
+        uint16 targetChain
+    ) public view returns (uint256 cost) {
         // Cost of delivering token and payload to targetChain
-        uint256 deliveryCost;
-        (deliveryCost,) = wormholeRelayer.quoteEVMDeliveryPrice(targetChain, 0, GAS_LIMIT);
+        (cost, ) = wormholeRelayer.quoteEVMDeliveryPrice(
+            targetChain,
+            0,
+            GAS_LIMIT
+        );
     }
 
-    function sendCrossChainDeposit(uint16 targetChain, address recipient, uint256 amount) public payable {
+    function sendCrossChainDeposit(
+        uint16 targetChain,
+        address recipient,
+        uint256 amount
+    ) public payable {
         uint256 cost = quoteCrossChainDeposit(targetChain);
-        require(msg.value == cost, "msg.value must be quoteCrossChainDeposit(targetChain)");
+        require(
+            msg.value == cost,
+            "msg.value must be quoteCrossChainDeposit(targetChain)"
+        );
 
         IERC20(USDC).transferFrom(msg.sender, address(this), amount);
 
@@ -55,8 +76,16 @@ contract CCTPToy is CCTPSender, CCTPReceiver {
         bytes32 sourceAddress,
         uint16 sourceChain,
         bytes32 // deliveryHash
-    ) internal override onlyWormholeRelayer isRegisteredSender(sourceChain, sourceAddress) {
-        (address recipient, uint256 expectedAmount) = abi.decode(payload, (address, uint256));
+    )
+        internal
+        override
+        onlyWormholeRelayer
+        isRegisteredSender(sourceChain, sourceAddress)
+    {
+        (address recipient, uint256 expectedAmount) = abi.decode(
+            payload,
+            (address, uint256)
+        );
         require(amount == expectedAmount, "amount != payload.expectedAmount");
         IERC20(USDC).transfer(recipient, amount);
     }
@@ -67,33 +96,41 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
     CCTPToy CCTPToyTarget;
     ERC20Mock USDCSource;
     ERC20Mock USDCTarget;
-    MockMessageTransmitter circleMessageTransmitter;
-    MockTokenMessenger circleTokenMessenger;
+    MockMessageTransmitter circleMessageTransmitterSource;
+    MockTokenMessenger circleTokenMessengerSource;
+    MockMessageTransmitter circleMessageTransmitterTarget;
+    MockTokenMessenger circleTokenMessengerTarget;
+
+    constructor() {
+        setTestnetForkChains(2, 6);
+    }
 
     function setUpSource() public override {
+        USDCSource = createAndAttestToken(sourceChain);
+        circleMessageTransmitterSource = new MockMessageTransmitter(USDCSource);
+        circleTokenMessengerSource = new MockTokenMessenger(USDCSource);
         CCTPToySource = new CCTPToy(
             address(relayerSource),
             address(tokenBridgeSource),
             address(wormholeSource),
-            address(circleMessageTransmitter),
-            address(circleTokenMessenger),
+            address(circleMessageTransmitterSource),
+            address(circleTokenMessengerSource),
             address(USDCSource)
         );
-        USDCSource = createAndAttestToken(sourceChain);
-        circleMessageTransmitter = new MockMessageTransmitter(USDCSource);
     }
 
     function setUpTarget() public override {
+        USDCTarget = createAndAttestToken(targetChain);
+        circleTokenMessengerTarget = new MockTokenMessenger(USDCTarget);
+        circleMessageTransmitterTarget = new MockMessageTransmitter(USDCTarget);
         CCTPToyTarget = new CCTPToy(
-            address(relayerTarget), 
-            address(tokenBridgeTarget), 
-            address(wormholeTarget), 
-            address(circleMessageTransmitter), 
-            address(circleTokenMessenger),
+            address(relayerTarget),
+            address(tokenBridgeTarget),
+            address(wormholeTarget),
+            address(circleMessageTransmitterTarget),
+            address(circleTokenMessengerTarget),
             address(USDCTarget)
         );
-        USDCTarget = createAndAttestToken(targetChain);
-        circleTokenMessenger = new MockTokenMessenger(USDCTarget);
     }
 
     // function setUpGeneral() public override {
@@ -115,7 +152,11 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
         uint256 cost = CCTPToySource.quoteCrossChainDeposit(targetChain);
 
         vm.recordLogs();
-        CCTPToySource.sendCrossChainDeposit{value: cost}(targetChain, recipient, amount);
+        CCTPToySource.sendCrossChainDeposit{value: cost}(
+            targetChain,
+            recipient,
+            amount
+        );
         performDelivery();
 
         vm.selectFork(targetFork);
