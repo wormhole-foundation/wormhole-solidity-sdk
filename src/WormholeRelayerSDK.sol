@@ -12,7 +12,7 @@ abstract contract Base {
     IWormholeRelayer public immutable wormholeRelayer;
     IWormhole public immutable wormhole;
 
-    mapping(bytes32 => bool) seenDeliveryVaaHashes;
+    mapping(bytes32 => bool) public seenDeliveryVaaHashes;
 
     address registrationOwner;
     mapping(uint16 => bytes32) registeredSenders;
@@ -161,24 +161,6 @@ abstract contract TokenSender is TokenBase {
         (uint256 cost,) = wormholeRelayer.quoteEVMDeliveryPrice(targetChain, receiverValue, gasLimit);
         return wormholeRelayer.sendVaasToEvm{value: cost}(
             targetChain, targetAddress, payload, receiverValue, gasLimit, vaaKeys, refundChain, refundAddress
-        );
-    }
-
-    function forwardTokenWithPayloadToEvm(
-        uint16 targetChain,
-        address targetAddress,
-        bytes memory payload,
-        uint256 receiverValue,
-        uint256 gasLimit,
-        uint256 forwardMsgValue,
-        address token,
-        uint256 amount
-    ) internal {
-        VaaKey[] memory vaaKeys = new VaaKey[](1);
-        vaaKeys[0] = transferTokens(token, amount, targetChain, targetAddress);
-
-        wormholeRelayer.forwardVaasToEvm{value: forwardMsgValue}(
-            targetChain, targetAddress, payload, receiverValue, gasLimit, vaaKeys
         );
     }
 }
