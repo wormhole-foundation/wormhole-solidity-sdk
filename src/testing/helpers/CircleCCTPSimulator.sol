@@ -56,27 +56,28 @@ contract CircleMessageTransmitterSimulator {
         }
     }
 
-    /*
+    
     function parseMessageFromMessageTransmitterLog(
         Vm.Log memory log
-    ) internal pure returns (bytes message) {
+    ) internal pure returns (bytes memory message) {
         uint256 index = 32;
 
         // length of payload
         uint256 payloadLen = log.data.toUint256(index);
         index += 32;
 
-        vm_.payload = log.data.slice(index, payloadLen);
+        message = log.data.slice(index, payloadLen);
         index += payloadLen;
 
         // trailing bytes (due to 32 byte slot overlap)
+        require(log.data.length - index < 32, "Too many extra bytes");
         index += log.data.length - index;
 
         require(
             index == log.data.length,
             "failed to parse MessageTransmitter message"
         );
-    }*/
+    }
 
     /**
      * @notice Finds published messageTransmitter events in forge logs
@@ -117,52 +118,31 @@ contract CircleMessageTransmitterSimulator {
      * @param log The forge Vm.log captured when recording events during test execution
      * @return attestation attested message
      */
-    /*
+    
     function fetchSignedMessageFromLog(
-        Vm.Log memory log,
-        uint16 emitterChainId
+        Vm.Log memory log
     ) public view returns (bytes memory attestation) {
         // Parse messageTransmitter message from ethereum logs
         bytes memory message = parseMessageFromMessageTransmitterLog(log);
 
-        // Set empty body values before computing the hash
-        vm_.version = uint8(1);
-        vm_.timestamp = uint32(block.timestamp);
-        vm_.emitterChainId = emitterChainId;
-
-        return encodeAndSignMessage(vm_);
+        return signMessage(message);
     }
-    */
+    
     /**
-     * @notice Signs and preformatted simulated messageTransmitter message
-     * @param vm_ The preformatted messageTransmitter message
-     * @return signedMessage Formatted and signed messageTransmitter message
+     * @notice Signs a simulated messageTransmitter message
+     * @param message The messageTransmitter message
+     * @return signedMessage signed messageTransmitter message
      */
-    /*
-    function encodeAndSignMessage(
-        IMessageTransmitter.VM memory vm_
+    
+    function signMessage(
+        bytes memory message
     ) public view returns (bytes memory signedMessage) {
 
-        // Compute the hash of the body
-        bytes memory body = encodeObservation(vm_);
-        vm_.hash = doubleKeccak256(body);
+        bytes32 messageHash = keccak256(message);
 
-        // Sign the hash with the devnet guardian private key
-        IMessageTransmitter.Signature[]
-            memory sigs = new IMessageTransmitter.Signature[](1);
-        (sigs[0].v, sigs[0].r, sigs[0].s) = vm.sign(devnetGuardianPK, vm_.hash);
-        sigs[0].guardianIndex = 0;
-
-        signedMessage = abi.encodePacked(
-            vm_.version,
-            messageTransmitter.getCurrentGuardianSetIndex(),
-            uint8(sigs.length),
-            sigs[0].guardianIndex,
-            sigs[0].r,
-            sigs[0].s,
-            sigs[0].v - 27,
-            body
-        );
+        // Sign the hash with the attester private key
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(attesterPrivateKey, messageHash);
+        return abi.encodePacked(r, s, v);
     }
-*/
+
 }
