@@ -11,8 +11,6 @@ import "../src/testing/WormholeRelayerTest.sol";
 import "../src/WormholeRelayerSDK.sol";
 import "../src/Utils.sol";
 
-import "forge-std/console.sol";
-
 contract CCTPToy is CCTPSender, CCTPReceiver {
     uint256 constant GAS_LIMIT = 250_000;
 
