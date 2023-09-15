@@ -7,10 +7,14 @@ import "./BytesLib.sol";
 import "forge-std/Vm.sol";
 import "forge-std/console.sol";
 
+import {CCTPMessageLib} from "../../CCTPBase.sol";
+
 interface MessageTransmitterViewAttesterManager {
     function attesterManager() external view returns (address);
 
     function enableAttester(address newAttester) external;
+
+    function setSignatureThreshold(uint256 newSignatureThreshold) external;
 }
 
 /**
@@ -22,6 +26,8 @@ interface MessageTransmitterViewAttesterManager {
  */
 contract CircleMessageTransmitterSimulator {
     using BytesLib for bytes;
+
+    bool public valid;
 
     // Taken from forge-std/Script.sol
     address private constant VM_ADDRESS =
@@ -41,7 +47,8 @@ contract CircleMessageTransmitterSimulator {
     constructor(address messageTransmitter_, uint256 attesterPrivateKey_) {
         messageTransmitter = IMessageTransmitter(messageTransmitter_);
         attesterPrivateKey = attesterPrivateKey_;
-        overrideAttester(vm.addr(attesterPrivateKey));
+        valid = messageTransmitter_ != address(0);
+        if(valid) overrideAttester(vm.addr(attesterPrivateKey));
     }
 
     function overrideAttester(address attesterPublicKey) internal {
@@ -53,13 +60,16 @@ contract CircleMessageTransmitterSimulator {
                 .attesterManager();
             vm.prank(attesterManager);
             attesterManagerInterface.enableAttester(attesterPublicKey);
+
+            vm.prank(attesterManager);
+            attesterManagerInterface.setSignatureThreshold(1);
         }
     }
 
     
     function parseMessageFromMessageTransmitterLog(
         Vm.Log memory log
-    ) internal pure returns (bytes memory message) {
+    ) internal view returns (bytes memory message) {
         uint256 index = 32;
 
         // length of payload
@@ -72,7 +82,6 @@ contract CircleMessageTransmitterSimulator {
         // trailing bytes (due to 32 byte slot overlap)
         require(log.data.length - index < 32, "Too many extra bytes");
         index += log.data.length - index;
-
         require(
             index == log.data.length,
             "failed to parse MessageTransmitter message"
@@ -90,7 +99,7 @@ contract CircleMessageTransmitterSimulator {
         for (uint256 i = 0; i < logs.length; i++) {
             if (
                 logs[i].topics[0] ==
-                keccak256("event MessageSent(bytes message);")
+                keccak256("MessageSent(bytes)")
             ) {
                 count += 1;
             }
@@ -103,7 +112,7 @@ contract CircleMessageTransmitterSimulator {
         for (uint256 i = 0; i < logs.length; i++) {
             if (
                 logs[i].topics[0] ==
-                keccak256("event MessageSent(bytes message);")
+                keccak256("MessageSent(bytes)")
             ) {
                 published[publishedIndex] = logs[i];
                 publishedIndex += 1;
@@ -121,11 +130,11 @@ contract CircleMessageTransmitterSimulator {
     
     function fetchSignedMessageFromLog(
         Vm.Log memory log
-    ) public view returns (bytes memory attestation) {
+    ) public view returns (CCTPMessageLib.CCTPMessage memory) {
         // Parse messageTransmitter message from ethereum logs
         bytes memory message = parseMessageFromMessageTransmitterLog(log);
 
-        return signMessage(message);
+        return CCTPMessageLib.CCTPMessage(message, signMessage(message));
     }
     
     /**

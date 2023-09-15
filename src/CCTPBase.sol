@@ -87,6 +87,7 @@ abstract contract CCTPSender is CCTPBase {
         internal
         returns (MessageKey memory)
     {
+        IERC20(USDC).approve(address(circleTokenMessenger), amount);
         uint64 nonce = circleTokenMessenger.depositForBurnWithCaller(
             amount,
             getCCTPDomain(targetChain),

@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {WormholeSimulator} from "./WormholeSimulator.sol";
+import {CircleMessageTransmitterSimulator} from "./CircleCCTPSimulator.sol";
 import {toWormholeFormat, fromWormholeFormat} from "../../Utils.sol";
 import "../../interfaces/IWormholeRelayer.sol";
 import "../../interfaces/IWormhole.sol";
@@ -16,11 +17,17 @@ import "forge-std/console.sol";
 using BytesParsing for bytes;
 
 contract MockOffchainRelayer {
+
     uint16 chainIdOfWormholeAndGuardianUtilities;
     IWormhole relayerWormhole;
     WormholeSimulator relayerWormholeSimulator;
+    CircleMessageTransmitterSimulator relayerCircleSimulator;
 
-    Vm public vm;
+
+    // Taken from forge-std/Script.sol
+    address private constant VM_ADDRESS =
+        address(bytes20(uint160(uint256(keccak256("hevm cheat code")))));
+    Vm public constant vm = Vm(VM_ADDRESS);
 
     mapping(uint16 => address) wormholeRelayerContracts;
 
@@ -32,10 +39,10 @@ contract MockOffchainRelayer {
 
     mapping(bytes32 => bytes) pastEncodedDeliveryVAA;
 
-    constructor(address _wormhole, address _wormholeSimulator, Vm vm_) {
+    constructor(address _wormhole, address _wormholeSimulator, address _circleSimulator) {
         relayerWormhole = IWormhole(_wormhole);
         relayerWormholeSimulator = WormholeSimulator(_wormholeSimulator);
-        vm = vm_;
+        relayerCircleSimulator = CircleMessageTransmitterSimulator(_circleSimulator);
         chainIdOfWormholeAndGuardianUtilities = relayerWormhole.chainId();
     }
 
@@ -92,6 +99,16 @@ contract MockOffchainRelayer {
             (vaaKey.sequence == parsedVaa.sequence);
     }
 
+    function cctpKeyMatchesCCTPMessage(
+        CCTPMessageLib.CCTPKey memory cctpKey,
+        CCTPMessageLib.CCTPMessage memory cctpMessage
+    ) internal view returns (bool) {
+        (uint64 nonce,) = cctpMessage.message.asUint64(12);
+        (uint32 domain,) = cctpMessage.message.asUint32(8);
+        return
+           nonce == cctpKey.nonce && domain == cctpKey.domain;
+    }
+
     function relay(
         Vm.Log[] memory logs,
         bytes memory deliveryOverrides,
@@ -119,6 +136,25 @@ contract MockOffchainRelayer {
                 chainId
             );
         }
+
+        bool checkCCTP = relayerCircleSimulator.valid();
+        Vm.Log[] memory cctpEntries = new Vm.Log[](0);
+        if(checkCCTP) {
+            cctpEntries = relayerCircleSimulator
+            .fetchMessageTransmitterLogsFromLogs(logs);
+        }
+
+        if (debugLogging) {
+            console.log("Found %s circle messages in logs", cctpEntries.length);
+        }
+
+        CCTPMessageLib.CCTPMessage[] memory circleSignedMessages = new CCTPMessageLib.CCTPMessage[](cctpEntries.length);
+        for (uint256 i = 0; i < cctpEntries.length; i++) {
+            circleSignedMessages[i] = relayerCircleSimulator.fetchSignedMessageFromLog(
+                cctpEntries[i]
+            );
+        }
+
         IWormhole.VM[] memory parsed = new IWormhole.VM[](encodedSignedVaas.length);
         for (uint16 i = 0; i < encodedSignedVaas.length; i++) {
             parsed[i] = relayerWormhole.parseVM(encodedSignedVaas[i]);
@@ -144,6 +180,7 @@ contract MockOffchainRelayer {
                 genericRelay(
                     encodedSignedVaas[i],
                     encodedSignedVaas,
+                    circleSignedMessages,
                     parsed[i],
                     deliveryOverrides
                 );
@@ -171,6 +208,7 @@ contract MockOffchainRelayer {
     function genericRelay(
         bytes memory encodedDeliveryVAA,
         bytes[] memory encodedSignedVaas,
+        CCTPMessageLib.CCTPMessage[] memory cctpMessages,
         IWormhole.VM memory parsedDeliveryVAA,
         bytes memory deliveryOverrides
     ) internal {
@@ -200,8 +238,13 @@ contract MockOffchainRelayer {
                 } else if (instruction.messageKeys[i].keyType == 2) {
                     // CCTP Key
                     // clean this up
-                    CCTPMessageLib.CCTPMessage memory message = abi.decode(instruction.messageKeys[i].encodedKey, (CCTPMessageLib.CCTPMessage));
-
+                    CCTPMessageLib.CCTPKey memory key = abi.decode(instruction.messageKeys[i].encodedKey, (CCTPMessageLib.CCTPKey));
+                    for (uint8 j = 0; j < cctpMessages.length; j++) {
+                        if (cctpKeyMatchesCCTPMessage(key, cctpMessages[j])) {
+                            encodedSignedVaasToBeDelivered[i] = abi.encode(cctpMessages[j]);
+                            break;
+                        }
+                    }
                 }
             }
 

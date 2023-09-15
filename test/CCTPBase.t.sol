@@ -7,7 +7,6 @@ import "../src/interfaces/IWormholeRelayer.sol";
 import "../src/interfaces/IERC20.sol";
 
 import "../src/testing/WormholeRelayerTest.sol";
-import "../src/testing/CCTPMocks.sol";
 
 import "../src/WormholeRelayerSDK.sol";
 import "../src/Utils.sol";
@@ -59,7 +58,7 @@ contract CCTPToy is CCTPSender, CCTPReceiver {
 
         IERC20(USDC).transferFrom(msg.sender, address(this), amount);
 
-        bytes memory payload = abi.encode(recipient);
+        bytes memory payload = abi.encode(recipient, amount);
         sendUSDCWithPayloadToEvm(
             targetChain,
             fromWormholeFormat(registeredSenders[targetChain]), // address (on targetChain) to send token and payload to
@@ -96,42 +95,46 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
     CCTPToy CCTPToyTarget;
     ERC20Mock USDCSource;
     ERC20Mock USDCTarget;
-    MockMessageTransmitter circleMessageTransmitterSource;
-    MockTokenMessenger circleTokenMessengerSource;
-    MockMessageTransmitter circleMessageTransmitterTarget;
-    MockTokenMessenger circleTokenMessengerTarget;
 
     constructor() {
         setTestnetForkChains(2, 6);
     }
 
     function setUpSource() public override {
-        USDCSource = createAndAttestToken(sourceChain);
-        circleMessageTransmitterSource = new MockMessageTransmitter(USDCSource);
-        circleTokenMessengerSource = new MockTokenMessenger(USDCSource);
+        USDCSource = ERC20Mock(address(sourceChainInfo.USDC));
+        mintUSDC(sourceChain, address(this), 5000e18);
         CCTPToySource = new CCTPToy(
             address(relayerSource),
             address(tokenBridgeSource),
             address(wormholeSource),
-            address(circleMessageTransmitterSource),
-            address(circleTokenMessengerSource),
+            address(sourceChainInfo.circleMessageTransmitter),
+            address(sourceChainInfo.circleTokenMessenger),
             address(USDCSource)
         );
     }
 
     function setUpTarget() public override {
-        USDCTarget = createAndAttestToken(targetChain);
-        circleTokenMessengerTarget = new MockTokenMessenger(USDCTarget);
-        circleMessageTransmitterTarget = new MockMessageTransmitter(USDCTarget);
+        USDCTarget = ERC20Mock(address(targetChainInfo.USDC));
+        mintUSDC(targetChain, address(this), 5000e18);
         CCTPToyTarget = new CCTPToy(
             address(relayerTarget),
             address(tokenBridgeTarget),
             address(wormholeTarget),
-            address(circleMessageTransmitterTarget),
-            address(circleTokenMessengerTarget),
+            address(targetChainInfo.circleMessageTransmitter),
+            address(targetChainInfo.circleTokenMessenger),
             address(USDCTarget)
         );
     }
+
+      function setUpGeneral() public override {
+        vm.selectFork(sourceFork);
+        CCTPToySource.setRegisteredSender(targetChain, toWormholeFormat(address(CCTPToyTarget)));
+
+        vm.selectFork(targetFork);
+        CCTPToyTarget.setRegisteredSender(sourceChain, toWormholeFormat(address(CCTPToySource)));
+    }
+
+    
 
     // function setUpGeneral() public override {
     //     vm.selectFork(sourceFork);
@@ -142,7 +145,7 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
     function testSendToken() public {
         vm.selectFork(sourceFork);
 
-        uint256 amount = 19e17;
+        uint256 amount = 100e6;
         USDCSource.approve(address(CCTPToySource), amount);
 
         vm.selectFork(targetFork);
@@ -157,11 +160,10 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
             recipient,
             amount
         );
-        performDelivery();
+        performDelivery(true);
 
         vm.selectFork(targetFork);
-        // address wormholeWrappedToken = tokenBridgeTarget.wrappedAsset(sourceChain, toWormholeFormat(address(token)));
-        // assertEq(IERC20(wormholeWrappedToken).balanceOf(recipient), amount);
+        assertEq(IERC20(USDCTarget).balanceOf(recipient), amount);
     }
 
     // function testSendTokenWithRefund() public {
