@@ -309,7 +309,7 @@ abstract contract WormholeRelayerTest is Test {
         chainInfosMainnet[24] = ChainInfo({
             chainId: 24,
             name: "optimism",
-            url: "https://rpc.ankr.com/arbitrum",
+            url: "https://rpc.ankr.com/optimism",
             relayer: IWormholeRelayer(0x27428DD2d3DD32A4D7f7C497eAaa23130d894911),
             tokenBridge: ITokenBridge(0x1D68124e65faFC907325e3EDbF8c4d84499DAa8b),
             wormhole: IWormhole(0xEe91C335eab126dF5fDB3797EA9d6aD93aeC9722)

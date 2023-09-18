@@ -163,24 +163,6 @@ abstract contract TokenSender is TokenBase {
             targetChain, targetAddress, payload, receiverValue, gasLimit, vaaKeys, refundChain, refundAddress
         );
     }
-
-    function forwardTokenWithPayloadToEvm(
-        uint16 targetChain,
-        address targetAddress,
-        bytes memory payload,
-        uint256 receiverValue,
-        uint256 gasLimit,
-        uint256 forwardMsgValue,
-        address token,
-        uint256 amount
-    ) internal {
-        VaaKey[] memory vaaKeys = new VaaKey[](1);
-        vaaKeys[0] = transferTokens(token, amount, targetChain, targetAddress);
-
-        wormholeRelayer.forwardVaasToEvm{value: forwardMsgValue}(
-            targetChain, targetAddress, payload, receiverValue, gasLimit, vaaKeys
-        );
-    }
 }
 
 abstract contract TokenReceiver is TokenBase {
