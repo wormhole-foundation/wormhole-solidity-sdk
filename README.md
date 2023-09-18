@@ -29,4 +29,4 @@ forge install wormhole-foundation/wormhole-solidity-sdk
 - Included are also the ‘TokenSender’ and ‘TokenReceiver’ base classes with helpers for smart contracts that wish to send and receive tokens using Wormhole’s TokenBridge. See ‘HelloToken’ for example usage.
 - Included are helpers that help set up a local forge testing environment. See ‘HelloWormhole’ for example usage.
 
-Note: This code is meant to be used as starter / reference code. Feel free to modify for use in your contracts, and also make sure to audit any code used from here as part of your contracts before deploying to mainnet.
+**Note: This code is meant to be used as starter / reference code. Feel free to modify for use in your contracts, and also make sure to audit any code used from here as part of your contracts before deploying to mainnet.**
