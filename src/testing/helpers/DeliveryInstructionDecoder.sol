@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import "../../../src/interfaces/IWormholeRelayer.sol";
 import "./BytesParsing.sol";
+import {CCTPMessageLib} from "../../CCTPBase.sol";
 
 uint8 constant VERSION_VAAKEY = 1;
 uint8 constant VERSION_DELIVERY_OVERRIDE = 1;
@@ -182,6 +183,15 @@ function decodeMessageKeyArray(
             ++i;
         }
     }
+}
+
+function decodeCCTPKey(
+    bytes memory encoded,
+    uint256 startOffset
+) pure returns (CCTPMessageLib.CCTPKey memory cctpKey, uint256 offset) {
+    offset = startOffset;
+    (cctpKey.domain, offset) = encoded.asUint32Unchecked(offset);
+    (cctpKey.nonce, offset) = encoded.asUint64Unchecked(offset);
 }
 
 // ------------------------------------------  --------------------------------------------

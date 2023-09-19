@@ -102,7 +102,7 @@ contract MockOffchainRelayer {
     function cctpKeyMatchesCCTPMessage(
         CCTPMessageLib.CCTPKey memory cctpKey,
         CCTPMessageLib.CCTPMessage memory cctpMessage
-    ) internal view returns (bool) {
+    ) internal pure returns (bool) {
         (uint64 nonce,) = cctpMessage.message.asUint64(12);
         (uint32 domain,) = cctpMessage.message.asUint32(8);
         return
@@ -237,11 +237,10 @@ contract MockOffchainRelayer {
                     }
                 } else if (instruction.messageKeys[i].keyType == 2) {
                     // CCTP Key
-                    // clean this up
-                    CCTPMessageLib.CCTPKey memory key = abi.decode(instruction.messageKeys[i].encodedKey, (CCTPMessageLib.CCTPKey));
+                    (CCTPMessageLib.CCTPKey memory key,) = decodeCCTPKey(instruction.messageKeys[i].encodedKey, 0);                    
                     for (uint8 j = 0; j < cctpMessages.length; j++) {
                         if (cctpKeyMatchesCCTPMessage(key, cctpMessages[j])) {
-                            encodedSignedVaasToBeDelivered[i] = abi.encode(cctpMessages[j]);
+                            encodedSignedVaasToBeDelivered[i] = abi.encode(cctpMessages[j].message, cctpMessages[j].signature);
                             break;
                         }
                     }

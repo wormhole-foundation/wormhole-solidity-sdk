@@ -14,13 +14,13 @@ import "./TokenBase.sol";
 library CCTPMessageLib {
     uint8 constant CCTP_KEY_TYPE = 2;
 
-    // encoded using standard abi.encode
+    // encoded using abi.encodePacked(domain, nonce)
     struct CCTPKey {
         uint32 domain;
         uint64 nonce;
     }
 
-    // encoded using standard abi.encode
+    // encoded using abi.encode(message, signature)
     struct CCTPMessage {
         bytes message;
         bytes signature;
@@ -60,10 +60,9 @@ abstract contract CCTPBase is TokenBase {
     }
 
     function redeemUSDC(bytes memory cctpMessage) internal returns (uint256 amount) {
-        CCTPMessageLib.CCTPMessage memory message = abi.decode(cctpMessage, (CCTPMessageLib.CCTPMessage));
-
+        (bytes memory message, bytes memory signature) = abi.decode(cctpMessage, (bytes, bytes));
         uint256 beforeBalance = IERC20(USDC).balanceOf(address(this));
-        circleMessageTransmitter.receiveMessage(message.message, message.signature);
+        circleMessageTransmitter.receiveMessage(message, signature);
         return IERC20(USDC).balanceOf(address(this)) - beforeBalance;
     }
 }
@@ -96,7 +95,7 @@ abstract contract CCTPSender is CCTPBase {
             addressToBytes32CCTP(targetAddress)
         );
         return MessageKey(
-            CCTPMessageLib.CCTP_KEY_TYPE, abi.encode(CCTPMessageLib.CCTPKey(getCCTPDomain(targetChain), nonce))
+            CCTPMessageLib.CCTP_KEY_TYPE, abi.encodePacked(getCCTPDomain(targetChain), nonce)
         );
     }
 

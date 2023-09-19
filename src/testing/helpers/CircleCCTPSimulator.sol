@@ -69,7 +69,7 @@ contract CircleMessageTransmitterSimulator {
     
     function parseMessageFromMessageTransmitterLog(
         Vm.Log memory log
-    ) internal view returns (bytes memory message) {
+    ) internal pure returns (bytes memory message) {
         uint256 index = 32;
 
         // length of payload
