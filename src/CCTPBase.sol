@@ -106,21 +106,25 @@ abstract contract CCTPSender is CCTPBase {
         uint256 receiverValue,
         uint256 gasLimit,
         uint256 amount
-    ) internal returns (uint64) {
+    ) internal returns (uint64 sequence) {
         MessageKey[] memory messageKeys = new MessageKey[](1);
         messageKeys[0] = transferUSDC(amount, targetChain, targetAddress);
 
+        bytes memory userPayload = abi.encode(amount, payload);
+        address defaultDeliveryProvider = wormholeRelayer.getDefaultDeliveryProvider();
+
         (uint256 cost,) = wormholeRelayer.quoteEVMDeliveryPrice(targetChain, receiverValue, gasLimit);
-        return wormholeRelayer.sendToEvm{value: cost}(
+        
+        sequence = wormholeRelayer.sendToEvm{value: cost}(
             targetChain,
             targetAddress,
-            payload,
+            userPayload,
             receiverValue,
             0,
             gasLimit,
             targetChain,
             address(0x0),
-            wormholeRelayer.getDefaultDeliveryProvider(),
+            defaultDeliveryProvider,
             messageKeys,
             CONSISTENCY_LEVEL_FINALIZED
         );
@@ -146,7 +150,13 @@ abstract contract CCTPReceiver is CCTPBase {
             amountUSDCReceived = redeemUSDC(additionalMessages[0]);
         }
 
-        receivePayloadAndUSDC(payload, amountUSDCReceived, sourceAddress, sourceChain, deliveryHash);
+        (uint256 amount, bytes memory userPayload) = abi.decode(payload, (uint256, bytes));
+
+        // Check that the correct amount was received
+        // It is important to verify that the 'USDC' received is
+        require(amount == amountUSDCReceived, "Wrong amount received");
+
+        receivePayloadAndUSDC(userPayload, amountUSDCReceived, sourceAddress, sourceChain, deliveryHash);
     }
 
     function receivePayloadAndUSDC(
