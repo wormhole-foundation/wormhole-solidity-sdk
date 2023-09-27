@@ -1,4 +1,3 @@
-
 pragma solidity ^0.8.13;
 
 import "../../src/interfaces/IWormholeRelayer.sol";
@@ -145,7 +144,8 @@ abstract contract WormholeRelayerTest is Test {
 
         ActiveFork memory firstFork = activeForks[activeForksList[0]];
         vm.selectFork(firstFork.fork);
-        mockOffchainRelayer = new MockOffchainRelayer(address(firstFork.wormhole), address(firstFork.guardian), address(firstFork.circleAttester));
+        mockOffchainRelayer =
+        new MockOffchainRelayer(address(firstFork.wormhole), address(firstFork.guardian), address(firstFork.circleAttester));
         // register all active forks with the 'offchain' relayer
         for (uint256 i = 0; i < activeForksList.length; ++i) {
             ActiveFork storage fork = activeForks[activeForksList[i]];
@@ -193,7 +193,7 @@ abstract contract WormholeRelayerTest is Test {
         bytes memory attestation = home.guardian.fetchSignedMessageFromLogs(log, home.chainId);
 
         for (uint256 i = 0; i < activeForksList.length; ++i) {
-            if(activeForksList[i] == home.chainId) {
+            if (activeForksList[i] == home.chainId) {
                 continue;
             }
             ActiveFork memory fork = activeForks[activeForksList[i]];
@@ -216,7 +216,6 @@ abstract contract WormholeRelayerTest is Test {
 
         vm.selectFork(originalFork);
     }
-
 
     function logFork() public view {
         uint256 fork = vm.activeFork();
@@ -488,7 +487,6 @@ abstract contract WormholeRelayerBasicTest is WormholeRelayerTest {
     CircleMessageTransmitterSimulator public circleAttesterSource;
     CircleMessageTransmitterSimulator public circleAttesterTarget;
 
-
     /* 
      * end activeForks aliases 
      */
@@ -551,11 +549,10 @@ abstract contract WormholeRelayerBasicTest is WormholeRelayerTest {
     }
 
     function setForkChains(bool testnet, uint16 _sourceChain, uint16 _targetChain) public {
-			if (testnet) {
-					setTestnetForkChains(_sourceChain, _targetChain);
-					return;
-			} 
-		    setMainnetForkChains(_sourceChain, _targetChain);
+        if (testnet) {
+            setTestnetForkChains(_sourceChain, _targetChain);
+            return;
+        }
+        setMainnetForkChains(_sourceChain, _targetChain);
     }
-
 }

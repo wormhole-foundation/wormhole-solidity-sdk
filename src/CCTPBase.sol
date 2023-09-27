@@ -1,4 +1,3 @@
-
 pragma solidity ^0.8.13;
 
 import "./interfaces/IWormholeReceiver.sol";
@@ -94,9 +93,7 @@ abstract contract CCTPSender is CCTPBase {
             USDC,
             addressToBytes32CCTP(targetAddress)
         );
-        return MessageKey(
-            CCTPMessageLib.CCTP_KEY_TYPE, abi.encodePacked(getCCTPDomain(wormhole.chainId()), nonce)
-        );
+        return MessageKey(CCTPMessageLib.CCTP_KEY_TYPE, abi.encodePacked(getCCTPDomain(wormhole.chainId()), nonce));
     }
 
     function sendUSDCWithPayloadToEvm(
@@ -114,7 +111,7 @@ abstract contract CCTPSender is CCTPBase {
         address defaultDeliveryProvider = wormholeRelayer.getDefaultDeliveryProvider();
 
         (uint256 cost,) = wormholeRelayer.quoteEVMDeliveryPrice(targetChain, receiverValue, gasLimit);
-        
+
         sequence = wormholeRelayer.sendToEvm{value: cost}(
             targetChain,
             targetAddress,

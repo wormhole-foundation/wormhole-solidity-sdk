@@ -1,4 +1,3 @@
-
 pragma solidity ^0.8.13;
 
 import "../src/WormholeRelayerSDK.sol";
@@ -21,38 +20,16 @@ contract CCTPToy is CCTPSender, CCTPReceiver {
         address _circleMessageTransmitter,
         address _circleTokenMessenger,
         address _USDC
-    )
-        CCTPBase(
-            _wormholeRelayer,
-            _tokenBridge,
-            _wormhole,
-            _circleMessageTransmitter,
-            _circleTokenMessenger,
-            _USDC
-        )
-    {}
+    ) CCTPBase(_wormholeRelayer, _tokenBridge, _wormhole, _circleMessageTransmitter, _circleTokenMessenger, _USDC) {}
 
-    function quoteCrossChainDeposit(
-        uint16 targetChain
-    ) public view returns (uint256 cost) {
+    function quoteCrossChainDeposit(uint16 targetChain) public view returns (uint256 cost) {
         // Cost of delivering token and payload to targetChain
-        (cost, ) = wormholeRelayer.quoteEVMDeliveryPrice(
-            targetChain,
-            0,
-            GAS_LIMIT
-        );
+        (cost,) = wormholeRelayer.quoteEVMDeliveryPrice(targetChain, 0, GAS_LIMIT);
     }
 
-    function sendCrossChainDeposit(
-        uint16 targetChain,
-        address recipient,
-        uint256 amount
-    ) public payable {
+    function sendCrossChainDeposit(uint16 targetChain, address recipient, uint256 amount) public payable {
         uint256 cost = quoteCrossChainDeposit(targetChain);
-        require(
-            msg.value == cost,
-            "msg.value must be quoteCrossChainDeposit(targetChain)"
-        );
+        require(msg.value == cost, "msg.value must be quoteCrossChainDeposit(targetChain)");
 
         IERC20(USDC).transferFrom(msg.sender, address(this), amount);
 
@@ -73,16 +50,8 @@ contract CCTPToy is CCTPSender, CCTPReceiver {
         bytes32 sourceAddress,
         uint16 sourceChain,
         bytes32 // deliveryHash
-    )
-        internal
-        override
-        onlyWormholeRelayer
-        isRegisteredSender(sourceChain, sourceAddress)
-    {
-        (address recipient, uint256 expectedAmount) = abi.decode(
-            payload,
-            (address, uint256)
-        );
+    ) internal override onlyWormholeRelayer isRegisteredSender(sourceChain, sourceAddress) {
+        (address recipient, uint256 expectedAmount) = abi.decode(payload, (address, uint256));
         require(amount == expectedAmount, "amount != payload.expectedAmount");
         IERC20(USDC).transfer(recipient, amount);
     }
@@ -124,15 +93,13 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
         );
     }
 
-      function setUpGeneral() public override {
+    function setUpGeneral() public override {
         vm.selectFork(sourceFork);
         CCTPToySource.setRegisteredSender(targetChain, toWormholeFormat(address(CCTPToyTarget)));
 
         vm.selectFork(targetFork);
         CCTPToyTarget.setRegisteredSender(sourceChain, toWormholeFormat(address(CCTPToySource)));
     }
-
-    
 
     // function setUpGeneral() public override {
     //     vm.selectFork(sourceFork);
@@ -153,11 +120,7 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
         uint256 cost = CCTPToySource.quoteCrossChainDeposit(targetChain);
 
         vm.recordLogs();
-        CCTPToySource.sendCrossChainDeposit{value: cost}(
-            targetChain,
-            recipient,
-            amount
-        );
+        CCTPToySource.sendCrossChainDeposit{value: cost}(targetChain, recipient, amount);
         performDelivery(true);
 
         vm.selectFork(targetFork);

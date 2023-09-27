@@ -1,8 +1,7 @@
-
 pragma solidity ^0.8.0;
 
 interface ITokenMessenger {
-   /**
+    /**
      * @notice Deposits and burns tokens from sender to be minted on destination domain. The mint
      * on the destination domain must be called by `destinationCaller`.
      * WARNING: if the `destinationCaller` does not represent a valid address as bytes32, then it will not be possible
