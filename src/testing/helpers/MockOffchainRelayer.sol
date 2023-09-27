@@ -104,7 +104,7 @@ contract MockOffchainRelayer {
         CCTPMessageLib.CCTPMessage memory cctpMessage
     ) internal pure returns (bool) {
         (uint64 nonce,) = cctpMessage.message.asUint64(12);
-        (uint32 domain,) = cctpMessage.message.asUint32(8);
+        (uint32 domain,) = cctpMessage.message.asUint32(4);
         return
            nonce == cctpKey.nonce && domain == cctpKey.domain;
     }

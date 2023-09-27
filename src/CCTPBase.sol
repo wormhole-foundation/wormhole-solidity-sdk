@@ -45,14 +45,14 @@ abstract contract CCTPBase is TokenBase {
         USDC = _USDC;
     }
 
-    function getCCTPDomain(uint16 targetChain) internal pure returns (uint32) {
-        if (targetChain == 2) {
+    function getCCTPDomain(uint16 chain) internal pure returns (uint32) {
+        if (chain == 2) {
             return 0;
-        } else if (targetChain == 6) {
+        } else if (chain == 6) {
             return 1;
-        } else if (targetChain == 23) {
+        } else if (chain == 23) {
             return 3;
-        } else if (targetChain == 24) {
+        } else if (chain == 24) {
             return 2;
         } else {
             revert("Wrong CCTP Domain");
@@ -95,7 +95,7 @@ abstract contract CCTPSender is CCTPBase {
             addressToBytes32CCTP(targetAddress)
         );
         return MessageKey(
-            CCTPMessageLib.CCTP_KEY_TYPE, abi.encodePacked(getCCTPDomain(targetChain), nonce)
+            CCTPMessageLib.CCTP_KEY_TYPE, abi.encodePacked(getCCTPDomain(wormhole.chainId()), nonce)
         );
     }
 
