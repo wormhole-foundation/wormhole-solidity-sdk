@@ -28,11 +28,9 @@ interface IRelayer {
      * @param messageBody Raw bytes content of message
      * @return nonce reserved by message
      */
-    function sendMessage(
-        uint32 destinationDomain,
-        bytes32 recipient,
-        bytes calldata messageBody
-    ) external returns (uint64);
+    function sendMessage(uint32 destinationDomain, bytes32 recipient, bytes calldata messageBody)
+        external
+        returns (uint64);
 
     /**
      * @notice Sends an outgoing message from the source domain, with a specified caller on the

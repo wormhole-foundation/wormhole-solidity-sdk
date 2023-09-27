@@ -18,8 +18,7 @@ contract WormholeSimulator {
     using BytesLib for bytes;
 
     // Taken from forge-std/Script.sol
-    address private constant VM_ADDRESS =
-        address(bytes20(uint160(uint256(keccak256("hevm cheat code")))));
+    address private constant VM_ADDRESS = address(bytes20(uint160(uint256(keccak256("hevm cheat code")))));
     Vm public constant vm = Vm(VM_ADDRESS);
 
     // Allow access to Wormhole
@@ -45,24 +44,15 @@ contract WormholeSimulator {
 
             // Get slot for Guardian Set at the current index
             uint32 guardianSetIndex = wormhole.getCurrentGuardianSetIndex();
-            bytes32 guardianSetSlot = keccak256(
-                abi.encode(guardianSetIndex, 2)
-            );
+            bytes32 guardianSetSlot = keccak256(abi.encode(guardianSetIndex, 2));
 
             // Overwrite all but first guardian set to zero address. This isn't
             // necessary, but just in case we inadvertently access these slots
             // for any reason.
-            uint256 numGuardians = uint256(
-                vm.load(address(wormhole), guardianSetSlot)
-            );
-            for (uint256 i = 1; i < numGuardians; ) {
+            uint256 numGuardians = uint256(vm.load(address(wormhole), guardianSetSlot));
+            for (uint256 i = 1; i < numGuardians;) {
                 vm.store(
-                    address(wormhole),
-                    bytes32(
-                        uint256(keccak256(abi.encodePacked(guardianSetSlot))) +
-                            i
-                    ),
-                    bytes32(0)
+                    address(wormhole), bytes32(uint256(keccak256(abi.encodePacked(guardianSetSlot))) + i), bytes32(0)
                 );
                 unchecked {
                     i += 1;
@@ -73,9 +63,7 @@ contract WormholeSimulator {
             // in the function argument.
             vm.store(
                 address(wormhole),
-                bytes32(
-                    uint256(keccak256(abi.encodePacked(guardianSetSlot))) + 0
-                ), // just explicit w/ index 0
+                bytes32(uint256(keccak256(abi.encodePacked(guardianSetSlot))) + 0), // just explicit w/ index 0
                 bytes32(uint256(uint160(devnetGuardian)))
             );
 
@@ -87,26 +75,17 @@ contract WormholeSimulator {
             );
 
             // Confirm guardian set override
-            address[] memory guardians = wormhole
-                .getGuardianSet(guardianSetIndex)
-                .keys;
+            address[] memory guardians = wormhole.getGuardianSet(guardianSetIndex).keys;
             require(guardians.length == 1, "guardians.length != 1");
-            require(
-                guardians[0] == devnetGuardian,
-                "incorrect guardian set override"
-            );
+            require(guardians[0] == devnetGuardian, "incorrect guardian set override");
         }
     }
 
-    function doubleKeccak256(
-        bytes memory body
-    ) internal pure returns (bytes32) {
+    function doubleKeccak256(bytes memory body) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(keccak256(body)));
     }
 
-    function parseVMFromLogs(
-        Vm.Log memory log
-    ) internal pure returns (IWormhole.VM memory vm_) {
+    function parseVMFromLogs(Vm.Log memory log) internal pure returns (IWormhole.VM memory vm_) {
         uint256 index = 0;
 
         // emitterAddress
@@ -144,17 +123,10 @@ contract WormholeSimulator {
      * @notice Finds published Wormhole events in forge logs
      * @param logs The forge Vm.log captured when recording events during test execution
      */
-    function fetchWormholeMessageFromLog(
-        Vm.Log[] memory logs
-    ) public pure returns (Vm.Log[] memory) {
+    function fetchWormholeMessageFromLog(Vm.Log[] memory logs) public pure returns (Vm.Log[] memory) {
         uint256 count = 0;
         for (uint256 i = 0; i < logs.length; i++) {
-            if (
-                logs[i].topics[0] ==
-                keccak256(
-                    "LogMessagePublished(address,uint64,uint32,bytes,uint8)"
-                )
-            ) {
+            if (logs[i].topics[0] == keccak256("LogMessagePublished(address,uint64,uint32,bytes,uint8)")) {
                 count += 1;
             }
         }
@@ -164,12 +136,7 @@ contract WormholeSimulator {
 
         uint256 publishedIndex = 0;
         for (uint256 i = 0; i < logs.length; i++) {
-            if (
-                logs[i].topics[0] ==
-                keccak256(
-                    "LogMessagePublished(address,uint64,uint32,bytes,uint8)"
-                )
-            ) {
+            if (logs[i].topics[0] == keccak256("LogMessagePublished(address,uint64,uint32,bytes,uint8)")) {
                 published[publishedIndex] = logs[i];
                 publishedIndex += 1;
             }
@@ -183,9 +150,7 @@ contract WormholeSimulator {
      * @param vm_ Wormhole VM struct
      * @return encodedObservation Wormhole message body encoded into bytes
      */
-    function encodeObservation(
-        IWormhole.VM memory vm_
-    ) public pure returns (bytes memory encodedObservation) {
+    function encodeObservation(IWormhole.VM memory vm_) public pure returns (bytes memory encodedObservation) {
         encodedObservation = abi.encodePacked(
             vm_.timestamp,
             vm_.nonce,
@@ -202,10 +167,11 @@ contract WormholeSimulator {
      * @param log The forge Vm.log captured when recording events during test execution
      * @return signedMessage Formatted and signed Wormhole message
      */
-    function fetchSignedMessageFromLogs(
-        Vm.Log memory log,
-        uint16 emitterChainId
-    ) public view returns (bytes memory signedMessage) {
+    function fetchSignedMessageFromLogs(Vm.Log memory log, uint16 emitterChainId)
+        public
+        view
+        returns (bytes memory signedMessage)
+    {
         // Create message instance
         IWormhole.VM memory vm_;
 
@@ -225,9 +191,7 @@ contract WormholeSimulator {
      * @param vm_ The preformatted Wormhole message
      * @return signedMessage Formatted and signed Wormhole message
      */
-    function encodeAndSignMessage(
-        IWormhole.VM memory vm_
-    ) public view returns (bytes memory signedMessage) {
+    function encodeAndSignMessage(IWormhole.VM memory vm_) public view returns (bytes memory signedMessage) {
         // Compute the hash of the body
         bytes memory body = encodeObservation(vm_);
         vm_.hash = doubleKeccak256(body);
@@ -255,12 +219,7 @@ contract WormholeSimulator {
      */
     function setMessageFee(uint256 newFee) public {
         bytes32 coreModule = 0x00000000000000000000000000000000000000000000000000000000436f7265;
-        bytes memory message = abi.encodePacked(
-            coreModule,
-            uint8(3),
-            uint16(wormhole.chainId()),
-            newFee
-        );
+        bytes memory message = abi.encodePacked(coreModule, uint8(3), uint16(wormhole.chainId()), newFee);
         IWormhole.VM memory preSignedMessage = IWormhole.VM({
             version: 1,
             timestamp: uint32(block.timestamp),
