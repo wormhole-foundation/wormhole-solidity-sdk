@@ -124,21 +124,13 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
         );
     }
 
-      function setUpGeneral() public override {
+    function setUpGeneral() public override {
         vm.selectFork(sourceFork);
         CCTPToySource.setRegisteredSender(targetChain, toWormholeFormat(address(CCTPToyTarget)));
 
         vm.selectFork(targetFork);
         CCTPToyTarget.setRegisteredSender(sourceChain, toWormholeFormat(address(CCTPToySource)));
     }
-
-    
-
-    // function setUpGeneral() public override {
-    //     vm.selectFork(sourceFork);
-
-    //     vm.selectFork(targetFork);
-    // }
 
     function testSendToken() public {
         vm.selectFork(sourceFork);
@@ -164,27 +156,4 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
         assertEq(IERC20(USDCTarget).balanceOf(recipient), amount);
     }
 
-    // function testSendTokenWithRefund() public {
-    //     vm.selectFork(sourceFork);
-
-    //     uint256 amount = 19e17;
-    //     token.approve(address(CCTPToySource), amount);
-
-    //     vm.selectFork(targetFork);
-    //     address recipient = 0x1234567890123456789012345678901234567890;
-    //     address refundAddress = 0x2234567890123456789012345678901234567890;
-    //     vm.selectFork(sourceFork);
-    //     uint256 cost = CCTPToySource.quoteCrossChainDeposit(targetChain);
-
-    //     vm.recordLogs();
-    //     CCTPToySource.sendCrossChainDeposit{value: cost}(
-    //         targetChain, recipient, amount, address(token), targetChain, refundAddress
-    //     );
-    //     performDelivery();
-
-    //     vm.selectFork(targetFork);
-    //     address wormholeWrappedToken = tokenBridgeTarget.wrappedAsset(sourceChain, toWormholeFormat(address(token)));
-    //     assertEq(IERC20(wormholeWrappedToken).balanceOf(recipient), amount);
-    //     assertTrue(refundAddress.balance > 0);
-    // }
 }
