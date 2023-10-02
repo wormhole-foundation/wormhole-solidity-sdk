@@ -298,7 +298,7 @@ abstract contract WormholeRelayerTest is Test {
         chainInfosTestnet[23] = ChainInfo({
             chainId: 23,
             name: "goerli - arbitrum",
-            url: "https://arbitrum-goerli.publicnode.com",
+            url: vm.envOr("ARBITRUM_TESTNET_RPC_URL, string("https://arbitrum-goerli.publicnode.com")),
             relayer: IWormholeRelayer(0xAd753479354283eEE1b86c9470c84D42f229FF43),
             tokenBridge: ITokenBridge(0x23908A62110e21C04F3A4e011d24F901F911744A),
             wormhole: IWormhole(0xC7A204bDBFe983FCD8d8E61D02b475D4073fF97e),
@@ -309,7 +309,7 @@ abstract contract WormholeRelayerTest is Test {
         chainInfosTestnet[24] = ChainInfo({
             chainId: 24,
             name: "goerli - optimism",
-            url: "https://optimism-goerli.publicnode.com",
+            url: vm.envOr("OPTIMISM_TESTNET_RPC_URL", string("https://optimism-goerli.publicnode.com")),
             relayer: IWormholeRelayer(0x01A957A525a5b7A72808bA9D10c389674E459891),
             tokenBridge: ITokenBridge(0xC7A204bDBFe983FCD8d8E61D02b475D4073fF97e),
             wormhole: IWormhole(0x6b9C8671cdDC8dEab9c719bB87cBd3e782bA6a35),
@@ -317,7 +317,17 @@ abstract contract WormholeRelayerTest is Test {
             circleTokenMessenger: ITokenMessenger(0x23A04D5935ed8bC8E3eB78dB3541f0ABfB001c6e),
             USDC: IERC20(0xe05606174bac4A6364B31bd0eCA4bf4dD368f8C6)
         });
-
+        chainInfosTestnet[30] = ChainInfo({
+            chainId: 30,
+            name: "goerli - base",
+            url: vm.envOr("BASE_TESTNET_RPC_URL", "https://goerli.base.org"),
+            relayer: IWormholeRelayer(0xea8029CD7FCAEFFcD1F53686430Db0Fc8ed384E1),
+            tokenBridge: ITokenBridge(0xA31aa3FDb7aF7Db93d18DDA4e19F811342EDF780),
+            wormhole: IWormhole(0x23908A62110e21C04F3A4e011d24F901F911744A),
+            circleMessageTransmitter: IMessageTransmitter(address(0)),
+            circleTokenMessenger: ITokenMessenger(address(0)),
+            USDC: IERC20(address(0))
+        });
         chainInfosMainnet[2] = ChainInfo({
             chainId: 2,
             name: "ethereum",
@@ -438,6 +448,17 @@ abstract contract WormholeRelayerTest is Test {
             circleMessageTransmitter: IMessageTransmitter(0x4D41f22c5a0e5c74090899E5a8Fb597a8842b3e8),
             circleTokenMessenger: ITokenMessenger(0x2B4069517957735bE00ceE0fadAE88a26365528f),
             USDC: IERC20(0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85)
+        });
+        chainInfosMainnet[30] = ChainInfo({
+            chainId: 30,
+            name: "base",
+            url: vm.envOr("BASE_RPC_URL", string("https://mainnet.base.org")),
+            relayer: IWormholeRelayer(0x706f82e9bb5b0813501714ab5974216704980e31),
+            tokenBridge: ITokenBridge(0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627),
+            wormhole: IWormhole(0xbebdb6C8ddC678FfA9f8748f85C815C556Dd8ac6),
+            circleMessageTransmitter: IMessageTransmitter(address(0)),
+            circleTokenMessenger: ITokenMessenger(address(0)),
+            USDC: IERC20(address(0))
         });
     }
 
