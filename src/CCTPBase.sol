@@ -1,4 +1,3 @@
-
 pragma solidity ^0.8.13;
 
 import "./interfaces/IWormholeReceiver.sol";
@@ -12,6 +11,9 @@ import "./Utils.sol";
 import "./TokenBase.sol";
 
 library CCTPMessageLib {
+    // The second standardized key type is a CCTP Key
+    // representing a CCTP transfer of USDC
+    // (on the IWormholeRelayer interface)
     uint8 constant CCTP_KEY_TYPE = 2;
 
     // encoded using abi.encodePacked(domain, nonce)
@@ -41,7 +43,9 @@ abstract contract CCTPBase is TokenBase {
         address _USDC
     ) TokenBase(_wormholeRelayer, _tokenBridge, _wormhole) {
         circleTokenMessenger = ITokenMessenger(_circleTokenMessenger);
-        circleMessageTransmitter = IMessageTransmitter(_circleMessageTransmitter);
+        circleMessageTransmitter = IMessageTransmitter(
+            _circleMessageTransmitter
+        );
         USDC = _USDC;
     }
 
@@ -59,8 +63,13 @@ abstract contract CCTPBase is TokenBase {
         }
     }
 
-    function redeemUSDC(bytes memory cctpMessage) internal returns (uint256 amount) {
-        (bytes memory message, bytes memory signature) = abi.decode(cctpMessage, (bytes, bytes));
+    function redeemUSDC(
+        bytes memory cctpMessage
+    ) internal returns (uint256 amount) {
+        (bytes memory message, bytes memory signature) = abi.decode(
+            cctpMessage,
+            (bytes, bytes)
+        );
         uint256 beforeBalance = IERC20(USDC).balanceOf(address(this));
         circleMessageTransmitter.receiveMessage(message, signature);
         return IERC20(USDC).balanceOf(address(this)) - beforeBalance;
@@ -82,21 +91,25 @@ abstract contract CCTPSender is CCTPBase {
      *
      */
 
-    function transferUSDC(uint256 amount, uint16 targetChain, address targetAddress)
-        internal
-        returns (MessageKey memory)
-    {
+    function transferUSDC(
+        uint256 amount,
+        uint16 targetChain,
+        address targetAddress
+    ) internal returns (MessageKey memory) {
         IERC20(USDC).approve(address(circleTokenMessenger), amount);
+        bytes32 targetAddressBytes32 = addressToBytes32CCTP(targetAddress);
         uint64 nonce = circleTokenMessenger.depositForBurnWithCaller(
             amount,
             getCCTPDomain(targetChain),
-            addressToBytes32CCTP(targetAddress),
+            targetAddressBytes32,
             USDC,
-            addressToBytes32CCTP(targetAddress)
+            targetAddressBytes32
         );
-        return MessageKey(
-            CCTPMessageLib.CCTP_KEY_TYPE, abi.encodePacked(getCCTPDomain(wormhole.chainId()), nonce)
-        );
+        return
+            MessageKey(
+                CCTPMessageLib.CCTP_KEY_TYPE,
+                abi.encodePacked(getCCTPDomain(wormhole.chainId()), nonce)
+            );
     }
 
     function sendUSDCWithPayloadToEvm(
@@ -111,10 +124,15 @@ abstract contract CCTPSender is CCTPBase {
         messageKeys[0] = transferUSDC(amount, targetChain, targetAddress);
 
         bytes memory userPayload = abi.encode(amount, payload);
-        address defaultDeliveryProvider = wormholeRelayer.getDefaultDeliveryProvider();
+        address defaultDeliveryProvider = wormholeRelayer
+            .getDefaultDeliveryProvider();
 
-        (uint256 cost,) = wormholeRelayer.quoteEVMDeliveryPrice(targetChain, receiverValue, gasLimit);
-        
+        (uint256 cost, ) = wormholeRelayer.quoteEVMDeliveryPrice(
+            targetChain,
+            receiverValue,
+            gasLimit
+        );
+
         sequence = wormholeRelayer.sendToEvm{value: cost}(
             targetChain,
             targetAddress,
@@ -143,20 +161,33 @@ abstract contract CCTPReceiver is CCTPBase {
         uint16 sourceChain,
         bytes32 deliveryHash
     ) external payable {
-        require(additionalMessages.length <= 1, "CCTP: At most one Message is supported");
+        require(
+            additionalMessages.length <= 1,
+            "CCTP: At most one Message is supported"
+        );
 
         uint256 amountUSDCReceived;
         if (additionalMessages.length == 1) {
             amountUSDCReceived = redeemUSDC(additionalMessages[0]);
         }
 
-        (uint256 amount, bytes memory userPayload) = abi.decode(payload, (uint256, bytes));
+        (uint256 amount, bytes memory userPayload) = abi.decode(
+            payload,
+            (uint256, bytes)
+        );
 
         // Check that the correct amount was received
-        // It is important to verify that the 'USDC' received is
+        // It is important to verify that the 'USDC' sent in by the relayer is the same amount
+        // that the sender sent in on the source chain
         require(amount == amountUSDCReceived, "Wrong amount received");
 
-        receivePayloadAndUSDC(userPayload, amountUSDCReceived, sourceAddress, sourceChain, deliveryHash);
+        receivePayloadAndUSDC(
+            userPayload,
+            amountUSDCReceived,
+            sourceAddress,
+            sourceChain,
+            deliveryHash
+        );
     }
 
     function receivePayloadAndUSDC(
