@@ -14,6 +14,11 @@ library CCTPMessageLib {
     // The second standardized key type is a CCTP Key
     // representing a CCTP transfer of USDC
     // (on the IWormholeRelayer interface)
+
+    // Note - the default delivery provider only will relay CCTP transfers that were sent
+    // in the same transaction that this message was emitted!
+    // (This will always be the case if 'CCTPSender' is used)
+
     uint8 constant CCTP_KEY_TYPE = 2;
 
     // encoded using abi.encodePacked(domain, nonce)
