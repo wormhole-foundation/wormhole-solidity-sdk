@@ -1,4 +1,3 @@
-
 pragma solidity ^0.8.13;
 
 import "../src/WormholeRelayerSDK.sol";
@@ -30,7 +29,10 @@ contract CCTPToy is CCTPSender, CCTPReceiver {
             _circleTokenMessenger,
             _USDC
         )
-    {}
+    {
+        setCCTPDomain(2, 0);
+        setCCTPDomain(6, 1);
+    }
 
     function quoteCrossChainDeposit(
         uint16 targetChain
@@ -126,10 +128,16 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
 
     function setUpGeneral() public override {
         vm.selectFork(sourceFork);
-        CCTPToySource.setRegisteredSender(targetChain, toWormholeFormat(address(CCTPToyTarget)));
+        CCTPToySource.setRegisteredSender(
+            targetChain,
+            toWormholeFormat(address(CCTPToyTarget))
+        );
 
         vm.selectFork(targetFork);
-        CCTPToyTarget.setRegisteredSender(sourceChain, toWormholeFormat(address(CCTPToySource)));
+        CCTPToyTarget.setRegisteredSender(
+            sourceChain,
+            toWormholeFormat(address(CCTPToySource))
+        );
     }
 
     function testSendToken() public {
@@ -155,5 +163,4 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
         vm.selectFork(targetFork);
         assertEq(IERC20(USDCTarget).balanceOf(recipient), amount);
     }
-
 }

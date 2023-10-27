@@ -38,6 +38,7 @@ abstract contract CCTPBase is TokenBase {
     ITokenMessenger immutable circleTokenMessenger;
     IMessageTransmitter immutable circleMessageTransmitter;
     address immutable USDC;
+    address cctpConfigurationOwner;
 
     constructor(
         address _wormholeRelayer,
@@ -52,32 +53,7 @@ abstract contract CCTPBase is TokenBase {
             _circleMessageTransmitter
         );
         USDC = _USDC;
-    }
-
-    function getCCTPDomain(uint16 chain) internal pure returns (uint32) {
-        if (chain == 2) {
-            return 0;
-        } else if (chain == 6) {
-            return 1;
-        } else if (chain == 23) {
-            return 3;
-        } else if (chain == 24) {
-            return 2;
-        } else {
-            revert("Wrong CCTP Domain");
-        }
-    }
-
-    function redeemUSDC(
-        bytes memory cctpMessage
-    ) internal returns (uint256 amount) {
-        (bytes memory message, bytes memory signature) = abi.decode(
-            cctpMessage,
-            (bytes, bytes)
-        );
-        uint256 beforeBalance = IERC20(USDC).balanceOf(address(this));
-        circleMessageTransmitter.receiveMessage(message, signature);
-        return IERC20(USDC).balanceOf(address(this)) - beforeBalance;
+        cctpConfigurationOwner = msg.sender;
     }
 }
 
@@ -86,11 +62,45 @@ abstract contract CCTPSender is CCTPBase {
 
     using CCTPMessageLib for *;
 
+    mapping(uint16 => uint32) public chainIdToCCTPDomain;
+
     /**
-     * transferTokens wraps common boilerplate for sending tokens to another chain using IWormholeRelayer
-     * - approves tokenBridge to spend 'amount' of 'token'
-     * - emits token transfer VAA
-     * - returns VAA key for inclusion in WormholeRelayer `additionalVaas` argument
+     * Sets the CCTP Domain corresponding to chain 'chain' to be 'cctpDomain'
+     * So that transfers of USDC to chain 'chain' use the target CCTP domain 'cctpDomain'
+     *
+     * This action can only be performed by 'cctpConfigurationOwner', who is set to be the deployer
+     *
+     * Currently, cctp domains are:
+     * Ethereum: Wormhole chain id 2, cctp domain 0
+     * Avalanche: Wormhole chain id 6, cctp domain 1
+     * Optimism: Wormhole chain id 24, cctp domain 2
+     * Arbitrum: Wormhole chain id 23, cctp domain 3
+     * Base: Wormhole chain id 30, cctp domain 6
+     *
+     * These can be set via:
+     * setCCTPDomain(2, 0);
+     * setCCTPDomain(6, 1);
+     * setCCTPDomain(24, 2);
+     * setCCTPDomain(23, 3);
+     * setCCTPDomain(30, 6);
+     */
+    function setCCTPDomain(uint16 chain, uint32 cctpDomain) public {
+        require(
+            msg.sender == cctpConfigurationOwner,
+            "Not allowed to set CCTP Domain"
+        );
+        chainIdToCCTPDomain[chain] = cctpDomain;
+    }
+
+    function getCCTPDomain(uint16 chain) internal view returns (uint32) {
+        return chainIdToCCTPDomain[chain];
+    }
+
+    /**
+     * transferUSDC wraps common boilerplate for sending tokens to another chain using IWormholeRelayer
+     * - approves the Circle TokenMessenger contract to spend 'amount' of USDC
+     * - calls Circle's 'depositForBurnWithCaller'
+     * - returns key for inclusion in WormholeRelayer `additionalVaas` argument
      *
      * Note: this requires that only the targetAddress can redeem transfers.
      *
@@ -159,6 +169,18 @@ abstract contract CCTPSender is CCTPBase {
 }
 
 abstract contract CCTPReceiver is CCTPBase {
+    function redeemUSDC(
+        bytes memory cctpMessage
+    ) internal returns (uint256 amount) {
+        (bytes memory message, bytes memory signature) = abi.decode(
+            cctpMessage,
+            (bytes, bytes)
+        );
+        uint256 beforeBalance = IERC20(USDC).balanceOf(address(this));
+        circleMessageTransmitter.receiveMessage(message, signature);
+        return IERC20(USDC).balanceOf(address(this)) - beforeBalance;
+    }
+
     function receiveWormholeMessages(
         bytes memory payload,
         bytes[] memory additionalMessages,
