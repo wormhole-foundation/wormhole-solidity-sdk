@@ -18,26 +18,6 @@ abstract contract TokenBase is Base {
     ) Base(_wormholeRelayer, _wormhole) {
         tokenBridge = ITokenBridge(_tokenBridge);
     }
-
-    function getDecimals(
-        address tokenAddress
-    ) internal view returns (uint8 decimals) {
-        // query decimals
-        (, bytes memory queriedDecimals) = address(tokenAddress).staticcall(
-            abi.encodeWithSignature("decimals()")
-        );
-        decimals = abi.decode(queriedDecimals, (uint8));
-    }
-
-    function getTokenAddressOnThisChain(
-        uint16 tokenHomeChain,
-        bytes32 tokenHomeAddress
-    ) internal view returns (address tokenAddressOnThisChain) {
-        return
-            tokenHomeChain == wormhole.chainId()
-                ? fromWormholeFormat(tokenHomeAddress)
-                : tokenBridge.wrappedAsset(tokenHomeChain, tokenHomeAddress);
-    }
 }
 
 abstract contract TokenSender is TokenBase {
@@ -107,6 +87,12 @@ abstract contract TokenSender is TokenBase {
             });
     }
 
+    // Publishes a wormhole message representing a 'TokenBridge' transfer of 'amount' of 'token'
+    // and requests a delivery of the transfer along with 'payload' to 'targetAddress' on 'targetChain'
+    //
+    // The second step is done by publishing a wormhole message representing a request
+    // to call 'receiveWormholeMessages' on the address 'targetAddress' on chain 'targetChain'
+    // with the payload 'payload'
     function sendTokenWithPayloadToEvm(
         uint16 targetChain,
         address targetAddress,
@@ -177,6 +163,26 @@ abstract contract TokenReceiver is TokenBase {
         uint256 amountNormalized; // if decimals > 8, normalized to 8 decimal places
     }
 
+    function getDecimals(
+        address tokenAddress
+    ) internal view returns (uint8 decimals) {
+        // query decimals
+        (, bytes memory queriedDecimals) = address(tokenAddress).staticcall(
+            abi.encodeWithSignature("decimals()")
+        );
+        decimals = abi.decode(queriedDecimals, (uint8));
+    }
+
+    function getTokenAddressOnThisChain(
+        uint16 tokenHomeChain,
+        bytes32 tokenHomeAddress
+    ) internal view returns (address tokenAddressOnThisChain) {
+        return
+            tokenHomeChain == wormhole.chainId()
+                ? fromWormholeFormat(tokenHomeAddress)
+                : tokenBridge.wrappedAsset(tokenHomeChain, tokenHomeAddress);
+    }
+
     function receiveWormholeMessages(
         bytes memory payload,
         bytes[] memory additionalVaas,
@@ -233,6 +239,7 @@ abstract contract TokenReceiver is TokenBase {
         );
     }
 
+    // Implement this function to handle in-bound deliveries that include a TokenBridge transfer
     function receivePayloadAndTokens(
         bytes memory payload,
         TokenReceived[] memory receivedTokens,

@@ -2,13 +2,12 @@ pragma solidity ^0.8.13;
 
 import "./interfaces/IWormholeReceiver.sol";
 import "./interfaces/IWormholeRelayer.sol";
-import "./interfaces/ITokenBridge.sol";
 import {IERC20} from "./interfaces/IERC20.sol";
 import "./interfaces/CCTPInterfaces/ITokenMessenger.sol";
 import "./interfaces/CCTPInterfaces/IMessageTransmitter.sol";
 
 import "./Utils.sol";
-import "./TokenBase.sol";
+import "./Base.sol";
 
 library CCTPMessageLib {
     // The second standardized key type is a CCTP Key
@@ -34,7 +33,7 @@ library CCTPMessageLib {
     }
 }
 
-abstract contract CCTPBase is TokenBase {
+abstract contract CCTPBase is Base {
     ITokenMessenger immutable circleTokenMessenger;
     IMessageTransmitter immutable circleMessageTransmitter;
     address immutable USDC;
@@ -42,12 +41,11 @@ abstract contract CCTPBase is TokenBase {
 
     constructor(
         address _wormholeRelayer,
-        address _tokenBridge,
         address _wormhole,
         address _circleMessageTransmitter,
         address _circleTokenMessenger,
         address _USDC
-    ) TokenBase(_wormholeRelayer, _tokenBridge, _wormhole) {
+    ) Base(_wormholeRelayer, _wormhole) {
         circleTokenMessenger = ITokenMessenger(_circleTokenMessenger);
         circleMessageTransmitter = IMessageTransmitter(
             _circleMessageTransmitter
@@ -127,6 +125,13 @@ abstract contract CCTPSender is CCTPBase {
             );
     }
 
+    // Publishes a CCTP transfer of 'amount' of USDC
+    // and requests a delivery of the transfer along with 'payload' to 'targetAddress' on 'targetChain'
+    //
+    // The second step is done by publishing a wormhole message representing a request
+    // to call 'receiveWormholeMessages' on the address 'targetAddress' on chain 'targetChain'
+    // with the payload 'abi.encode(amount, payload)'
+    // (and we encode the amount so it can be checked on the target chain)
     function sendUSDCWithPayloadToEvm(
         uint16 targetChain,
         address targetAddress,
@@ -188,6 +193,10 @@ abstract contract CCTPReceiver is CCTPBase {
         uint16 sourceChain,
         bytes32 deliveryHash
     ) external payable {
+        // Currently, 'sendUSDCWithPayloadToEVM' only sends one CCTP transfer
+        // That can be modified if the integrator desires to send multiple CCTP transfers
+        // in which case the following code would have to be modified to support
+        // redeeming these multiple transfers and checking that their 'amount's are accurate
         require(
             additionalMessages.length <= 1,
             "CCTP: At most one Message is supported"
@@ -217,6 +226,7 @@ abstract contract CCTPReceiver is CCTPBase {
         );
     }
 
+    // Implement this function to handle in-bound deliveries that include a CCTP transfer
     function receivePayloadAndUSDC(
         bytes memory payload,
         uint256 amountUSDCReceived,
