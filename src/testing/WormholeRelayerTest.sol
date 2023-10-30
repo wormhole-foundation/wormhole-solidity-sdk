@@ -424,9 +424,13 @@ abstract contract WormholeRelayerTest is Test {
                 0xA31aa3FDb7aF7Db93d18DDA4e19F811342EDF780
             ),
             wormhole: IWormhole(0x23908A62110e21C04F3A4e011d24F901F911744A),
-            circleMessageTransmitter: IMessageTransmitter(address(0)),
-            circleTokenMessenger: ITokenMessenger(address(0)),
-            USDC: IERC20(address(0))
+            circleMessageTransmitter: IMessageTransmitter(
+                address(0x9ff9a4da6f2157A9c82CE756f8fD7E0d75be8895)
+            ),
+            circleTokenMessenger: ITokenMessenger(
+                address(0x877b8e8c9e2383077809787ED6F279ce01CB4cc8)
+            ),
+            USDC: IERC20(address(0xF175520C52418dfE19C8098071a252da48Cd1C19))
         });
         chainInfosMainnet[2] = ChainInfo({
             chainId: 2,
@@ -650,9 +654,13 @@ abstract contract WormholeRelayerTest is Test {
                 0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627
             ),
             wormhole: IWormhole(0xbebdb6C8ddC678FfA9f8748f85C815C556Dd8ac6),
-            circleMessageTransmitter: IMessageTransmitter(address(0)),
-            circleTokenMessenger: ITokenMessenger(address(0)),
-            USDC: IERC20(address(0))
+            circleMessageTransmitter: IMessageTransmitter(
+                address(0xAD09780d193884d503182aD4588450C416D6F9D4)
+            ),
+            circleTokenMessenger: ITokenMessenger(
+                address(0x1682Ae6375C4E4A97e4B583BC394c861A46D8962)
+            ),
+            USDC: IERC20(address(0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913))
         });
     }
 
