@@ -1,4 +1,3 @@
-
 pragma solidity ^0.8.13;
 
 import "./interfaces/IWormholeReceiver.sol";
@@ -10,8 +9,6 @@ abstract contract Base {
     IWormholeRelayer public immutable wormholeRelayer;
     IWormhole public immutable wormhole;
 
-    mapping(bytes32 => bool) public seenDeliveryVaaHashes;
-
     address registrationOwner;
     mapping(uint16 => bytes32) registeredSenders;
 
@@ -22,18 +19,18 @@ abstract contract Base {
     }
 
     modifier onlyWormholeRelayer() {
-        require(msg.sender == address(wormholeRelayer), "Msg.sender is not Wormhole Relayer");
-        _;
-    }
-
-    modifier replayProtect(bytes32 deliveryHash) {
-        require(!seenDeliveryVaaHashes[deliveryHash], "Message already processed");
-        seenDeliveryVaaHashes[deliveryHash] = true;
+        require(
+            msg.sender == address(wormholeRelayer),
+            "Msg.sender is not Wormhole Relayer"
+        );
         _;
     }
 
     modifier isRegisteredSender(uint16 sourceChain, bytes32 sourceAddress) {
-        require(registeredSenders[sourceChain] == sourceAddress, "Not registered sender");
+        require(
+            registeredSenders[sourceChain] == sourceAddress,
+            "Not registered sender"
+        );
         _;
     }
 
@@ -44,8 +41,14 @@ abstract contract Base {
      * Assumes only one sender per chain is valid
      * Sender is the address that called 'send' on the Wormhole Relayer contract on the source chain)
      */
-    function setRegisteredSender(uint16 sourceChain, bytes32 sourceAddress) public {
-        require(msg.sender == registrationOwner, "Not allowed to set registered sender");
+    function setRegisteredSender(
+        uint16 sourceChain,
+        bytes32 sourceAddress
+    ) public {
+        require(
+            msg.sender == registrationOwner,
+            "Not allowed to set registered sender"
+        );
         registeredSenders[sourceChain] = sourceAddress;
     }
 }
