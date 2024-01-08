@@ -7,6 +7,7 @@ library BytesParsing {
 
   error OutOfBounds(uint256 offset, uint256 length);
   error LengthMismatch(uint256 encodedLength, uint256 expectedLength);
+  error InvalidBoolVal(uint8 val);
 
   function checkBound(uint offset, uint length) internal pure {
     if (offset > length)
@@ -95,8 +96,15 @@ library BytesParsing {
     bytes memory encoded,
     uint offset
   ) internal pure returns (bool, uint) {
-    (uint8 ret, uint nextOffset) = asUint8(encoded, offset);
-    return (ret != 0, nextOffset);
+    (uint8 val, uint nextOffset) = asUint8(encoded, offset);
+    if (val & 0xfe != 0)
+      revert InvalidBoolVal(val);
+
+    bool ret;
+    assembly ("memory-safe") {
+      ret := val
+    }
+    return (ret, nextOffset);
   }
 
   function asBool(
