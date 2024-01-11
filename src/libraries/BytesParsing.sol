@@ -96,11 +96,17 @@ library BytesParsing {
     bytes memory encoded,
     uint offset
   ) internal pure returns (bool, uint) {
-    (uint8 ret, uint nextOffset) = asUint8Unchecked(encoded, offset);
-    if (ret & 0xfe != 0)
-      revert InvalidBoolVal(ret);
+    (uint8 val, uint nextOffset) = asUint8Unchecked(encoded, offset);
+    if (val & 0xfe != 0)
+      revert InvalidBoolVal(val);
 
-    return (ret != 0, nextOffset);
+    uint cleanedVal = uint(val);
+    bool ret;
+    //skip 2x iszero opcode
+    assembly ("memory-safe") {
+      ret := cleanedVal
+    }
+    return (ret, nextOffset);
   }
 
   function asBool(
