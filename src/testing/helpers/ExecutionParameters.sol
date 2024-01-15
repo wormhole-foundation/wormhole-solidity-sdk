@@ -3,7 +3,7 @@
 pragma solidity ^0.8.13;
 
 // import "../../interfaces/relayer/TypedUnits.sol";
-import {BytesParsing} from "./BytesParsing.sol";
+import {BytesParsing} from "../../../src/libraries/BytesParsing.sol";
 
 error UnexpectedExecutionParamsVersion(uint8 version, uint8 expectedVersion);
 error UnsupportedExecutionParamsVersion(uint8 version);

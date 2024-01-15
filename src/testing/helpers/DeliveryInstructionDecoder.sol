@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "../../../src/interfaces/IWormholeRelayer.sol";
-import "./BytesParsing.sol";
+import "../../../src/libraries/BytesParsing.sol";
 import {CCTPMessageLib} from "../../CCTPBase.sol";
 
 uint8 constant VERSION_VAAKEY = 1;

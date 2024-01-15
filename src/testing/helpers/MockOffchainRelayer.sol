@@ -11,7 +11,7 @@ import "forge-std/Vm.sol";
 import "./DeliveryInstructionDecoder.sol";
 import {CCTPMessageLib} from "../../CCTPBase.sol";
 import "./ExecutionParameters.sol";
-import "./BytesParsing.sol";
+import "../../../src/libraries/BytesParsing.sol";
 import "forge-std/console.sol";
 
 using BytesParsing for bytes;
@@ -237,7 +237,7 @@ contract MockOffchainRelayer {
                     }
                 } else if (instruction.messageKeys[i].keyType == 2) {
                     // CCTP Key
-                    (CCTPMessageLib.CCTPKey memory key,) = decodeCCTPKey(instruction.messageKeys[i].encodedKey, 0);                    
+                    (CCTPMessageLib.CCTPKey memory key,) = decodeCCTPKey(instruction.messageKeys[i].encodedKey, 0);
                     for (uint8 j = 0; j < cctpMessages.length; j++) {
                         if (cctpKeyMatchesCCTPMessage(key, cctpMessages[j])) {
                             encodedSignedVaasToBeDelivered[i] = abi.encode(cctpMessages[j].message, cctpMessages[j].signature);
