@@ -80,7 +80,7 @@ library BytesParsing {
     bytes memory encoded,
     uint offset
   ) internal pure returns (address, uint) {
-    (uint160 ret, uint nextOffset) = asUint160(encoded, offset);
+    (uint160 ret, uint nextOffset) = asUint160Unchecked(encoded, offset);
     return (address(ret), nextOffset);
   }
 
