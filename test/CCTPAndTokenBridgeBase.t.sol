@@ -30,7 +30,7 @@ contract CCTPAndTokenBridgeToy is CCTPAndTokenSender, CCTPAndTokenReceiver {
             _USDC
         )
     {
-        setCCTPDomain(2, 0);
+        setCCTPDomain(5, 7);
         setCCTPDomain(6, 1);
     }
 
@@ -144,7 +144,7 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
     ERC20Mock public token;
 
     constructor() {
-        setTestnetForkChains(2, 6);
+        setTestnetForkChains(5, 6);
     }
 
     function setUpSource() public override {
