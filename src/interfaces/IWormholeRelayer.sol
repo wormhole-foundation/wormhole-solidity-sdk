@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.0;
 
+import {NotAnEvmAddress} from "wormhole-sdk/Utils.sol";
+
 /**
  * @title WormholeRelayer
  * @author
@@ -668,5 +670,5 @@ error InvalidOverrideRefundPerGasUnused();
 error InsufficientRelayerFunds(uint256 msgValue, uint256 minimum);
 
 //When a bytes32 field can't be converted into a 20 byte EVM address, because the 12 padding bytes
-//  are non-zero (duplicated from Utils.sol)
-error NotAnEvmAddress(bytes32);
+//  are non-zero (see Utils.sol)
+//error NotAnEvmAddress(bytes32);

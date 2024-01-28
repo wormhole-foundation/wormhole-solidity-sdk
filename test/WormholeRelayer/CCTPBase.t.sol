@@ -1,14 +1,8 @@
 pragma solidity ^0.8.13;
 
-import "../src/WormholeRelayerSDK.sol";
-import "../src/interfaces/IWormholeReceiver.sol";
-import "../src/interfaces/IWormholeRelayer.sol";
-import "../src/interfaces/IERC20.sol";
-
-import "../src/testing/WormholeRelayerTest.sol";
-
-import "../src/WormholeRelayerSDK.sol";
-import "../src/Utils.sol";
+import "wormhole-sdk/WormholeRelayerSDK.sol";
+import "wormhole-sdk/interfaces/token/IERC20.sol";
+import "wormhole-sdk/testing/WormholeRelayerTest.sol";
 
 contract CCTPToy is CCTPSender, CCTPReceiver {
     uint256 constant GAS_LIMIT = 250_000;
@@ -59,7 +53,7 @@ contract CCTPToy is CCTPSender, CCTPReceiver {
         bytes memory payload = abi.encode(recipient, amount);
         sendUSDCWithPayloadToEvm(
             targetChain,
-            fromWormholeFormat(registeredSenders[targetChain]), // address (on targetChain) to send token and payload to
+            fromUniversalAddress(registeredSenders[targetChain]), // address (on targetChain) to send token and payload to
             payload,
             0, // receiver value
             GAS_LIMIT,
@@ -126,13 +120,13 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
         vm.selectFork(sourceFork);
         CCTPToySource.setRegisteredSender(
             targetChain,
-            toWormholeFormat(address(CCTPToyTarget))
+            toUniversalAddress(address(CCTPToyTarget))
         );
 
         vm.selectFork(targetFork);
         CCTPToyTarget.setRegisteredSender(
             sourceChain,
-            toWormholeFormat(address(CCTPToySource))
+            toUniversalAddress(address(CCTPToySource))
         );
     }
 
