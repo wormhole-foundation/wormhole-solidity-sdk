@@ -26,7 +26,7 @@ Delivery providers provide a quote for the cost of a delivery on the source chai
 
 [HelloWormhole - Simple cross-chain message sending application](https://github.com/wormhole-foundation/hello-wormhole)
 
-[HelloToken - Simple cross-chain token sending application](https://github.com/wormhole-foundation/hello-tokens)
+[HelloToken - Simple cross-chain token sending application](https://github.com/wormhole-foundation/hello-token)
 
 [HelloUSDC - Simple cross-chain USDC sending application using CCTP](https://github.com/wormhole-foundation/hello-usdc)
 
