@@ -1,17 +1,9 @@
 
 pragma solidity ^0.8.13;
 
-import "../src/WormholeRelayerSDK.sol";
-import "../src/interfaces/IWormholeReceiver.sol";
-import "../src/interfaces/IWormholeRelayer.sol";
-import "../src/interfaces/IERC20.sol";
-
-import "../src/testing/WormholeRelayerTest.sol";
-
-import "../src/WormholeRelayerSDK.sol";
-import "../src/Utils.sol";
-
-import "forge-std/console.sol";
+import "wormhole-sdk/WormholeRelayerSDK.sol";
+import "wormhole-sdk/interfaces/token/IERC20.sol";
+import "wormhole-sdk/testing/WormholeRelayerTest.sol";
 import {Toy} from "./Fork.t.sol";
 
 contract ChooseChainsTest is WormholeRelayerBasicTest {
@@ -25,13 +17,13 @@ contract ChooseChainsTest is WormholeRelayerBasicTest {
     function setUpSource() public override {
         require(wormholeSource.chainId() == 4);
         toySource = new Toy(address(relayerSource), address(wormholeSource));
-        toySource.setRegisteredSender(targetChain, toWormholeFormat(address(this)));
+        toySource.setRegisteredSender(targetChain, toUniversalAddress(address(this)));
     }
 
     function setUpTarget() public override {
         require(wormholeTarget.chainId() == 5);
         toyTarget = new Toy(address(relayerTarget), address(wormholeTarget));
-        toyTarget.setRegisteredSender(sourceChain, toWormholeFormat(address(this)));
+        toyTarget.setRegisteredSender(sourceChain, toUniversalAddress(address(this)));
     }
 
     function testSendMessage() public {

@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.13;
 
-import "./interfaces/IWormholeReceiver.sol";
-import "./interfaces/IWormholeRelayer.sol";
-import "./interfaces/ITokenBridge.sol";
-import {IERC20} from "./interfaces/IERC20.sol";
-import "./interfaces/CCTPInterfaces/ITokenMessenger.sol";
-import "./interfaces/CCTPInterfaces/IMessageTransmitter.sol";
+import "wormhole-sdk/interfaces/IWormholeReceiver.sol";
+import "wormhole-sdk/interfaces/IWormholeRelayer.sol";
+import "wormhole-sdk/interfaces/ITokenBridge.sol";
+import "wormhole-sdk/interfaces/token/IERC20.sol";
+import "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol";
+import "wormhole-sdk/interfaces/cctp/IMessageTransmitter.sol";
+import "wormhole-sdk/Utils.sol";
 
-import "./Utils.sol";
 import "./TokenBase.sol";
 import "./CCTPBase.sol";
 
@@ -216,13 +216,13 @@ abstract contract CCTPAndTokenSender is CCTPAndTokenBase {
             token,
             amount,
             targetChain,
-            toWormholeFormat(targetAddress),
+            toUniversalAddress(targetAddress),
             0,
             payload
         );
         return
             VaaKey({
-                emitterAddress: toWormholeFormat(address(tokenBridge)),
+                emitterAddress: toUniversalAddress(address(tokenBridge)),
                 chainId: wormhole.chainId(),
                 sequence: sequence
             });
@@ -333,7 +333,7 @@ abstract contract CCTPAndTokenReceiver is CCTPAndTokenBase {
     ) internal view returns (address tokenAddressOnThisChain) {
         return
             tokenHomeChain == wormhole.chainId()
-                ? fromWormholeFormat(tokenHomeAddress)
+                ? fromUniversalAddress(tokenHomeAddress)
                 : tokenBridge.wrappedAsset(tokenHomeChain, tokenHomeAddress);
     }
 
@@ -362,7 +362,7 @@ abstract contract CCTPAndTokenReceiver is CCTPAndTokenBase {
                 ITokenBridge.TransferWithPayload memory transfer = tokenBridge
                     .parseTransferWithPayload(parsed.payload);
                 require(
-                    transfer.to == toWormholeFormat(address(this)) &&
+                    transfer.to == toUniversalAddress(address(this)) &&
                         transfer.toChain == wormhole.chainId(),
                     "Token was not sent to this address"
                 );

@@ -1,7 +1,7 @@
 
 pragma solidity ^0.8.13;
 
-import "../interfaces/IERC20.sol";
+import "wormhole-sdk/interfaces/token/IERC20.sol";
 
 /*
  * ERC20 impl from solmate 

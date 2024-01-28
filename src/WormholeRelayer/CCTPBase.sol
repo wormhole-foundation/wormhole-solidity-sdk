@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.13;
 
-import "./interfaces/IWormholeReceiver.sol";
-import "./interfaces/IWormholeRelayer.sol";
-import {IERC20} from "./interfaces/IERC20.sol";
-import "./interfaces/CCTPInterfaces/ITokenMessenger.sol";
-import "./interfaces/CCTPInterfaces/IMessageTransmitter.sol";
+import "wormhole-sdk/interfaces/IWormholeReceiver.sol";
+import "wormhole-sdk/interfaces/IWormholeRelayer.sol";
+import "wormhole-sdk/interfaces/token/IERC20.sol";
+import "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol";
+import "wormhole-sdk/interfaces/cctp/IMessageTransmitter.sol";
+import "wormhole-sdk/Utils.sol";
 
-import "./Utils.sol";
 import "./Base.sol";
 
 library CCTPMessageLib {
