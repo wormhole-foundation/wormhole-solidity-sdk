@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.19;
 
 // In the wormhole wire format, 0 indicates that a message is for any destination chain
 uint16 constant CHAIN_ID_UNSET = 0;
