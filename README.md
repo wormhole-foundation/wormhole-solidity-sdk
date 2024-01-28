@@ -2,6 +2,8 @@
 
 The purpose of this SDK is to make integrations with Wormhole on EVM compatible chains as smooth as possible by providing all necessary Solidity interfaces along with useful libraries and tools for testing.
 
+This SDK was originally created for integrations with the WormholeRelayer and then expanded to cover all integrations.
+
 ## Installation
 
 **Foundry and Forge**
@@ -9,6 +11,10 @@ The purpose of this SDK is to make integrations with Wormhole on EVM compatible 
 ```bash
 forge install wormhole-foundation/wormhole-solidity-sdk
 ```
+
+**Solc Version**
+
+Currently the SDK uses solc version 0.8.19 to avoid issues with OPCODE0 which was introduced in 0.8.20 but which is not supported on many EVM chains.
 
 ## WormholeRelayer
 
