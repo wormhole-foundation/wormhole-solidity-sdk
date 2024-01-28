@@ -6,9 +6,9 @@ libs = ["lib"]
 via_ir = true
 
 remappings = [
-  ds-test/=lib/forge-std/lib/ds-test/src/
-  forge-std/=lib/forge-std/src/
-  wormhole-sdk/=src/
+  "ds-test/=lib/forge-std/lib/ds-test/src/",
+  "forge-std/=lib/forge-std/src/",
+  "wormhole-sdk/=src/",
 ]
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
