@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.13;
 
-import "./interfaces/IWormholeReceiver.sol";
-import "./interfaces/IWormholeRelayer.sol";
-import "./interfaces/IWormhole.sol";
-import "./Utils.sol";
+import "wormhole-sdk/interfaces/IWormholeReceiver.sol";
+import "wormhole-sdk/interfaces/IWormholeRelayer.sol";
+import "wormhole-sdk/interfaces/IWormhole.sol";
+import "wormhole-sdk/Utils.sol";
 
 abstract contract Base {
     IWormholeRelayer public immutable wormholeRelayer;

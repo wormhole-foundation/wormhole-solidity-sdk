@@ -1,21 +1,21 @@
 pragma solidity ^0.8.13;
 
-import "../../src/interfaces/IWormholeRelayer.sol";
-import "../../src/interfaces/IWormhole.sol";
-import "../../src/interfaces/ITokenBridge.sol";
-import "../../src/interfaces/CCTPInterfaces/IMessageTransmitter.sol";
-import "../../src/interfaces/CCTPInterfaces/ITokenMessenger.sol";
-import "../../src/Utils.sol";
+import "forge-std/Test.sol";
+import "forge-std/console.sol";
+
+import "wormhole-sdk/interfaces/IWormholeRelayer.sol";
+import "wormhole-sdk/interfaces/IWormhole.sol";
+import "wormhole-sdk/interfaces/ITokenBridge.sol";
+import "wormhole-sdk/interfaces/cctp/IMessageTransmitter.sol";
+import "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol";
+import "wormhole-sdk/Utils.sol";
 
 import "./helpers/WormholeSimulator.sol";
 import "./helpers/CircleCCTPSimulator.sol";
 import "./ERC20Mock.sol";
-import "./helpers/DeliveryInstructionDecoder.sol";
-import "./helpers/ExecutionParameters.sol";
-import "./helpers/MockOffchainRelayer.sol";
-
-import "forge-std/Test.sol";
-import "forge-std/console.sol";
+import "./WormholeRelayer/DeliveryInstructionDecoder.sol";
+import "./WormholeRelayer/ExecutionParameters.sol";
+import "./WormholeRelayer/MockOffchainRelayer.sol";
 
 struct ChainInfo {
     uint16 chainId;
