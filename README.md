@@ -14,7 +14,11 @@ forge install wormhole-foundation/wormhole-solidity-sdk
 
 **Solc Version**
 
-Currently the SDK uses solc version 0.8.19 to avoid issues with OPCODE0 which was introduced in 0.8.20 but which is not supported on many EVM chains.
+Be careful when building for cross-chain and set your evm version to paris in foundry.toml via:
+```
+evm_version = "paris"
+```
+This avoids issues with OPCODE0, which was introduced in 0.8.20 which bumped the default evm version to shanghai, which is not supported on many EVM chains.
 
 ## WormholeRelayer
 
