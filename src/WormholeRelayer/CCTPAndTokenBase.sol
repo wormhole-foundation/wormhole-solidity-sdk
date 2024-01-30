@@ -4,6 +4,7 @@ pragma solidity ^0.8.19;
 import "wormhole-sdk/interfaces/IWormholeReceiver.sol";
 import "wormhole-sdk/interfaces/IWormholeRelayer.sol";
 import "wormhole-sdk/interfaces/ITokenBridge.sol";
+import "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/token/ERC20/IERC20.sol";
 import "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol";
 import "wormhole-sdk/interfaces/cctp/IMessageTransmitter.sol";
@@ -209,7 +210,7 @@ abstract contract CCTPAndTokenSender is CCTPAndTokenBase {
         address targetAddress,
         bytes memory payload
     ) internal returns (VaaKey memory) {
-        IERC20(token).approve(address(tokenBridge), amount);
+        SafeERC20.forceApprove(IERC20(token), address(tokenBridge), amount);
         uint64 sequence = tokenBridge.transferTokensWithPayload{
             value: wormhole.messageFee()
         }(
