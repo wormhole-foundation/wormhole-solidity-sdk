@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.13;
-
-import {IMessageTransmitter} from "../../../src/interfaces/CCTPInterfaces/IMessageTransmitter.sol";
-import "./BytesLib.sol";
+pragma solidity ^0.8.19;
 
 import "forge-std/Vm.sol";
-import "forge-std/console.sol";
 
-import {CCTPMessageLib} from "../../CCTPBase.sol";
+import {IMessageTransmitter} from "wormhole-sdk/interfaces/cctp/IMessageTransmitter.sol";
+import {CCTPMessageLib} from "wormhole-sdk/WormholeRelayer/CCTPBase.sol";
+
+import "./BytesLib.sol";
 
 interface MessageTransmitterViewAttesterManager {
     function attesterManager() external view returns (address);

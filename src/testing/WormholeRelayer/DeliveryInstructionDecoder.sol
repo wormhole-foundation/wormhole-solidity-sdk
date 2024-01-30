@@ -1,9 +1,9 @@
 
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.19;
 
-import "../../interfaces/IWormholeRelayer.sol";
-import "../../libraries/BytesParsing.sol";
-import {CCTPMessageLib} from "../../CCTPBase.sol";
+import "wormhole-sdk/interfaces/IWormholeRelayer.sol";
+import "wormhole-sdk/libraries/BytesParsing.sol";
+import {CCTPMessageLib} from "wormhole-sdk/WormholeRelayer/CCTPBase.sol";
 
 uint8 constant VERSION_VAAKEY = 1;
 uint8 constant VERSION_DELIVERY_OVERRIDE = 1;
@@ -66,7 +66,7 @@ function decodeDeliveryInstruction(
     strct.requestedReceiverValue = requestedReceiverValue;
     strct.extraReceiverValue = extraReceiverValue;
 
-    checkLength(encoded, offset);
+    encoded.checkLength(offset);
 }
 
 function decodeRedeliveryInstruction(
@@ -87,7 +87,7 @@ function decodeRedeliveryInstruction(
 
     strct.newRequestedReceiverValue = newRequestedReceiverValue;
 
-    checkLength(encoded, offset);
+    encoded.checkLength(offset);
 }
 
 function vaaKeyArrayToMessageKeyArray(
@@ -223,12 +223,6 @@ function checkUint8(
     }
 }
 
-function checkLength(bytes memory encoded, uint256 expected) pure {
-    if (encoded.length != expected) {
-        revert InvalidPayloadLength(encoded.length, expected);
-    }
-}
-
 function encode(
     DeliveryOverride memory strct
 ) pure returns (bytes memory encoded) {
@@ -253,5 +247,5 @@ function decodeDeliveryOverride(
 
     strct.newReceiverValue = receiverValue;
 
-    checkLength(encoded, offset);
+    encoded.checkLength(offset);
 }
