@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 import "wormhole-sdk/WormholeRelayerSDK.sol";
-import "wormhole-sdk/interfaces/token/IERC20.sol";
+import "@openzeppelin/token/ERC20/IERC20.sol";
 import "wormhole-sdk/testing/WormholeRelayerTest.sol";
 import {Toy} from "./Fork.t.sol";
 
