@@ -10,8 +10,9 @@ import "wormhole-sdk/interfaces/cctp/IMessageTransmitter.sol";
 import "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol";
 import "wormhole-sdk/Utils.sol";
 
-import "./helpers/WormholeSimulator.sol";
-import "./helpers/CircleCCTPSimulator.sol";
+import "./UsdcDealer.sol";
+import "./WormholeOverride.sol";
+import "./CctpOverride.sol";
 import "./ERC20Mock.sol";
 import "./WormholeRelayer/DeliveryInstructionDecoder.sol";
 import "./WormholeRelayer/ExecutionParameters.sol";
@@ -26,18 +27,7 @@ struct ChainInfo {
     IWormhole wormhole;
     IMessageTransmitter circleMessageTransmitter;
     ITokenMessenger circleTokenMessenger;
-    IERC20 USDC;
-}
-
-interface USDCMinter {
-    function mint(address _to, uint256 _amount) external returns (bool);
-
-    function masterMinter() external returns (address);
-
-    function configureMinter(
-        address minter,
-        uint256 minterAllowedAmount
-    ) external returns (bool);
+    IUSDC USDC;
 }
 
 struct ActiveFork {
@@ -48,15 +38,17 @@ struct ActiveFork {
     IWormholeRelayer relayer;
     ITokenBridge tokenBridge;
     IWormhole wormhole;
-    WormholeSimulator guardian;
     // USDC parameters - only non-empty for Ethereum, Avalanche, Optimism, Arbitrum mainnets/testnets
-    IERC20 USDC;
+    IUSDC USDC;
     ITokenMessenger circleTokenMessenger;
     IMessageTransmitter circleMessageTransmitter;
-    CircleMessageTransmitterSimulator circleAttester;
 }
 
 abstract contract WormholeRelayerTest is Test {
+    using WormholeOverride for IWormhole;
+    using CctpOverride for IMessageTransmitter;
+    using UsdcDealer for IUSDC;
+
     /**
      * @dev required override to initialize active forks before each test
      */
@@ -66,11 +58,6 @@ abstract contract WormholeRelayerTest is Test {
      * @dev optional override that runs after all forks have been set up
      */
     function setUpGeneral() public virtual {}
-
-    uint256 constant DEVNET_GUARDIAN_PK =
-        0xcfb12303a19cde580bb4dd771639b0d26bc68353645571a8cff516ab2ee113a0;
-    uint256 constant CIRCLE_ATTESTER_PK =
-        0xcfb12303a19cde580bb4dd771639b0d26bc68353645571a8cff516ab2ee113a0;
 
     // conveneince information to set up tests against testnet/mainnet forks
     mapping(uint16 => ChainInfo) public chainInfosTestnet;
@@ -109,12 +96,9 @@ abstract contract WormholeRelayerTest is Test {
                 wormhole: chainInfos[i].wormhole,
                 // patch these in setUp() once we have the fork
                 fork: 0,
-                guardian: WormholeSimulator(address(0)),
-                circleMessageTransmitter: chainInfos[i]
-                    .circleMessageTransmitter,
+                circleMessageTransmitter: chainInfos[i].circleMessageTransmitter,
                 circleTokenMessenger: chainInfos[i].circleTokenMessenger,
-                USDC: chainInfos[i].USDC,
-                circleAttester: CircleMessageTransmitterSimulator(address(0))
+                USDC: chainInfos[i].USDC
             });
         }
     }
@@ -128,19 +112,14 @@ abstract contract WormholeRelayerTest is Test {
     }
 
     function _setUp() internal {
-        // create fork and guardian for each active fork
+        // create and setup each active fork
         for (uint256 i = 0; i < activeForksList.length; ++i) {
             uint16 chainId = activeForksList[i];
             ActiveFork storage fork = activeForks[chainId];
             fork.fork = vm.createSelectFork(fork.url);
-            fork.guardian = new WormholeSimulator(
-                address(fork.wormhole),
-                DEVNET_GUARDIAN_PK
-            );
-            fork.circleAttester = new CircleMessageTransmitterSimulator(
-                address(fork.circleMessageTransmitter),
-                CIRCLE_ATTESTER_PK
-            );
+            fork.wormhole.setUpOverride();
+            if (address(fork.circleMessageTransmitter) != address(0))
+                fork.circleMessageTransmitter.setUpOverride();
         }
 
         // run setUp virtual functions for each fork
@@ -152,17 +131,15 @@ abstract contract WormholeRelayerTest is Test {
 
         ActiveFork memory firstFork = activeForks[activeForksList[0]];
         vm.selectFork(firstFork.fork);
-        mockOffchainRelayer = new MockOffchainRelayer(
-            address(firstFork.wormhole),
-            address(firstFork.guardian),
-            address(firstFork.circleAttester)
-        );
+        mockOffchainRelayer = new MockOffchainRelayer();
         // register all active forks with the 'offchain' relayer
         for (uint256 i = 0; i < activeForksList.length; ++i) {
             ActiveFork storage fork = activeForks[activeForksList[i]];
             mockOffchainRelayer.registerChain(
                 fork.chainId,
-                address(fork.relayer),
+                fork.wormhole,
+                fork.circleMessageTransmitter,
+                fork.relayer,
                 fork.fork
             );
         }
@@ -177,21 +154,20 @@ abstract contract WormholeRelayerTest is Test {
     }
 
     function performDelivery() public {
-        performDelivery(vm.getRecordedLogs());
+        performDelivery(vm.getRecordedLogs(), false);
     }
 
     function performDelivery(bool debugLogging) public {
         performDelivery(vm.getRecordedLogs(), debugLogging);
     }
 
+    function performDelivery(Vm.Log[] memory logs) public {
+        performDelivery(logs, false);
+    }
+
     function performDelivery(Vm.Log[] memory logs, bool debugLogging) public {
         require(logs.length > 0, "no events recorded");
         mockOffchainRelayer.relay(logs, debugLogging);
-    }
-
-    function performDelivery(Vm.Log[] memory logs) public {
-        require(logs.length > 0, "no events recorded");
-        mockOffchainRelayer.relay(logs);
     }
 
     function createAndAttestToken(
@@ -206,12 +182,8 @@ abstract contract WormholeRelayerTest is Test {
 
         vm.recordLogs();
         home.tokenBridge.attestToken(address(token), 0);
-        Vm.Log memory log = home.guardian.fetchWormholeMessageFromLog(
-            vm.getRecordedLogs()
-        )[0];
-        bytes memory attestation = home.guardian.fetchSignedMessageFromLogs(
-            log,
-            home.chainId
+        (, bytes memory attestation) = home.wormhole.sign(
+            home.wormhole.fetchPublishedMessages(vm.getRecordedLogs())[0]
         );
 
         for (uint256 i = 0; i < activeForksList.length; ++i) {
@@ -231,10 +203,7 @@ abstract contract WormholeRelayerTest is Test {
         ActiveFork memory current = activeForks[chain];
         vm.selectFork(current.fork);
 
-        USDCMinter tokenMinter = USDCMinter(address(current.USDC));
-        vm.prank(tokenMinter.masterMinter());
-        tokenMinter.configureMinter(address(this), amount);
-        tokenMinter.mint(addr, amount);
+        current.USDC.deal(addr, amount);
 
         vm.selectFork(originalFork);
     }
@@ -273,7 +242,7 @@ abstract contract WormholeRelayerTest is Test {
             circleTokenMessenger: ITokenMessenger(
                 0xeb08f243E5d3FCFF26A9E38Ae5520A669f4019d0
             ),
-            USDC: IERC20(0x5425890298aed601595a70AB815c96711a31Bc65)
+            USDC: IUSDC(0x5425890298aed601595a70AB815c96711a31Bc65)
         });
         chainInfosTestnet[14] = ChainInfo({
             chainId: 14,
@@ -291,7 +260,7 @@ abstract contract WormholeRelayerTest is Test {
             wormhole: IWormhole(0x88505117CA88e7dd2eC6EA1E13f0948db2D50D56),
             circleMessageTransmitter: IMessageTransmitter(address(0)),
             circleTokenMessenger: ITokenMessenger(address(0)),
-            USDC: IERC20(address(0))
+            USDC: IUSDC(address(0))
         });
         chainInfosTestnet[4] = ChainInfo({
             chainId: 4,
@@ -309,7 +278,7 @@ abstract contract WormholeRelayerTest is Test {
             wormhole: IWormhole(0x68605AD7b15c732a30b1BbC62BE8F2A509D74b4D),
             circleMessageTransmitter: IMessageTransmitter(address(0)),
             circleTokenMessenger: ITokenMessenger(address(0)),
-            USDC: IERC20(address(0))
+            USDC: IUSDC(address(0))
         });
         chainInfosTestnet[16] = ChainInfo({
             chainId: 16,
@@ -327,7 +296,7 @@ abstract contract WormholeRelayerTest is Test {
             wormhole: IWormhole(0xa5B7D85a8f27dd7907dc8FdC21FA5657D5E2F901),
             circleMessageTransmitter: IMessageTransmitter(address(0)),
             circleTokenMessenger: ITokenMessenger(address(0)),
-            USDC: IERC20(address(0))
+            USDC: IUSDC(address(0))
         });
         chainInfosMainnet[2] = ChainInfo({
             chainId: 2,
@@ -349,7 +318,7 @@ abstract contract WormholeRelayerTest is Test {
             circleTokenMessenger: ITokenMessenger(
                 0xBd3fa81B58Ba92a82136038B25aDec7066af3155
             ),
-            USDC: IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)
+            USDC: IUSDC(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)
         });
         chainInfosMainnet[4] = ChainInfo({
             chainId: 4,
@@ -367,7 +336,7 @@ abstract contract WormholeRelayerTest is Test {
             wormhole: IWormhole(0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B),
             circleMessageTransmitter: IMessageTransmitter(address(0)),
             circleTokenMessenger: ITokenMessenger(address(0)),
-            USDC: IERC20(address(0))
+            USDC: IUSDC(address(0))
         });
         chainInfosMainnet[6] = ChainInfo({
             chainId: 6,
@@ -389,7 +358,7 @@ abstract contract WormholeRelayerTest is Test {
             circleTokenMessenger: ITokenMessenger(
                 0x6B25532e1060CE10cc3B0A99e5683b91BFDe6982
             ),
-            USDC: IERC20(0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E)
+            USDC: IUSDC(0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E)
         });
         chainInfosMainnet[10] = ChainInfo({
             chainId: 10,
@@ -407,7 +376,7 @@ abstract contract WormholeRelayerTest is Test {
             wormhole: IWormhole(0x126783A6Cb203a3E35344528B26ca3a0489a1485),
             circleMessageTransmitter: IMessageTransmitter(address(0)),
             circleTokenMessenger: ITokenMessenger(address(0)),
-            USDC: IERC20(address(0))
+            USDC: IUSDC(address(0))
         });
         chainInfosMainnet[13] = ChainInfo({
             chainId: 13,
@@ -425,7 +394,7 @@ abstract contract WormholeRelayerTest is Test {
             wormhole: IWormhole(0x0C21603c4f3a6387e241c0091A7EA39E43E90bb7),
             circleMessageTransmitter: IMessageTransmitter(address(0)),
             circleTokenMessenger: ITokenMessenger(address(0)),
-            USDC: IERC20(address(0))
+            USDC: IUSDC(address(0))
         });
         chainInfosMainnet[14] = ChainInfo({
             chainId: 14,
@@ -440,7 +409,7 @@ abstract contract WormholeRelayerTest is Test {
             wormhole: IWormhole(0xa321448d90d4e5b0A732867c18eA198e75CAC48E),
             circleMessageTransmitter: IMessageTransmitter(address(0)),
             circleTokenMessenger: ITokenMessenger(address(0)),
-            USDC: IERC20(address(0))
+            USDC: IUSDC(address(0))
         });
         chainInfosMainnet[12] = ChainInfo({
             chainId: 12,
@@ -458,7 +427,7 @@ abstract contract WormholeRelayerTest is Test {
             wormhole: IWormhole(0xa321448d90d4e5b0A732867c18eA198e75CAC48E),
             circleMessageTransmitter: IMessageTransmitter(address(0)),
             circleTokenMessenger: ITokenMessenger(address(0)),
-            USDC: IERC20(address(0))
+            USDC: IUSDC(address(0))
         });
         chainInfosMainnet[11] = ChainInfo({
             chainId: 11,
@@ -476,7 +445,7 @@ abstract contract WormholeRelayerTest is Test {
             wormhole: IWormhole(0xa321448d90d4e5b0A732867c18eA198e75CAC48E),
             circleMessageTransmitter: IMessageTransmitter(address(0)),
             circleTokenMessenger: ITokenMessenger(address(0)),
-            USDC: IERC20(address(0))
+            USDC: IUSDC(address(0))
         });
         chainInfosMainnet[16] = ChainInfo({
             chainId: 16,
@@ -494,7 +463,7 @@ abstract contract WormholeRelayerTest is Test {
             wormhole: IWormhole(0xC8e2b0cD52Cf01b0Ce87d389Daa3d414d4cE29f3),
             circleMessageTransmitter: IMessageTransmitter(address(0)),
             circleTokenMessenger: ITokenMessenger(address(0)),
-            USDC: IERC20(address(0))
+            USDC: IUSDC(address(0))
         });
         chainInfosMainnet[23] = ChainInfo({
             chainId: 23,
@@ -516,7 +485,7 @@ abstract contract WormholeRelayerTest is Test {
             circleTokenMessenger: ITokenMessenger(
                 0x19330d10D9Cc8751218eaf51E8885D058642E08A
             ),
-            USDC: IERC20(0xaf88d065e77c8cC2239327C5EDb3A432268e5831)
+            USDC: IUSDC(0xaf88d065e77c8cC2239327C5EDb3A432268e5831)
         });
         chainInfosMainnet[24] = ChainInfo({
             chainId: 24,
@@ -538,7 +507,7 @@ abstract contract WormholeRelayerTest is Test {
             circleTokenMessenger: ITokenMessenger(
                 0x2B4069517957735bE00ceE0fadAE88a26365528f
             ),
-            USDC: IERC20(0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85)
+            USDC: IUSDC(0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85)
         });
         chainInfosMainnet[30] = ChainInfo({
             chainId: 30,
@@ -557,7 +526,7 @@ abstract contract WormholeRelayerTest is Test {
             circleTokenMessenger: ITokenMessenger(
                 address(0x1682Ae6375C4E4A97e4B583BC394c861A46D8962)
             ),
-            USDC: IERC20(address(0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913))
+            USDC: IUSDC(address(0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913))
         });
     }
 
@@ -602,12 +571,6 @@ abstract contract WormholeRelayerBasicTest is WormholeRelayerTest {
     ITokenBridge public tokenBridgeTarget;
     IWormhole public wormholeTarget;
 
-    WormholeSimulator public guardianSource;
-    WormholeSimulator public guardianTarget;
-
-    CircleMessageTransmitterSimulator public circleAttesterSource;
-    CircleMessageTransmitterSimulator public circleAttesterTarget;
-
     /*
      * end activeForks aliases
      */
@@ -621,10 +584,6 @@ abstract contract WormholeRelayerBasicTest is WormholeRelayerTest {
         targetFork = 1;
         _setUp();
         // aliases can't be set until after setUp
-        guardianSource = activeForks[activeForksList[0]].guardian;
-        guardianTarget = activeForks[activeForksList[1]].guardian;
-        circleAttesterSource = activeForks[activeForksList[0]].circleAttester;
-        circleAttesterTarget = activeForks[activeForksList[1]].circleAttester;
         sourceFork = activeForks[activeForksList[0]].fork;
         targetFork = activeForks[activeForksList[1]].fork;
     }

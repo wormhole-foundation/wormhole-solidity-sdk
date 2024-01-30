@@ -11,28 +11,26 @@ import {toUniversalAddress, fromUniversalAddress} from "wormhole-sdk/Utils.sol";
 import "wormhole-sdk/libraries/BytesParsing.sol";
 import {CCTPMessageLib} from "wormhole-sdk/WormholeRelayer/CCTPBase.sol";
 
-import {WormholeSimulator} from "../helpers/WormholeSimulator.sol";
-import {CircleMessageTransmitterSimulator} from "../helpers/CircleCCTPSimulator.sol";
+import {VM_ADDRESS} from "../Constants.sol";
+import "../WormholeOverride.sol";
+import "../CctpOverride.sol";
 import "./DeliveryInstructionDecoder.sol";
 import "./ExecutionParameters.sol";
 
 using BytesParsing for bytes;
 
 contract MockOffchainRelayer {
+    using WormholeOverride for IWormhole;
+    using CctpOverride for IMessageTransmitter;
+    using CctpMessages for CctpTokenBurnMessage;
+    using { toUniversalAddress } for address;
+    using { fromUniversalAddress } for bytes32;
 
-    uint16 chainIdOfWormholeAndGuardianUtilities;
-    IWormhole relayerWormhole;
-    WormholeSimulator relayerWormholeSimulator;
-    CircleMessageTransmitterSimulator relayerCircleSimulator;
-
-
-    // Taken from forge-std/Script.sol
-    address private constant VM_ADDRESS =
-        address(bytes20(uint160(uint256(keccak256("hevm cheat code")))));
     Vm public constant vm = Vm(VM_ADDRESS);
 
-    mapping(uint16 => address) wormholeRelayerContracts;
-
+    mapping(uint16 => IWormhole) wormholeContracts;
+    mapping(uint16 => IMessageTransmitter) messageTransmitterContracts;
+    mapping(uint16 => IWormholeRelayer) wormholeRelayerContracts;
     mapping(uint16 => uint256) forks;
 
     mapping(uint256 => uint16) chainIdFromFork;
@@ -41,11 +39,22 @@ contract MockOffchainRelayer {
 
     mapping(bytes32 => bytes) pastEncodedDeliveryVAA;
 
-    constructor(address _wormhole, address _wormholeSimulator, address _circleSimulator) {
-        relayerWormhole = IWormhole(_wormhole);
-        relayerWormholeSimulator = WormholeSimulator(_wormholeSimulator);
-        relayerCircleSimulator = CircleMessageTransmitterSimulator(_circleSimulator);
-        chainIdOfWormholeAndGuardianUtilities = relayerWormhole.chainId();
+    function getForkChainId() internal view returns (uint16) {
+        uint16 chainId = chainIdFromFork[vm.activeFork()];
+        require(chainId != 0, "Chain not registered with MockOffchainRelayer");
+        return chainId;
+    }
+
+    function getForkWormhole() internal view returns (IWormhole) {
+        return wormholeContracts[getForkChainId()];
+    }
+
+    function getForkMessageTransmitter() internal view returns (IMessageTransmitter) {
+        return messageTransmitterContracts[getForkChainId()];
+    }
+
+    function getForkWormholeRelayer() internal view returns (IWormholeRelayer) {
+        return wormholeRelayerContracts[getForkChainId()];
     }
 
     function getPastEncodedSignedVaas(
@@ -70,31 +79,23 @@ contract MockOffchainRelayer {
 
     function registerChain(
         uint16 chainId,
-        address wormholeRelayerContractAddress,
+        IWormhole wormholeContractAddress,
+        IMessageTransmitter messageTransmitterContractAddress,
+        IWormholeRelayer wormholeRelayerContractAddress,
         uint256 fork
     ) public {
+        wormholeContracts[chainId] = wormholeContractAddress;
+        messageTransmitterContracts[chainId] = messageTransmitterContractAddress;
         wormholeRelayerContracts[chainId] = wormholeRelayerContractAddress;
         forks[chainId] = fork;
         chainIdFromFork[fork] = chainId;
-    }
-
-    function relay() public {
-        relay(vm.getRecordedLogs());
-    }
-
-    function relay(Vm.Log[] memory logs, bool debugLogging) public {
-        relay(logs, bytes(""), debugLogging);
-    }
-
-    function relay(Vm.Log[] memory logs) public {
-        relay(logs, bytes(""), false);
     }
 
     function vaaKeyMatchesVAA(
         VaaKey memory vaaKey,
         bytes memory signedVaa
     ) internal view returns (bool) {
-        IWormhole.VM memory parsedVaa = relayerWormhole.parseVM(signedVaa);
+        IWormhole.VM memory parsedVaa = getForkWormhole().parseVM(signedVaa);
         return
             (vaaKey.chainId == parsedVaa.emitterChainId) &&
             (vaaKey.emitterAddress == parsedVaa.emitterAddress) &&
@@ -111,89 +112,75 @@ contract MockOffchainRelayer {
            nonce == cctpKey.nonce && domain == cctpKey.domain;
     }
 
+    function relay(Vm.Log[] memory logs, bool debugLogging) public {
+        relay(logs, bytes(""), debugLogging);
+    }
+
     function relay(
         Vm.Log[] memory logs,
         bytes memory deliveryOverrides,
         bool debugLogging
     ) public {
-        uint16 chainId = chainIdFromFork[vm.activeFork()];
-        require(
-            wormholeRelayerContracts[chainId] != address(0),
-            "Chain not registered with MockOffchainRelayer"
-        );
-
-        vm.selectFork(forks[chainIdOfWormholeAndGuardianUtilities]);
-
-        Vm.Log[] memory entries = relayerWormholeSimulator
-            .fetchWormholeMessageFromLog(logs);
-
-        if (debugLogging) {
-            console.log("Found %s wormhole messages in logs", entries.length);
-        }
-
-        bytes[] memory encodedSignedVaas = new bytes[](entries.length);
-        for (uint256 i = 0; i < encodedSignedVaas.length; i++) {
-            encodedSignedVaas[i] = relayerWormholeSimulator.fetchSignedMessageFromLogs(
-                entries[i],
-                chainId
+        IWormhole emitterWormhole = getForkWormhole();
+        PublishedMessage[] memory pms = emitterWormhole.fetchPublishedMessages(logs);
+        if (debugLogging)
+            console.log(
+                "Found %s wormhole messages in logs from %s",
+                pms.length,
+                address(emitterWormhole)
             );
+
+        IWormhole.VM[] memory vaas = new IWormhole.VM[](pms.length);
+        bytes[] memory encodedSignedVaas = new bytes[](pms.length);
+        for (uint256 i = 0; i < encodedSignedVaas.length; ++i)
+            (vaas[i], encodedSignedVaas[i]) = emitterWormhole.sign(pms[i]);
+        
+        CCTPMessageLib.CCTPMessage[] memory cctpSignedMsgs = new CCTPMessageLib.CCTPMessage[](0);
+        IMessageTransmitter emitterMessageTransmitter = getForkMessageTransmitter();
+        if (address(emitterMessageTransmitter) != address(0)) {
+            CctpTokenBurnMessage[] memory burnMsgs =
+                emitterMessageTransmitter.fetchBurnMessages(logs);
+            if (debugLogging)
+                console.log(
+                    "Found %s circle messages in logs from %s",
+                    burnMsgs.length,
+                    address(emitterMessageTransmitter)
+                );
+
+            cctpSignedMsgs = new CCTPMessageLib.CCTPMessage[](burnMsgs.length);
+            for (uint256 i = 0; i < cctpSignedMsgs.length; ++i) {
+                cctpSignedMsgs[i].message = burnMsgs[i].encode();
+                cctpSignedMsgs[i].signature = emitterMessageTransmitter.sign(burnMsgs[i]);
+            }
         }
 
-        bool checkCCTP = relayerCircleSimulator.valid();
-        Vm.Log[] memory cctpEntries = new Vm.Log[](0);
-        if(checkCCTP) {
-            cctpEntries = relayerCircleSimulator
-            .fetchMessageTransmitterLogsFromLogs(logs);
-        }
-
-        if (debugLogging) {
-            console.log("Found %s circle messages in logs", cctpEntries.length);
-        }
-
-        CCTPMessageLib.CCTPMessage[] memory circleSignedMessages = new CCTPMessageLib.CCTPMessage[](cctpEntries.length);
-        for (uint256 i = 0; i < cctpEntries.length; i++) {
-            circleSignedMessages[i] = relayerCircleSimulator.fetchSignedMessageFromLog(
-                cctpEntries[i]
-            );
-        }
-
-        IWormhole.VM[] memory parsed = new IWormhole.VM[](encodedSignedVaas.length);
-        for (uint16 i = 0; i < encodedSignedVaas.length; i++) {
-            parsed[i] = relayerWormhole.parseVM(encodedSignedVaas[i]);
-        }
-        for (uint16 i = 0; i < encodedSignedVaas.length; i++) {
+        for (uint16 i = 0; i < vaas.length; ++i) {
             if (debugLogging) {
                 console.log(
                     "Found VAA from chain %s emitted from %s",
-                    parsed[i].emitterChainId,
-                    fromUniversalAddress(parsed[i].emitterAddress)
+                    vaas[i].emitterChainId,
+                    vaas[i].emitterAddress.fromUniversalAddress()
                 );
             }
 
-            if (
-                parsed[i].emitterAddress ==
-                toUniversalAddress(wormholeRelayerContracts[chainId]) &&
-                (parsed[i].emitterChainId == chainId)
-            ) {
-                if (debugLogging) {
-                    console.log("Relaying VAA to chain %s", chainId);
-                }
-                vm.selectFork(forks[chainIdOfWormholeAndGuardianUtilities]);
+            // if (
+            //     vaas[i].emitterAddress ==
+            //     wormholeRelayerContracts[chainId].toUniversalAddress() &&
+            //     (vaas[i].emitterChainId == chainId)
+            // ) {
+            //     if (debugLogging) {
+            //         console.log("Relaying VAA to chain %s", chainId);
+            //     }
+            //     //vm.selectFork(forks[chainIdOfWormholeAndGuardianUtilities]);
                 genericRelay(
                     encodedSignedVaas[i],
                     encodedSignedVaas,
-                    circleSignedMessages,
-                    parsed[i],
+                    cctpSignedMsgs,
+                    vaas[i],
                     deliveryOverrides
                 );
-            }
+            // }
         }
-
-        vm.selectFork(forks[chainId]);
-    }
-
-    function relay(bytes memory deliveryOverrides) public {
-        relay(vm.getRecordedLogs(), deliveryOverrides, false);
     }
 
     function setInfo(
@@ -214,6 +201,8 @@ contract MockOffchainRelayer {
         IWormhole.VM memory parsedDeliveryVAA,
         bytes memory deliveryOverrides
     ) internal {
+        uint currentFork = vm.activeFork();
+
         (uint8 payloadId, ) = parsedDeliveryVAA.payload.asUint8Unchecked(0);
         if (payloadId == 1) {
             DeliveryInstruction memory instruction = decodeDeliveryInstruction(
@@ -265,8 +254,7 @@ contract MockOffchainRelayer {
             vm.deal(address(this), budget);
 
             vm.recordLogs();
-            IWormholeRelayerDelivery(wormholeRelayerContracts[targetChain])
-                .deliver{value: budget}(
+            getForkWormholeRelayer().deliver{value: budget}(
                 encodedSignedVaasToBeDelivered,
                 encodedDeliveryVAA,
                 payable(address(this)),
@@ -308,18 +296,18 @@ contract MockOffchainRelayer {
             );
 
             uint16 targetChain = decodeDeliveryInstruction(
-                relayerWormhole.parseVM(oldEncodedDeliveryVAA).payload
+                getForkWormhole().parseVM(oldEncodedDeliveryVAA).payload
             ).targetChain;
 
             vm.selectFork(forks[targetChain]);
-            IWormholeRelayerDelivery(wormholeRelayerContracts[targetChain])
-                .deliver{value: budget}(
+            getForkWormholeRelayer().deliver{value: budget}(
                 oldEncodedSignedVaas,
                 oldEncodedDeliveryVAA,
                 payable(address(this)),
                 encode(deliveryOverride)
             );
         }
+        vm.selectFork(currentFork);
     }
 
     receive() external payable {}
