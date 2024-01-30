@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import "wormhole-sdk/interfaces/IWormholeReceiver.sol";
 import "wormhole-sdk/interfaces/IWormholeRelayer.sol";
 import "wormhole-sdk/interfaces/ITokenBridge.sol";
-import "wormhole-sdk/interfaces/token/IERC20.sol";
+import "@openzeppelin/token/ERC20/IERC20.sol";
 import "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol";
 import "wormhole-sdk/interfaces/cctp/IMessageTransmitter.sol";
 import "wormhole-sdk/Utils.sol";
