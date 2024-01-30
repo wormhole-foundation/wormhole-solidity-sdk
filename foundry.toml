@@ -1,5 +1,6 @@
 [profile.default]
-solc_version = "0.8.19"
+solc_version = "0.8.24"
+evm_version = "paris" # prevent use of PUSH0 opcode until it is widely supported
 src = "src"
 out = "out"
 libs = ["lib"]
@@ -8,6 +9,7 @@ via_ir = true
 remappings = [
   "ds-test/=lib/forge-std/lib/ds-test/src/",
   "forge-std/=lib/forge-std/src/",
+  "@openzeppelin/=lib/openzeppelin-contracts/contracts/",
   "wormhole-sdk/=src/",
 ]
 
