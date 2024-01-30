@@ -126,9 +126,9 @@ library WormholeOverride {
     vaa.payload = pm.payload;
 
     bytes memory encodedBody = abi.encodePacked(
-      uint32(block.timestamp),
+      pm.timestamp,
       pm.nonce,
-      wormhole.chainId(),
+      pm.emitterChainId,
       pm.emitterAddress,
       pm.sequence,
       pm.consistencyLevel,
