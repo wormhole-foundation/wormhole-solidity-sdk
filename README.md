@@ -22,7 +22,7 @@ Currently the SDK uses solc version 0.8.19 to avoid issues with PUSH0 which was 
 
 The WormholeRelayer (also sometimes referred to as the automatic or generic relayer) allows integrators to leverage external parties known as delivery providers, to relay messages emitted on a given source chain to the intended target chain.
 
-This frees integrators, who are building a cross-chain app, from the cumbersome and painful task of having to run relaying infrastructure themselves, without off-loading the burden of having to submit any transactions on the target chain themselves (and thus e.g. dealing with the headache of having to acquire gas tokens for the target chain).
+This frees integrators, who are building a cross-chain app, from the cumbersome and painful task of having to run relaying infrastructure themselves (and thus e.g. dealing with the headache of having to acquire gas tokens for the target chain).
 
 Messages include, but aren't limited to: Wormhole attestations (VAAs), Circle attestations (CCTP)
 
