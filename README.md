@@ -14,7 +14,7 @@ forge install wormhole-foundation/wormhole-solidity-sdk
 
 **Solc Version**
 
-Currently the SDK uses solc version 0.8.19 to avoid issues with OPCODE0 which was introduced in 0.8.20 but which is not supported on many EVM chains.
+Currently the SDK uses solc version 0.8.19 to avoid issues with PUSH0 which was introduced in 0.8.20 but which is not supported on many EVM chains.
 
 ## WormholeRelayer
 
