@@ -34,10 +34,10 @@ library CCTPMessageLib {
 }
 
 abstract contract CCTPBase is Base {
-    ITokenMessenger circleTokenMessenger;
-    IMessageTransmitter circleMessageTransmitter;
-    address USDC;
-    address cctpConfigurationOwner;
+    ITokenMessenger public circleTokenMessenger;
+    IMessageTransmitter public circleMessageTransmitter;
+    address public USDC;
+    address public cctpConfigurationOwner;
 
     function _initCCTPBase(
         address _wormholeRelayer,

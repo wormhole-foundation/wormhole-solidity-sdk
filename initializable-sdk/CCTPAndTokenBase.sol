@@ -19,7 +19,7 @@ abstract contract CCTPAndTokenBase is CCTPBase {
         CCTP
     }
 
-    function _initCCTP(
+    function _initCCTPTokenBase(
         address _wormholeRelayer,
         address _tokenBridge,
         address _wormhole,
