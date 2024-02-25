@@ -1,0 +1,265 @@
+{
+	"compiler": {
+		"version": "0.8.22+commit.4fc1097e"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "recipientContract",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint16",
+						"name": "sourceChain",
+						"type": "uint16"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint64",
+						"name": "sequence",
+						"type": "uint64"
+					},
+					{
+						"indexed": false,
+						"internalType": "bytes32",
+						"name": "deliveryVaaHash",
+						"type": "bytes32"
+					},
+					{
+						"indexed": false,
+						"internalType": "enum IWormholeRelayerDelivery.DeliveryStatus",
+						"name": "status",
+						"type": "uint8"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "gasUsed",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "enum IWormholeRelayerDelivery.RefundStatus",
+						"name": "refundStatus",
+						"type": "uint8"
+					},
+					{
+						"indexed": false,
+						"internalType": "bytes",
+						"name": "additionalStatusInfo",
+						"type": "bytes"
+					},
+					{
+						"indexed": false,
+						"internalType": "bytes",
+						"name": "overridesInfo",
+						"type": "bytes"
+					}
+				],
+				"name": "Delivery",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint64",
+						"name": "sequence",
+						"type": "uint64"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "deliveryQuote",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "paymentForExtraReceiverValue",
+						"type": "uint256"
+					}
+				],
+				"name": "SendEvent",
+				"type": "event"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes[]",
+						"name": "encodedVMs",
+						"type": "bytes[]"
+					},
+					{
+						"internalType": "bytes",
+						"name": "encodedDeliveryVAA",
+						"type": "bytes"
+					},
+					{
+						"internalType": "address payable",
+						"name": "relayerRefundAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "bytes",
+						"name": "deliveryOverrides",
+						"type": "bytes"
+					}
+				],
+				"name": "deliver",
+				"outputs": [],
+				"stateMutability": "payable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "deliveryHash",
+						"type": "bytes32"
+					}
+				],
+				"name": "deliveryAttempted",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "attempted",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "deliveryHash",
+						"type": "bytes32"
+					}
+				],
+				"name": "deliveryFailureBlock",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "blockNumber",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "deliveryHash",
+						"type": "bytes32"
+					}
+				],
+				"name": "deliverySuccessBlock",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "blockNumber",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint16",
+						"name": "chainId",
+						"type": "uint16"
+					}
+				],
+				"name": "getRegisteredWormholeRelayerContract",
+				"outputs": [
+					{
+						"internalType": "bytes32",
+						"name": "",
+						"type": "bytes32"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"events": {
+				"Delivery(address,uint16,uint64,bytes32,uint8,uint256,uint8,bytes,bytes)": {
+					"custom:member": "recipientContract - The target contract addresssourceChain - The chain which this delivery was requested from (in wormhole     ChainID format)sequence - The wormhole sequence number of the delivery VAA on the source chain     corresponding to this delivery requestdeliveryVaaHash - The hash of the delivery VAA corresponding to this delivery     requestgasUsed - The amount of gas that was used to call your target contractstatus:   - RECEIVER_FAILURE, if the target contract reverts   - SUCCESS, if the target contract doesn't revertadditionalStatusInfo:   - If status is SUCCESS, then this is empty.   - If status is RECEIVER_FAILURE, this is `RETURNDATA_TRUNCATION_THRESHOLD` bytes of the       return data (i.e. potentially truncated revert reason information).refundStatus - Result of the refund. REFUND_SUCCESS or REFUND_FAIL are for     refunds where targetChain=refundChain; the others are for targetChain!=refundChain,     where a cross chain refund is necessary, or if the default code path is used where no refund is requested (NO_REFUND_REQUESTED)overridesInfo:   - If not an override: empty bytes array   - Otherwise: An encoded `DeliveryOverride`"
+				}
+			},
+			"kind": "dev",
+			"methods": {
+				"deliver(bytes[],bytes,address,bytes)": {
+					"params": {
+						"deliveryOverrides": "- Optional overrides field which must be either an empty bytes array or     an encoded DeliveryOverride struct",
+						"encodedDeliveryVAA": "- Signed wormhole message from the source chain's WormholeRelayer     contract with payload being the encoded delivery instruction container",
+						"encodedVMs": "- An array of signed wormhole messages (all from the same source chain     transaction)",
+						"relayerRefundAddress": "- The address to which any refunds to the delivery provider     should be sent"
+					}
+				}
+			},
+			"title": "IWormholeRelayerDelivery",
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {
+				"deliver(bytes[],bytes,address,bytes)": {
+					"notice": "The delivery provider calls `deliver` to relay messages as described by one delivery instruction The delivery provider must pass in the specified (by VaaKeys[]) signed wormhole messages (VAAs) from the source chain as well as the signed wormhole message with the delivery instructions (the delivery VAA) The messages will be relayed to the target address (with the specified gas limit and receiver value) iff the following checks are met: - the delivery VAA has a valid signature - the delivery VAA's emitter is one of these WormholeRelayer contracts - the delivery provider passed in at least enough of this chain's currency as msg.value (enough meaning the maximum possible refund) - the instruction's target chain is this chain - the relayed signed VAAs match the descriptions in container.messages (the VAA hashes match, or the emitter address, sequence number pair matches, depending on the description given)"
+				},
+				"deliveryAttempted(bytes32)": {
+					"notice": "Returns true if a delivery has been attempted for the given deliveryHash Note: invalid deliveries where the tx reverts are not considered attempted"
+				},
+				"deliveryFailureBlock(bytes32)": {
+					"notice": "block number of the latest attempt to execute a delivery that failed"
+				},
+				"deliverySuccessBlock(bytes32)": {
+					"notice": "block number at which a delivery was successfully executed"
+				}
+			},
+			"notice": "The interface to execute deliveries. Only relevant for Delivery Providers",
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"GrayZone/src/interfaces/IWormholeRelayer.sol": "IWormholeRelayerDelivery"
+		},
+		"evmVersion": "shanghai",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"GrayZone/src/interfaces/IWormholeRelayer.sol": {
+			"keccak256": "0xaa4afc2866e54ed9c9540e8ac4872d6ab9527884243087997a7d00f444004efc",
+			"license": "Apache 2",
+			"urls": [
+				"bzz-raw://1f96f1d944798269dca0afed8cf3c64fda0493c375170783692d0f506bab20af",
+				"dweb:/ipfs/QmXwQBXgvBMX8z8bd6excB5x9wHhnkRZQVmgswmFmqk9cu"
+			]
+		}
+	},
+	"version": 1
+}
