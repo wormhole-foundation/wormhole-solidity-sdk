@@ -253,25 +253,6 @@ abstract contract WormholeRelayerTest is Test {
     }
 
     function initChainInfo() private {
-        chainInfosTestnet[2] = ChainInfo({
-            chainId: 2,
-            name: "goerli - ethereum",
-            url: "https://ethereum-goerli.publicnode.com",
-            relayer: IWormholeRelayer(
-                0x28D8F1Be96f97C1387e94A53e00eCcFb4E75175a
-            ),
-            tokenBridge: ITokenBridge(
-                0xF890982f9310df57d00f659cf4fd87e65adEd8d7
-            ),
-            wormhole: IWormhole(0x706abc4E45D419950511e474C7B9Ed348A4a716c),
-            circleMessageTransmitter: IMessageTransmitter(
-                0x26413e8157CD32011E726065a5462e97dD4d03D9
-            ),
-            circleTokenMessenger: ITokenMessenger(
-                0xD0C3da58f55358142b8d3e06C1C30c5C6114EFE8
-            ),
-            USDC: IERC20(0x07865c6E87B9F70255377e024ace6630C1Eaa37F)
-        });
         chainInfosTestnet[6] = ChainInfo({
             chainId: 6,
             name: "fuji - avalanche",
@@ -344,9 +325,13 @@ abstract contract WormholeRelayerTest is Test {
                 0x377D55a7928c046E18eEbb61977e714d2a76472a
             ),
             wormhole: IWormhole(0x0CBE91CF822c73C2315FB05100C2F714765d5c20),
-            circleMessageTransmitter: IMessageTransmitter(address(0)),
-            circleTokenMessenger: ITokenMessenger(address(0)),
-            USDC: IERC20(address(0))
+            circleMessageTransmitter: IMessageTransmitter(
+                0xe09A679F56207EF33F5b9d8fb4499Ec00792eA73
+            ),
+            circleTokenMessenger: ITokenMessenger(
+                0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5
+            ),
+            USDC: IERC20(0x9999f7Fea5938fD3b1E26A12c3f2fb024e194f97)
         });
         chainInfosTestnet[16] = ChainInfo({
             chainId: 16,
@@ -365,72 +350,6 @@ abstract contract WormholeRelayerTest is Test {
             circleMessageTransmitter: IMessageTransmitter(address(0)),
             circleTokenMessenger: ITokenMessenger(address(0)),
             USDC: IERC20(address(0))
-        });
-        chainInfosTestnet[23] = ChainInfo({
-            chainId: 23,
-            name: "goerli - arbitrum",
-            url: vm.envOr(
-                "ARBITRUM_TESTNET_RPC_URL",
-                string("https://arbitrum-goerli.publicnode.com")
-            ),
-            relayer: IWormholeRelayer(
-                0xAd753479354283eEE1b86c9470c84D42f229FF43
-            ),
-            tokenBridge: ITokenBridge(
-                0x23908A62110e21C04F3A4e011d24F901F911744A
-            ),
-            wormhole: IWormhole(0xC7A204bDBFe983FCD8d8E61D02b475D4073fF97e),
-            circleMessageTransmitter: IMessageTransmitter(
-                0x109bC137cb64eAb7c0B1ddDd1Edf341467dC2D35
-            ),
-            circleTokenMessenger: ITokenMessenger(
-                0x12Dcfd3Fe2E9EAc2859fd1Ed86d2ab8C5a2f9352
-            ),
-            USDC: IERC20(0xfd064A18f3BF249cf1f87FC203E90D8f650f2d63)
-        });
-        chainInfosTestnet[24] = ChainInfo({
-            chainId: 24,
-            name: "goerli - optimism",
-            url: vm.envOr(
-                "OPTIMISM_TESTNET_RPC_URL",
-                string("https://optimism-goerli.publicnode.com")
-            ),
-            relayer: IWormholeRelayer(
-                0x01A957A525a5b7A72808bA9D10c389674E459891
-            ),
-            tokenBridge: ITokenBridge(
-                0xC7A204bDBFe983FCD8d8E61D02b475D4073fF97e
-            ),
-            wormhole: IWormhole(0x6b9C8671cdDC8dEab9c719bB87cBd3e782bA6a35),
-            circleMessageTransmitter: IMessageTransmitter(
-                0x9ff9a4da6f2157A9c82CE756f8fD7E0d75be8895
-            ),
-            circleTokenMessenger: ITokenMessenger(
-                0x23A04D5935ed8bC8E3eB78dB3541f0ABfB001c6e
-            ),
-            USDC: IERC20(0xe05606174bac4A6364B31bd0eCA4bf4dD368f8C6)
-        });
-        chainInfosTestnet[30] = ChainInfo({
-            chainId: 30,
-            name: "goerli - base",
-            url: vm.envOr(
-                "BASE_TESTNET_RPC_URL",
-                string("https://goerli.base.org")
-            ),
-            relayer: IWormholeRelayer(
-                0xea8029CD7FCAEFFcD1F53686430Db0Fc8ed384E1
-            ),
-            tokenBridge: ITokenBridge(
-                0xA31aa3FDb7aF7Db93d18DDA4e19F811342EDF780
-            ),
-            wormhole: IWormhole(0x23908A62110e21C04F3A4e011d24F901F911744A),
-            circleMessageTransmitter: IMessageTransmitter(
-                address(0x9ff9a4da6f2157A9c82CE756f8fD7E0d75be8895)
-            ),
-            circleTokenMessenger: ITokenMessenger(
-                address(0x877b8e8c9e2383077809787ED6F279ce01CB4cc8)
-            ),
-            USDC: IERC20(address(0xF175520C52418dfE19C8098071a252da48Cd1C19))
         });
         chainInfosMainnet[2] = ChainInfo({
             chainId: 2,

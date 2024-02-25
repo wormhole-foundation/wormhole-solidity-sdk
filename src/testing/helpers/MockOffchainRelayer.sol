@@ -2,17 +2,19 @@
 
 pragma solidity ^0.8.0;
 
-import {WormholeSimulator} from "./WormholeSimulator.sol";
-import {CircleMessageTransmitterSimulator} from "./CircleCCTPSimulator.sol";
+import "forge-std/Vm.sol";
+import "forge-std/console.sol";
+
 import {toWormholeFormat, fromWormholeFormat} from "../../Utils.sol";
+import {CCTPMessageLib} from "../../CCTPBase.sol";
 import "../../interfaces/IWormholeRelayer.sol";
 import "../../interfaces/IWormhole.sol";
-import "forge-std/Vm.sol";
+import "../../libraries/BytesParsing.sol";
+
+import {WormholeSimulator} from "./WormholeSimulator.sol";
+import {CircleMessageTransmitterSimulator} from "./CircleCCTPSimulator.sol";
 import "./DeliveryInstructionDecoder.sol";
-import {CCTPMessageLib} from "../../CCTPBase.sol";
 import "./ExecutionParameters.sol";
-import "./BytesParsing.sol";
-import "forge-std/console.sol";
 
 using BytesParsing for bytes;
 
