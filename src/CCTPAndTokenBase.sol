@@ -156,10 +156,6 @@ abstract contract CCTPAndTokenSender is CCTPAndTokenBase {
         );
     }
 
-    function addressToBytes32CCTP(address addr) private pure returns (bytes32) {
-        return bytes32(uint256(uint160(addr)));
-    }
-
     // TokenBridge Sender functions, taken from "./TokenBase.sol"
 
     /**
