@@ -1,11 +1,11 @@
 pragma solidity ^0.8.13;
 
-import "../../src/interfaces/IWormholeRelayer.sol";
-import "../../src/interfaces/IWormhole.sol";
-import "../../src/interfaces/ITokenBridge.sol";
-import "../../src/interfaces/CCTPInterfaces/IMessageTransmitter.sol";
-import "../../src/interfaces/CCTPInterfaces/ITokenMessenger.sol";
-import "../../src/Utils.sol";
+import "../interfaces/IWormholeRelayer.sol";
+import "../interfaces/IWormhole.sol";
+import "../interfaces/ITokenBridge.sol";
+import "../interfaces/CCTPInterfaces/IMessageTransmitter.sol";
+import "../interfaces/CCTPInterfaces/ITokenMessenger.sol";
+import "../Utils.sol";
 
 import "./helpers/WormholeSimulator.sol";
 import "./helpers/CircleCCTPSimulator.sol";

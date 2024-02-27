@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.13;
 
-import {IMessageTransmitter} from "../../../src/interfaces/CCTPInterfaces/IMessageTransmitter.sol";
+import {IMessageTransmitter} from "../../interfaces/CCTPInterfaces/IMessageTransmitter.sol";
 import "./BytesLib.sol";
 
 import "forge-std/Vm.sol";

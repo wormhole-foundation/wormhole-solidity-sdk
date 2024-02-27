@@ -1,7 +1,7 @@
 
 pragma solidity ^0.8.13;
 
-import "../../../src/interfaces/IWormholeRelayer.sol";
+import "../../interfaces/IWormholeRelayer.sol";
 import "./BytesParsing.sol";
 import {CCTPMessageLib} from "../../CCTPBase.sol";
 
