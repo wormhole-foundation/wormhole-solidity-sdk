@@ -13,14 +13,20 @@ contract CCTPAndTokenBridgeToy is CCTPAndTokenSender, CCTPAndTokenReceiver {
     uint256 constant GAS_LIMIT = 250_000;
 
     constructor(
+    )
+    {
+        setCCTPDomain(5, 7);
+        setCCTPDomain(6, 1);
+    }
+
+    function init(
         address _wormholeRelayer,
         address _tokenBridge,
         address _wormhole,
         address _circleMessageTransmitter,
         address _circleTokenMessenger,
         address _USDC
-    )
-    {
+    ) public {
         _initCCTPTokenBase(
             _wormholeRelayer,
             _tokenBridge,
@@ -29,8 +35,6 @@ contract CCTPAndTokenBridgeToy is CCTPAndTokenSender, CCTPAndTokenReceiver {
             _circleTokenMessenger,
             _USDC
         );
-        setCCTPDomain(5, 7);
-        setCCTPDomain(6, 1);
     }
 
     function quoteCrossChainDeposit(
@@ -149,7 +153,8 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
     function setUpSource() public override {
         USDCSource = ERC20Mock(address(sourceChainInfo.USDC));
         mintUSDC(sourceChain, address(this), 5000e18);
-        CCTPAndTokenBridgeToySource = new CCTPAndTokenBridgeToy(
+        CCTPAndTokenBridgeToySource = new CCTPAndTokenBridgeToy();
+        CCTPAndTokenBridgeToySource.init(
             address(relayerSource),
             address(tokenBridgeSource),
             address(wormholeSource),
@@ -163,7 +168,8 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
     function setUpTarget() public override {
         USDCTarget = ERC20Mock(address(targetChainInfo.USDC));
         mintUSDC(targetChain, address(this), 5000e18);
-        CCTPAndTokenBridgeToyTarget = new CCTPAndTokenBridgeToy(
+        CCTPAndTokenBridgeToyTarget = new CCTPAndTokenBridgeToy();
+        CCTPAndTokenBridgeToyTarget.init(
             address(relayerTarget),
             address(tokenBridgeTarget),
             address(wormholeTarget),
