@@ -6,7 +6,7 @@ import "./interfaces/IWormholeRelayer.sol";
 import "./interfaces/ITokenBridge.sol";
 import {IERC20} from "./interfaces/IERC20.sol";
 import {Base} from "./Base.sol";
-
+import "./lib/wormhole.lib.sol";
 import "./Utils.sol";
 
 abstract contract TokenBase is Base {
@@ -156,13 +156,6 @@ abstract contract TokenSender is TokenBase {
 }
 
 abstract contract TokenReceiver is TokenBase {
-    struct TokenReceived {
-        bytes32 tokenHomeAddress;
-        uint16 tokenHomeChain;
-        address tokenAddress; // wrapped address if tokenHomeChain !== this chain, else tokenHomeAddress (in evm address format)
-        uint256 amount;
-        uint256 amountNormalized; // if decimals > 8, normalized to 8 decimal places
-    }
 
     function getDecimals(
         address tokenAddress
@@ -243,7 +236,7 @@ abstract contract TokenReceiver is TokenBase {
     // Implement this function to handle in-bound deliveries that include a TokenBridge transfer
     function receivePayloadAndTokens(
         bytes memory payload,
-        TokenReceived[] memory receivedTokens,
+        WormholeLib.TokenReceived[] memory receivedTokens,
         bytes32 sourceAddress,
         uint16 sourceChain,
         bytes32 deliveryHash
