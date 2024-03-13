@@ -7,7 +7,7 @@ import "./interfaces/ITokenBridge.sol";
 import {IERC20} from "./interfaces/IERC20.sol";
 import "./interfaces/CCTPInterfaces/ITokenMessenger.sol";
 import "./interfaces/CCTPInterfaces/IMessageTransmitter.sol";
-
+import "./lib/wormhole.lib.sol";
 import "./Utils.sol";
 import "./TokenBase.sol";
 import "./CCTPBase.sol";
@@ -154,10 +154,6 @@ abstract contract CCTPAndTokenSender is CCTPAndTokenBase {
             messageKeys,
             CONSISTENCY_LEVEL_FINALIZED
         );
-    }
-
-    function addressToBytes32CCTP(address addr) private pure returns (bytes32) {
-        return bytes32(uint256(uint160(addr)));
     }
 
     // TokenBridge Sender functions, taken from "./TokenBase.sol"
@@ -449,7 +445,7 @@ abstract contract CCTPAndTokenReceiver is CCTPAndTokenBase {
     // Implement this function to handle in-bound deliveries that include a TokenBridge transfer
     function receivePayloadAndTokens(
         bytes memory payload,
-        TokenReceived[] memory receivedTokens,
+        WormholeLib.TokenReceived[] memory receivedTokens,
         bytes32 sourceAddress,
         uint16 sourceChain,
         bytes32 deliveryHash

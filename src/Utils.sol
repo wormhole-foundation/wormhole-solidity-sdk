@@ -14,3 +14,7 @@ function fromWormholeFormat(bytes32 whFormatAddress) pure returns (address) {
     }
     return address(uint160(uint256(whFormatAddress)));
 }
+
+function addressToBytes32CCTP(address addr) pure returns (bytes32) {
+        return toWormholeFormat(addr);
+}
