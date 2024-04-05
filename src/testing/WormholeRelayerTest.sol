@@ -298,7 +298,7 @@ abstract contract WormholeRelayerTest is Test {
             name: "bsc testnet",
             url: vm.envOr(
                 "BSC_TESTNET_RPC_URL",
-                string("https://bsc-testnet.public.blastapi.io")
+                string("https://bsc-testnet-rpc.publicnode.com/")
             ),
             relayer: IWormholeRelayer(
                 0x80aC94316391752A193C1c47E27D382b507c93F3
