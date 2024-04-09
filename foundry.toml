@@ -1,8 +1,14 @@
 [profile.default]
-solc_version = "0.8.13"
+solc_version = "0.8.19"
 src = "src"
 out = "out"
 libs = ["lib"]
 via_ir = true
+
+remappings = [
+  "ds-test/=lib/forge-std/lib/ds-test/src/",
+  "forge-std/=lib/forge-std/src/",
+  "wormhole-sdk/=src/",
+]
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

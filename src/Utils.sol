@@ -1,16 +1,18 @@
 
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.19;
 
-import "./interfaces/IWormholeRelayer.sol";
+error NotAnEvmAddress(bytes32);
 
-function toWormholeFormat(address addr) pure returns (bytes32) {
-    return bytes32(uint256(uint160(addr)));
+function toUniversalAddress(address addr) pure returns (bytes32 universalAddr) {
+    universalAddr = bytes32(uint256(uint160(addr)));
 }
 
-function fromWormholeFormat(bytes32 whFormatAddress) pure returns (address) {
-    if (uint256(whFormatAddress) >> 160 != 0) {
-        revert NotAnEvmAddress(whFormatAddress);
+function fromUniversalAddress(bytes32 universalAddr) pure returns (address addr) {
+    if (bytes12(universalAddr) != 0)
+        revert NotAnEvmAddress(universalAddr);
+
+    assembly ("memory-safe") {
+        addr := universalAddr
     }
-    return address(uint160(uint256(whFormatAddress)));
 }
