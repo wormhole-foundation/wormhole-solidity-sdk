@@ -136,6 +136,7 @@ library WormholeCctpMessages {
         );
     }
 
+    // left in for backwards compatibility
     function decodeDeposit(IWormhole.VM memory vaa)
         internal
         pure
@@ -150,7 +151,23 @@ library WormholeCctpMessages {
             bytes memory payload
         )
     {
-        bytes memory encoded = vaa.payload;
+        return decodeDeposit(vaa.payload);
+    }
+
+    function decodeDeposit(bytes memory encoded)
+        internal
+        pure
+        returns (
+            bytes32 token,
+            uint256 amount,
+            uint32 sourceCctpDomain,
+            uint32 targetCctpDomain,
+            uint64 cctpNonce,
+            bytes32 burnSource,
+            bytes32 mintRecipient,
+            bytes memory payload
+        )
+    {
         uint256 offset = _checkPayloadId(encoded, 0, DEPOSIT);
 
         (token,            offset) = encoded.asBytes32Unchecked(offset);
