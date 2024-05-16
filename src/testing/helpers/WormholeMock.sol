@@ -12,23 +12,23 @@ contract WormholeMock is IWormhole {
   uint32 nonce,
   bytes memory payload,
   uint8 consistencyLevel
- ) external payable override returns (uint64 sequence) {}
+ ) external payable virtual override returns (uint64 sequence) {}
 
- function initialize() external override {}
+ function initialize() external virtual override {}
 
  function parseAndVerifyVM(
   bytes calldata encodedVM
- ) external view override returns (VM memory vm, bool valid, string memory reason) {}
+ ) external view virtual override returns (VM memory vm, bool valid, string memory reason) {}
 
  function verifyVM(
   VM memory vm
- ) external view override returns (bool valid, string memory reason) {}
+ ) external view virtual override returns (bool valid, string memory reason) {}
 
  function verifySignatures(
   bytes32 hash,
   Signature[] memory signatures,
   GuardianSet memory guardianSet
- ) external pure override returns (bool valid, string memory reason) {
+ ) external pure virtual override returns (bool valid, string memory reason) {
         uint8 lastIndex = 0;
         uint256 guardianCount = guardianSet.keys.length;
         for (uint i = 0; i < signatures.length; i++) {
@@ -78,55 +78,55 @@ contract WormholeMock is IWormhole {
         return gset;
     }
 
- function getCurrentGuardianSetIndex() external view override returns (uint32) {}
+ function getCurrentGuardianSetIndex() external view virtual override returns (uint32) {}
 
- function getGuardianSetExpiry() external view override returns (uint32) {}
+ function getGuardianSetExpiry() external view virtual override returns (uint32) {}
 
- function governanceActionIsConsumed(bytes32 hash) external view override returns (bool) {}
+ function governanceActionIsConsumed(bytes32 hash) external view virtual override returns (bool) {}
 
- function isInitialized(address impl) external view override returns (bool) {}
+ function isInitialized(address impl) external view virtual override returns (bool) {}
 
- function chainId() external view override returns (uint16) {}
+ function chainId() external view virtual override returns (uint16) {}
 
- function isFork() external view override returns (bool) {}
+ function isFork() external view virtual override returns (bool) {}
 
- function governanceChainId() external view override returns (uint16) {}
+ function governanceChainId() external view virtual override returns (uint16) {}
 
- function governanceContract() external view override returns (bytes32) {}
+ function governanceContract() external view virtual override returns (bytes32) {}
 
- function messageFee() external view override returns (uint256) {}
+ function messageFee() external view virtual override returns (uint256) {}
 
- function evmChainId() external view override returns (uint256) {}
+ function evmChainId() external view virtual override returns (uint256) {}
 
- function nextSequence(address emitter) external view override returns (uint64) {}
+ function nextSequence(address emitter) external view virtual override returns (uint64) {}
 
  function parseContractUpgrade(
   bytes memory encodedUpgrade
- ) external pure override returns (ContractUpgrade memory cu) {}
+ ) external pure virtual override returns (ContractUpgrade memory cu) {}
 
  function parseGuardianSetUpgrade(
   bytes memory encodedUpgrade
- ) external pure override returns (GuardianSetUpgrade memory gsu) {}
+ ) external pure virtual override returns (GuardianSetUpgrade memory gsu) {}
 
  function parseSetMessageFee(
   bytes memory encodedSetMessageFee
- ) external pure override returns (SetMessageFee memory smf) {}
+ ) external pure virtual override returns (SetMessageFee memory smf) {}
 
  function parseTransferFees(
   bytes memory encodedTransferFees
- ) external pure override returns (TransferFees memory tf) {}
+ ) external pure virtual override returns (TransferFees memory tf) {}
 
  function parseRecoverChainId(
   bytes memory encodedRecoverChainId
- ) external pure override returns (RecoverChainId memory rci) {}
+ ) external pure virtual override returns (RecoverChainId memory rci) {}
 
- function submitContractUpgrade(bytes memory _vm) external override {}
+ function submitContractUpgrade(bytes memory _vm) external virtual override {}
 
- function submitSetMessageFee(bytes memory _vm) external override {}
+ function submitSetMessageFee(bytes memory _vm) external virtual override {}
 
- function submitNewGuardianSet(bytes memory _vm) external override {}
+ function submitNewGuardianSet(bytes memory _vm) external virtual override {}
 
- function submitTransferFees(bytes memory _vm) external override {}
+ function submitTransferFees(bytes memory _vm) external virtual override {}
 
- function submitRecoverChainId(bytes memory _vm) external override {}
+ function submitRecoverChainId(bytes memory _vm) external virtual override {}
 }
