@@ -131,7 +131,6 @@ for (let bytes = 1; bytes <= 32; ++bytes) {
     nextOffset := add(offset, ${bytes})
     ret := mload(add(encoded, nextOffset))
   }
-  return (ret, nextOffset);
 }
 
 function asUint${bits}(
@@ -145,17 +144,19 @@ function asUint${bits}(
 function asBytes${bytes}Unchecked(
   bytes memory encoded,
   uint offset
-) internal pure returns (bytes${bytes}, uint) {
-  (uint${bits} ret, uint nextOffset) = asUint${bits}Unchecked(encoded, offset);
-  return (bytes${bytes}(ret), nextOffset);
+) internal pure returns (bytes${bytes} ret, uint nextOffset) {
+  assembly ("memory-safe") {
+    ret := mload(add(encoded, add(offset, wordSize)))
+    nextOffset := add(offset, ${bytes})
+  }
 }
 
 function asBytes${bytes}(
   bytes memory encoded,
   uint offset
-) internal pure returns (bytes${bytes}, uint) {
-  (uint${bits} ret, uint nextOffset) = asUint${bits}(encoded, offset);
-  return (bytes${bytes}(ret), nextOffset);
+) internal pure returns (bytes${bytes} ret, uint nextOffset) {
+  (ret, nextOffset) = asBytes${bytes}Unchecked(encoded, offset);
+  checkBound(nextOffset, encoded.length);
 }
 `
   );
@@ -170,7 +171,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 1)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint8(
@@ -184,17 +184,19 @@ function asBytes${bytes}(
   function asBytes1Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes1, uint) {
-    (uint8 ret, uint nextOffset) = asUint8Unchecked(encoded, offset);
-    return (bytes1(ret), nextOffset);
+  ) internal pure returns (bytes1 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 1)
+    }
   }
 
   function asBytes1(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes1, uint) {
-    (uint8 ret, uint nextOffset) = asUint8(encoded, offset);
-    return (bytes1(ret), nextOffset);
+  ) internal pure returns (bytes1 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes1Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint16Unchecked(
@@ -205,7 +207,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 2)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint16(
@@ -219,17 +220,19 @@ function asBytes${bytes}(
   function asBytes2Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes2, uint) {
-    (uint16 ret, uint nextOffset) = asUint16Unchecked(encoded, offset);
-    return (bytes2(ret), nextOffset);
+  ) internal pure returns (bytes2 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 2)
+    }
   }
 
   function asBytes2(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes2, uint) {
-    (uint16 ret, uint nextOffset) = asUint16(encoded, offset);
-    return (bytes2(ret), nextOffset);
+  ) internal pure returns (bytes2 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes2Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint24Unchecked(
@@ -240,7 +243,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 3)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint24(
@@ -254,17 +256,19 @@ function asBytes${bytes}(
   function asBytes3Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes3, uint) {
-    (uint24 ret, uint nextOffset) = asUint24Unchecked(encoded, offset);
-    return (bytes3(ret), nextOffset);
+  ) internal pure returns (bytes3 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 3)
+    }
   }
 
   function asBytes3(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes3, uint) {
-    (uint24 ret, uint nextOffset) = asUint24(encoded, offset);
-    return (bytes3(ret), nextOffset);
+  ) internal pure returns (bytes3 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes3Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint32Unchecked(
@@ -275,7 +279,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 4)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint32(
@@ -289,17 +292,19 @@ function asBytes${bytes}(
   function asBytes4Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes4, uint) {
-    (uint32 ret, uint nextOffset) = asUint32Unchecked(encoded, offset);
-    return (bytes4(ret), nextOffset);
+  ) internal pure returns (bytes4 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 4)
+    }
   }
 
   function asBytes4(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes4, uint) {
-    (uint32 ret, uint nextOffset) = asUint32(encoded, offset);
-    return (bytes4(ret), nextOffset);
+  ) internal pure returns (bytes4 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes4Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint40Unchecked(
@@ -310,7 +315,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 5)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint40(
@@ -324,17 +328,19 @@ function asBytes${bytes}(
   function asBytes5Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes5, uint) {
-    (uint40 ret, uint nextOffset) = asUint40Unchecked(encoded, offset);
-    return (bytes5(ret), nextOffset);
+  ) internal pure returns (bytes5 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 5)
+    }
   }
 
   function asBytes5(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes5, uint) {
-    (uint40 ret, uint nextOffset) = asUint40(encoded, offset);
-    return (bytes5(ret), nextOffset);
+  ) internal pure returns (bytes5 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes5Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint48Unchecked(
@@ -345,7 +351,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 6)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint48(
@@ -359,17 +364,19 @@ function asBytes${bytes}(
   function asBytes6Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes6, uint) {
-    (uint48 ret, uint nextOffset) = asUint48Unchecked(encoded, offset);
-    return (bytes6(ret), nextOffset);
+  ) internal pure returns (bytes6 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 6)
+    }
   }
 
   function asBytes6(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes6, uint) {
-    (uint48 ret, uint nextOffset) = asUint48(encoded, offset);
-    return (bytes6(ret), nextOffset);
+  ) internal pure returns (bytes6 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes6Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint56Unchecked(
@@ -380,7 +387,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 7)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint56(
@@ -394,17 +400,19 @@ function asBytes${bytes}(
   function asBytes7Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes7, uint) {
-    (uint56 ret, uint nextOffset) = asUint56Unchecked(encoded, offset);
-    return (bytes7(ret), nextOffset);
+  ) internal pure returns (bytes7 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 7)
+    }
   }
 
   function asBytes7(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes7, uint) {
-    (uint56 ret, uint nextOffset) = asUint56(encoded, offset);
-    return (bytes7(ret), nextOffset);
+  ) internal pure returns (bytes7 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes7Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint64Unchecked(
@@ -415,7 +423,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 8)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint64(
@@ -429,17 +436,19 @@ function asBytes${bytes}(
   function asBytes8Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes8, uint) {
-    (uint64 ret, uint nextOffset) = asUint64Unchecked(encoded, offset);
-    return (bytes8(ret), nextOffset);
+  ) internal pure returns (bytes8 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 8)
+    }
   }
 
   function asBytes8(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes8, uint) {
-    (uint64 ret, uint nextOffset) = asUint64(encoded, offset);
-    return (bytes8(ret), nextOffset);
+  ) internal pure returns (bytes8 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes8Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint72Unchecked(
@@ -450,7 +459,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 9)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint72(
@@ -464,17 +472,19 @@ function asBytes${bytes}(
   function asBytes9Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes9, uint) {
-    (uint72 ret, uint nextOffset) = asUint72Unchecked(encoded, offset);
-    return (bytes9(ret), nextOffset);
+  ) internal pure returns (bytes9 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 9)
+    }
   }
 
   function asBytes9(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes9, uint) {
-    (uint72 ret, uint nextOffset) = asUint72(encoded, offset);
-    return (bytes9(ret), nextOffset);
+  ) internal pure returns (bytes9 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes9Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint80Unchecked(
@@ -485,7 +495,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 10)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint80(
@@ -499,17 +508,19 @@ function asBytes${bytes}(
   function asBytes10Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes10, uint) {
-    (uint80 ret, uint nextOffset) = asUint80Unchecked(encoded, offset);
-    return (bytes10(ret), nextOffset);
+  ) internal pure returns (bytes10 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 10)
+    }
   }
 
   function asBytes10(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes10, uint) {
-    (uint80 ret, uint nextOffset) = asUint80(encoded, offset);
-    return (bytes10(ret), nextOffset);
+  ) internal pure returns (bytes10 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes10Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint88Unchecked(
@@ -520,7 +531,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 11)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint88(
@@ -534,17 +544,19 @@ function asBytes${bytes}(
   function asBytes11Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes11, uint) {
-    (uint88 ret, uint nextOffset) = asUint88Unchecked(encoded, offset);
-    return (bytes11(ret), nextOffset);
+  ) internal pure returns (bytes11 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 11)
+    }
   }
 
   function asBytes11(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes11, uint) {
-    (uint88 ret, uint nextOffset) = asUint88(encoded, offset);
-    return (bytes11(ret), nextOffset);
+  ) internal pure returns (bytes11 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes11Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint96Unchecked(
@@ -555,7 +567,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 12)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint96(
@@ -569,17 +580,19 @@ function asBytes${bytes}(
   function asBytes12Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes12, uint) {
-    (uint96 ret, uint nextOffset) = asUint96Unchecked(encoded, offset);
-    return (bytes12(ret), nextOffset);
+  ) internal pure returns (bytes12 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 12)
+    }
   }
 
   function asBytes12(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes12, uint) {
-    (uint96 ret, uint nextOffset) = asUint96(encoded, offset);
-    return (bytes12(ret), nextOffset);
+  ) internal pure returns (bytes12 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes12Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint104Unchecked(
@@ -590,7 +603,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 13)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint104(
@@ -604,17 +616,19 @@ function asBytes${bytes}(
   function asBytes13Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes13, uint) {
-    (uint104 ret, uint nextOffset) = asUint104Unchecked(encoded, offset);
-    return (bytes13(ret), nextOffset);
+  ) internal pure returns (bytes13 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 13)
+    }
   }
 
   function asBytes13(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes13, uint) {
-    (uint104 ret, uint nextOffset) = asUint104(encoded, offset);
-    return (bytes13(ret), nextOffset);
+  ) internal pure returns (bytes13 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes13Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint112Unchecked(
@@ -625,7 +639,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 14)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint112(
@@ -639,17 +652,19 @@ function asBytes${bytes}(
   function asBytes14Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes14, uint) {
-    (uint112 ret, uint nextOffset) = asUint112Unchecked(encoded, offset);
-    return (bytes14(ret), nextOffset);
+  ) internal pure returns (bytes14 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 14)
+    }
   }
 
   function asBytes14(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes14, uint) {
-    (uint112 ret, uint nextOffset) = asUint112(encoded, offset);
-    return (bytes14(ret), nextOffset);
+  ) internal pure returns (bytes14 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes14Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint120Unchecked(
@@ -660,7 +675,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 15)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint120(
@@ -674,17 +688,19 @@ function asBytes${bytes}(
   function asBytes15Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes15, uint) {
-    (uint120 ret, uint nextOffset) = asUint120Unchecked(encoded, offset);
-    return (bytes15(ret), nextOffset);
+  ) internal pure returns (bytes15 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 15)
+    }
   }
 
   function asBytes15(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes15, uint) {
-    (uint120 ret, uint nextOffset) = asUint120(encoded, offset);
-    return (bytes15(ret), nextOffset);
+  ) internal pure returns (bytes15 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes15Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint128Unchecked(
@@ -695,7 +711,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 16)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint128(
@@ -709,17 +724,19 @@ function asBytes${bytes}(
   function asBytes16Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes16, uint) {
-    (uint128 ret, uint nextOffset) = asUint128Unchecked(encoded, offset);
-    return (bytes16(ret), nextOffset);
+  ) internal pure returns (bytes16 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 16)
+    }
   }
 
   function asBytes16(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes16, uint) {
-    (uint128 ret, uint nextOffset) = asUint128(encoded, offset);
-    return (bytes16(ret), nextOffset);
+  ) internal pure returns (bytes16 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes16Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint136Unchecked(
@@ -730,7 +747,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 17)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint136(
@@ -744,17 +760,19 @@ function asBytes${bytes}(
   function asBytes17Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes17, uint) {
-    (uint136 ret, uint nextOffset) = asUint136Unchecked(encoded, offset);
-    return (bytes17(ret), nextOffset);
+  ) internal pure returns (bytes17 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 17)
+    }
   }
 
   function asBytes17(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes17, uint) {
-    (uint136 ret, uint nextOffset) = asUint136(encoded, offset);
-    return (bytes17(ret), nextOffset);
+  ) internal pure returns (bytes17 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes17Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint144Unchecked(
@@ -765,7 +783,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 18)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint144(
@@ -779,17 +796,19 @@ function asBytes${bytes}(
   function asBytes18Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes18, uint) {
-    (uint144 ret, uint nextOffset) = asUint144Unchecked(encoded, offset);
-    return (bytes18(ret), nextOffset);
+  ) internal pure returns (bytes18 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 18)
+    }
   }
 
   function asBytes18(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes18, uint) {
-    (uint144 ret, uint nextOffset) = asUint144(encoded, offset);
-    return (bytes18(ret), nextOffset);
+  ) internal pure returns (bytes18 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes18Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint152Unchecked(
@@ -800,7 +819,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 19)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint152(
@@ -814,17 +832,19 @@ function asBytes${bytes}(
   function asBytes19Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes19, uint) {
-    (uint152 ret, uint nextOffset) = asUint152Unchecked(encoded, offset);
-    return (bytes19(ret), nextOffset);
+  ) internal pure returns (bytes19 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 19)
+    }
   }
 
   function asBytes19(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes19, uint) {
-    (uint152 ret, uint nextOffset) = asUint152(encoded, offset);
-    return (bytes19(ret), nextOffset);
+  ) internal pure returns (bytes19 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes19Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint160Unchecked(
@@ -835,7 +855,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 20)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint160(
@@ -849,17 +868,19 @@ function asBytes${bytes}(
   function asBytes20Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes20, uint) {
-    (uint160 ret, uint nextOffset) = asUint160Unchecked(encoded, offset);
-    return (bytes20(ret), nextOffset);
+  ) internal pure returns (bytes20 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 20)
+    }
   }
 
   function asBytes20(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes20, uint) {
-    (uint160 ret, uint nextOffset) = asUint160(encoded, offset);
-    return (bytes20(ret), nextOffset);
+  ) internal pure returns (bytes20 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes20Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint168Unchecked(
@@ -870,7 +891,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 21)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint168(
@@ -884,17 +904,19 @@ function asBytes${bytes}(
   function asBytes21Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes21, uint) {
-    (uint168 ret, uint nextOffset) = asUint168Unchecked(encoded, offset);
-    return (bytes21(ret), nextOffset);
+  ) internal pure returns (bytes21 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 21)
+    }
   }
 
   function asBytes21(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes21, uint) {
-    (uint168 ret, uint nextOffset) = asUint168(encoded, offset);
-    return (bytes21(ret), nextOffset);
+  ) internal pure returns (bytes21 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes21Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint176Unchecked(
@@ -905,7 +927,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 22)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint176(
@@ -919,17 +940,19 @@ function asBytes${bytes}(
   function asBytes22Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes22, uint) {
-    (uint176 ret, uint nextOffset) = asUint176Unchecked(encoded, offset);
-    return (bytes22(ret), nextOffset);
+  ) internal pure returns (bytes22 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 22)
+    }
   }
 
   function asBytes22(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes22, uint) {
-    (uint176 ret, uint nextOffset) = asUint176(encoded, offset);
-    return (bytes22(ret), nextOffset);
+  ) internal pure returns (bytes22 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes22Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint184Unchecked(
@@ -940,7 +963,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 23)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint184(
@@ -954,17 +976,19 @@ function asBytes${bytes}(
   function asBytes23Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes23, uint) {
-    (uint184 ret, uint nextOffset) = asUint184Unchecked(encoded, offset);
-    return (bytes23(ret), nextOffset);
+  ) internal pure returns (bytes23 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 23)
+    }
   }
 
   function asBytes23(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes23, uint) {
-    (uint184 ret, uint nextOffset) = asUint184(encoded, offset);
-    return (bytes23(ret), nextOffset);
+  ) internal pure returns (bytes23 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes23Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint192Unchecked(
@@ -975,7 +999,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 24)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint192(
@@ -989,17 +1012,19 @@ function asBytes${bytes}(
   function asBytes24Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes24, uint) {
-    (uint192 ret, uint nextOffset) = asUint192Unchecked(encoded, offset);
-    return (bytes24(ret), nextOffset);
+  ) internal pure returns (bytes24 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 24)
+    }
   }
 
   function asBytes24(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes24, uint) {
-    (uint192 ret, uint nextOffset) = asUint192(encoded, offset);
-    return (bytes24(ret), nextOffset);
+  ) internal pure returns (bytes24 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes24Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint200Unchecked(
@@ -1010,7 +1035,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 25)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint200(
@@ -1024,17 +1048,19 @@ function asBytes${bytes}(
   function asBytes25Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes25, uint) {
-    (uint200 ret, uint nextOffset) = asUint200Unchecked(encoded, offset);
-    return (bytes25(ret), nextOffset);
+  ) internal pure returns (bytes25 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 25)
+    }
   }
 
   function asBytes25(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes25, uint) {
-    (uint200 ret, uint nextOffset) = asUint200(encoded, offset);
-    return (bytes25(ret), nextOffset);
+  ) internal pure returns (bytes25 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes25Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint208Unchecked(
@@ -1045,7 +1071,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 26)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint208(
@@ -1059,17 +1084,19 @@ function asBytes${bytes}(
   function asBytes26Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes26, uint) {
-    (uint208 ret, uint nextOffset) = asUint208Unchecked(encoded, offset);
-    return (bytes26(ret), nextOffset);
+  ) internal pure returns (bytes26 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 26)
+    }
   }
 
   function asBytes26(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes26, uint) {
-    (uint208 ret, uint nextOffset) = asUint208(encoded, offset);
-    return (bytes26(ret), nextOffset);
+  ) internal pure returns (bytes26 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes26Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint216Unchecked(
@@ -1080,7 +1107,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 27)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint216(
@@ -1094,17 +1120,19 @@ function asBytes${bytes}(
   function asBytes27Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes27, uint) {
-    (uint216 ret, uint nextOffset) = asUint216Unchecked(encoded, offset);
-    return (bytes27(ret), nextOffset);
+  ) internal pure returns (bytes27 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 27)
+    }
   }
 
   function asBytes27(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes27, uint) {
-    (uint216 ret, uint nextOffset) = asUint216(encoded, offset);
-    return (bytes27(ret), nextOffset);
+  ) internal pure returns (bytes27 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes27Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint224Unchecked(
@@ -1115,7 +1143,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 28)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint224(
@@ -1129,17 +1156,19 @@ function asBytes${bytes}(
   function asBytes28Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes28, uint) {
-    (uint224 ret, uint nextOffset) = asUint224Unchecked(encoded, offset);
-    return (bytes28(ret), nextOffset);
+  ) internal pure returns (bytes28 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 28)
+    }
   }
 
   function asBytes28(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes28, uint) {
-    (uint224 ret, uint nextOffset) = asUint224(encoded, offset);
-    return (bytes28(ret), nextOffset);
+  ) internal pure returns (bytes28 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes28Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint232Unchecked(
@@ -1150,7 +1179,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 29)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint232(
@@ -1164,17 +1192,19 @@ function asBytes${bytes}(
   function asBytes29Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes29, uint) {
-    (uint232 ret, uint nextOffset) = asUint232Unchecked(encoded, offset);
-    return (bytes29(ret), nextOffset);
+  ) internal pure returns (bytes29 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 29)
+    }
   }
 
   function asBytes29(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes29, uint) {
-    (uint232 ret, uint nextOffset) = asUint232(encoded, offset);
-    return (bytes29(ret), nextOffset);
+  ) internal pure returns (bytes29 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes29Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint240Unchecked(
@@ -1185,7 +1215,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 30)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint240(
@@ -1199,17 +1228,19 @@ function asBytes${bytes}(
   function asBytes30Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes30, uint) {
-    (uint240 ret, uint nextOffset) = asUint240Unchecked(encoded, offset);
-    return (bytes30(ret), nextOffset);
+  ) internal pure returns (bytes30 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 30)
+    }
   }
 
   function asBytes30(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes30, uint) {
-    (uint240 ret, uint nextOffset) = asUint240(encoded, offset);
-    return (bytes30(ret), nextOffset);
+  ) internal pure returns (bytes30 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes30Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint248Unchecked(
@@ -1220,7 +1251,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 31)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint248(
@@ -1234,17 +1264,19 @@ function asBytes${bytes}(
   function asBytes31Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes31, uint) {
-    (uint248 ret, uint nextOffset) = asUint248Unchecked(encoded, offset);
-    return (bytes31(ret), nextOffset);
+  ) internal pure returns (bytes31 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 31)
+    }
   }
 
   function asBytes31(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes31, uint) {
-    (uint248 ret, uint nextOffset) = asUint248(encoded, offset);
-    return (bytes31(ret), nextOffset);
+  ) internal pure returns (bytes31 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes31Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 
   function asUint256Unchecked(
@@ -1255,7 +1287,6 @@ function asBytes${bytes}(
       nextOffset := add(offset, 32)
       ret := mload(add(encoded, nextOffset))
     }
-    return (ret, nextOffset);
   }
 
   function asUint256(
@@ -1269,16 +1300,18 @@ function asBytes${bytes}(
   function asBytes32Unchecked(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes32, uint) {
-    (uint256 ret, uint nextOffset) = asUint256Unchecked(encoded, offset);
-    return (bytes32(ret), nextOffset);
+  ) internal pure returns (bytes32 ret, uint nextOffset) {
+    assembly ("memory-safe") {
+      ret := mload(add(encoded, add(offset, wordSize)))
+      nextOffset := add(offset, 32)
+    }
   }
 
   function asBytes32(
     bytes memory encoded,
     uint offset
-  ) internal pure returns (bytes32, uint) {
-    (uint256 ret, uint nextOffset) = asUint256(encoded, offset);
-    return (bytes32(ret), nextOffset);
+  ) internal pure returns (bytes32 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes32Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
 }
