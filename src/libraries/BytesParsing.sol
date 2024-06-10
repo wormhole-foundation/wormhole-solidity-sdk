@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.4;
 
 library BytesParsing {
   uint256 private constant freeMemoryPtr = 0x40;
@@ -28,7 +28,8 @@ library BytesParsing {
     if (length == 0)
       return (new bytes(0), offset);
 
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, length)
       ret := mload(freeMemoryPtr)
 
@@ -103,7 +104,8 @@ library BytesParsing {
     uint cleanedVal = uint(val);
     bool ret;
     //skip 2x iszero opcode
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       ret := cleanedVal
     }
     return (ret, nextOffset);
@@ -127,7 +129,8 @@ for (let bytes = 1; bytes <= 32; ++bytes) {
   bytes memory encoded,
   uint offset
 ) internal pure returns (uint${bits} ret, uint nextOffset) {
-  assembly ("memory-safe") {
+  /// @solidity memory-safe-assembly
+  assembly {
     nextOffset := add(offset, ${bytes})
     ret := mload(add(encoded, nextOffset))
   }
@@ -166,7 +169,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint8 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 1)
       ret := mload(add(encoded, nextOffset))
     }
@@ -201,7 +205,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint16 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 2)
       ret := mload(add(encoded, nextOffset))
     }
@@ -236,7 +241,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint24 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 3)
       ret := mload(add(encoded, nextOffset))
     }
@@ -271,7 +277,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint32 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 4)
       ret := mload(add(encoded, nextOffset))
     }
@@ -306,7 +313,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint40 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 5)
       ret := mload(add(encoded, nextOffset))
     }
@@ -341,7 +349,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint48 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 6)
       ret := mload(add(encoded, nextOffset))
     }
@@ -376,7 +385,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint56 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 7)
       ret := mload(add(encoded, nextOffset))
     }
@@ -411,7 +421,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint64 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 8)
       ret := mload(add(encoded, nextOffset))
     }
@@ -446,7 +457,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint72 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 9)
       ret := mload(add(encoded, nextOffset))
     }
@@ -481,7 +493,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint80 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 10)
       ret := mload(add(encoded, nextOffset))
     }
@@ -516,7 +529,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint88 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 11)
       ret := mload(add(encoded, nextOffset))
     }
@@ -551,7 +565,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint96 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 12)
       ret := mload(add(encoded, nextOffset))
     }
@@ -586,7 +601,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint104 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 13)
       ret := mload(add(encoded, nextOffset))
     }
@@ -621,7 +637,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint112 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 14)
       ret := mload(add(encoded, nextOffset))
     }
@@ -656,7 +673,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint120 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 15)
       ret := mload(add(encoded, nextOffset))
     }
@@ -691,7 +709,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint128 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 16)
       ret := mload(add(encoded, nextOffset))
     }
@@ -726,7 +745,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint136 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 17)
       ret := mload(add(encoded, nextOffset))
     }
@@ -761,7 +781,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint144 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 18)
       ret := mload(add(encoded, nextOffset))
     }
@@ -796,7 +817,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint152 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 19)
       ret := mload(add(encoded, nextOffset))
     }
@@ -831,7 +853,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint160 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 20)
       ret := mload(add(encoded, nextOffset))
     }
@@ -866,7 +889,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint168 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 21)
       ret := mload(add(encoded, nextOffset))
     }
@@ -901,7 +925,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint176 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 22)
       ret := mload(add(encoded, nextOffset))
     }
@@ -936,7 +961,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint184 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 23)
       ret := mload(add(encoded, nextOffset))
     }
@@ -971,7 +997,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint192 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 24)
       ret := mload(add(encoded, nextOffset))
     }
@@ -1006,7 +1033,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint200 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 25)
       ret := mload(add(encoded, nextOffset))
     }
@@ -1041,7 +1069,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint208 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 26)
       ret := mload(add(encoded, nextOffset))
     }
@@ -1076,7 +1105,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint216 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 27)
       ret := mload(add(encoded, nextOffset))
     }
@@ -1111,7 +1141,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint224 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 28)
       ret := mload(add(encoded, nextOffset))
     }
@@ -1146,7 +1177,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint232 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 29)
       ret := mload(add(encoded, nextOffset))
     }
@@ -1181,7 +1213,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint240 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 30)
       ret := mload(add(encoded, nextOffset))
     }
@@ -1216,7 +1249,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint248 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 31)
       ret := mload(add(encoded, nextOffset))
     }
@@ -1251,7 +1285,8 @@ function asBytes${bytes}(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint256 ret, uint nextOffset) {
-    assembly ("memory-safe") {
+    /// @solidity memory-safe-assembly
+    assembly {
       nextOffset := add(offset, 32)
       ret := mload(add(encoded, nextOffset))
     }
