@@ -5,6 +5,8 @@ pragma solidity ^0.8.13;
 import { IWormhole } from '../../interfaces/IWormhole.sol';
 
 contract WormholeMock is IWormhole {
+ uint256 public constant MOCK_GUARDIAN_PRIVATE_KEY = 0xcfb12303a19cde580bb4dd771639b0d26bc68353645571a8cff516ab2ee113a0;
+
  constructor() {}
 
  // INIT_SIGNERS=["0xbeFA429d57cD18b7F8A4d91A2da9AB4AF05d0FBe"]
