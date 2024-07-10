@@ -708,8 +708,10 @@ contract TestQueryResponse is Test {
     }
 
     function testFuzz_validateEthCallData_success(bytes memory randomBytes, uint256 _contractAddressIndex, uint256 _functionSignatureIndex, address[] memory _expectedContractAddresses, bytes4[] memory _expectedFunctionSignatures) public view {
-        vm.assume(_contractAddressIndex < _expectedContractAddresses.length);
-        vm.assume(_functionSignatureIndex < _expectedFunctionSignatures.length);
+        vm.assume(_expectedContractAddresses.length != 0);
+        vm.assume(_expectedFunctionSignatures.length != 0);
+        _contractAddressIndex = bound(_contractAddressIndex, 0, _expectedContractAddresses.length - 1);
+        _functionSignatureIndex = bound(_functionSignatureIndex, 0, _expectedFunctionSignatures.length - 1);
 
         EthCallData memory callData = EthCallData({
             contractAddress: _expectedContractAddresses[_contractAddressIndex],
@@ -785,8 +787,10 @@ contract TestQueryResponse is Test {
     }
 
     function testFuzz_validateMultipleEthCallData_success(uint8 numInputs, bytes memory randomBytes, uint256 _contractAddressIndex, uint256 _functionSignatureIndex, address[] memory _expectedContractAddresses, bytes4[] memory _expectedFunctionSignatures) public view {
-        vm.assume(_contractAddressIndex < _expectedContractAddresses.length);
-        vm.assume(_functionSignatureIndex < _expectedFunctionSignatures.length);
+        vm.assume(_expectedContractAddresses.length != 0);
+        vm.assume(_expectedFunctionSignatures.length != 0);
+        _contractAddressIndex = bound(_contractAddressIndex, 0, _expectedContractAddresses.length - 1);
+        _functionSignatureIndex = bound(_functionSignatureIndex, 0, _expectedFunctionSignatures.length - 1);
 
         EthCallData[] memory callDatas = new EthCallData[](numInputs);
 
