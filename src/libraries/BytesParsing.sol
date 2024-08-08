@@ -9,9 +9,14 @@ library BytesParsing {
   error LengthMismatch(uint256 encodedLength, uint256 expectedLength);
   error InvalidBoolVal(uint8 val);
 
-  function checkBound(uint offset, uint length) internal pure {
-    if (offset > length)
-      revert OutOfBounds(offset, length);
+  /**
+   * Implements runtime check of logic that accesses memory.
+   * @param pastTheEndOffset The offset past the end relative to the accessed memory fragment.
+   * @param length The length of the memory fragment accessed.
+   */
+  function checkBound(uint pastTheEndOffset, uint length) internal pure {
+    if (pastTheEndOffset > length)
+      revert OutOfBounds(pastTheEndOffset, length);
   }
 
   //Summary of all remaining functions:
@@ -116,6 +121,42 @@ library BytesParsing {
         and(add(dest, WORD_SIZE_MINUS_ONE), not(WORD_SIZE_MINUS_ONE))
       )
     }
+  }
+
+  /**
+   * Hashes subarray of the buffer.
+   * The user of this function is responsible for ensuring the subarray is within bounds of the buffer.
+   * @param encoded Buffer that contains the subarray to be hashed.
+   * @param offset Starting offset of the subarray to be hashed.
+   * @param length Size in bytes of the subarray to be hashed.
+   */
+  function keccak256SubarrayUnchecked(
+    bytes memory encoded,
+    uint offset,
+    uint length
+  ) internal pure returns (bytes32 hash) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      // The length of the bytes type `length` field is that of a word in memory
+      let data := add(add(encoded, offset), WORD_SIZE)
+      hash := keccak256(data, length)
+    }
+  }
+
+  /**
+   * Hashes subarray of the buffer.
+   * @param encoded Buffer that contains the subarray to be hashed.
+   * @param offset Starting offset of the subarray to be hashed.
+   * @param length Size in bytes of the subarray to be hashed.
+   */
+  function keccak256Subarray(
+    bytes memory encoded,
+    uint offset,
+    uint length
+  ) internal pure returns (bytes32 hash) {
+    uint pastTheEndOffset = offset + length;
+    checkBound(pastTheEndOffset, encoded.length);
+    hash = keccak256SubarrayUnchecked(encoded, offset, length);
   }
 
 /* -------------------------------------------------------------------------------------------------
