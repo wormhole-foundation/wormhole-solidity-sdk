@@ -1,6 +1,7 @@
-
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.19;
+
+import { WORD_SIZE, SCRATCH_SPACE_PTR } from "./constants/Common.sol";
 
 error NotAnEvmAddress(bytes32);
 
@@ -39,4 +40,12 @@ function eagerOr(bool lhs, bool rhs) pure returns (bool ret) {
   assembly ("memory-safe") {
     ret := or(lhs, rhs)
  }
+}
+
+function keccak256Word(bytes32 word) pure returns (bytes32 hash) {
+  /// @solidity memory-safe-assembly
+  assembly {
+    mstore(SCRATCH_SPACE_PTR, word)
+    hash := keccak256(SCRATCH_SPACE_PTR, WORD_SIZE)
+  }
 }
