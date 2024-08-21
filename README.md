@@ -1,8 +1,10 @@
 # Wormhole Solidity SDK
 
-The purpose of this SDK is to make integrations with Wormhole on EVM compatible chains as smooth as possible by providing all necessary Solidity interfaces along with useful libraries and tools for testing.
+The purpose of this SDK is to make on-chain integrations with Wormhole on EVM compatible chains as smooth as possible by providing all necessary Solidity interfaces along with useful libraries and tools for testing.
 
-This SDK was originally created for integrations with the WormholeRelayer and then expanded to cover all integrations.
+For off-chain code, please refer to the [TypeScript SDK](https://github.com/wormhole-foundation/wormhole-sdk-ts) and in particular the [EVM platform implementation](https://github.com/wormhole-foundation/wormhole-sdk-ts/tree/main/platforms/evm).
+
+This SDK was originally created for integrations with the WormholeRelayer and then expanded to cover all integration.
 
 ## Installation
 
