@@ -11,7 +11,7 @@ contract ChooseChainsTest is WormholeRelayerBasicTest {
     Toy toyTarget;
 
     constructor() {
-        setTestnetForkChains(4, 5);
+        setTestnetForkChains(4, 6);
     }
 
     function setUpSource() public override {
@@ -21,7 +21,7 @@ contract ChooseChainsTest is WormholeRelayerBasicTest {
     }
 
     function setUpTarget() public override {
-        require(wormholeTarget.chainId() == 5);
+        require(wormholeTarget.chainId() == 6);
         toyTarget = new Toy(address(relayerTarget), address(wormholeTarget));
         toyTarget.setRegisteredSender(sourceChain, toUniversalAddress(address(this)));
     }

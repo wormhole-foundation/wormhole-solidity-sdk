@@ -311,28 +311,6 @@ abstract contract WormholeRelayerTest is Test {
             circleTokenMessenger: ITokenMessenger(address(0)),
             USDC: IERC20(address(0))
         });
-        chainInfosTestnet[5] = ChainInfo({
-            chainId: 5,
-            name: "polygon mumbai",
-            url: vm.envOr(
-                "POLYGON_MUMBAI_RPC_URL",
-                string("https://rpc.ankr.com/polygon_mumbai")
-            ),
-            relayer: IWormholeRelayer(
-                0x0591C25ebd0580E0d4F27A82Fc2e24E7489CB5e0
-            ),
-            tokenBridge: ITokenBridge(
-                0x377D55a7928c046E18eEbb61977e714d2a76472a
-            ),
-            wormhole: IWormhole(0x0CBE91CF822c73C2315FB05100C2F714765d5c20),
-            circleMessageTransmitter: IMessageTransmitter(
-                0xe09A679F56207EF33F5b9d8fb4499Ec00792eA73
-            ),
-            circleTokenMessenger: ITokenMessenger(
-                0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5
-            ),
-            USDC: IERC20(0x9999f7Fea5938fD3b1E26A12c3f2fb024e194f97)
-        });
         chainInfosTestnet[16] = ChainInfo({
             chainId: 16,
             name: "moonbase alpha - moonbeam",
@@ -523,7 +501,7 @@ abstract contract WormholeRelayerTest is Test {
             name: "arbitrum",
             url: vm.envOr(
                 "ARBITRUM_RPC_URL",
-                string("https://rpc.ankr.com/arbitrum")
+                string("https://arb1.arbitrum.io/rpc")
             ),
             relayer: IWormholeRelayer(
                 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911

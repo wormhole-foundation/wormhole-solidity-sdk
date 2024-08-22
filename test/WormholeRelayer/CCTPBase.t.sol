@@ -22,8 +22,8 @@ contract CCTPToy is CCTPSender, CCTPReceiver {
             _USDC
         )
     {
-        setCCTPDomain(5, 7);
-        setCCTPDomain(6, 1);
+        setCCTPDomain(23, 3);
+        setCCTPDomain(2, 0);
     }
 
     function quoteCrossChainDeposit(
@@ -89,7 +89,7 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
     ERC20Mock USDCTarget;
 
     constructor() {
-        setTestnetForkChains(5, 6);
+        setMainnetForkChains(23, 2);
     }
 
     function setUpSource() public override {
