@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.13;
-
-import {IWormhole} from "../../../src/interfaces/IWormhole.sol";
-import "./BytesLib.sol";
+pragma solidity ^0.8.19;
 
 import "forge-std/Vm.sol";
-import "forge-std/console.sol";
+
+import "wormhole-sdk/interfaces/IWormhole.sol";
+
+import "./BytesLib.sol";
 
 /**
  * @title A Wormhole Guardian Simulator

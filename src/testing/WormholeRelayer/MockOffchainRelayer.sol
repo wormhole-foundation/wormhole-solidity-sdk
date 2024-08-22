@@ -5,14 +5,14 @@ pragma solidity ^0.8.0;
 import "forge-std/Vm.sol";
 import "forge-std/console.sol";
 
-import {toWormholeFormat, fromWormholeFormat} from "../../Utils.sol";
-import {CCTPMessageLib} from "../../CCTPBase.sol";
-import "../../interfaces/IWormholeRelayer.sol";
-import "../../interfaces/IWormhole.sol";
-import "../../libraries/BytesParsing.sol";
+import "wormhole-sdk/interfaces/IWormhole.sol";
+import "wormhole-sdk/interfaces/IWormholeRelayer.sol";
+import {toUniversalAddress, fromUniversalAddress} from "wormhole-sdk/Utils.sol";
+import "wormhole-sdk/libraries/BytesParsing.sol";
+import {CCTPMessageLib} from "wormhole-sdk/WormholeRelayer/CCTPBase.sol";
 
-import {WormholeSimulator} from "./WormholeSimulator.sol";
-import {CircleMessageTransmitterSimulator} from "./CircleCCTPSimulator.sol";
+import {WormholeSimulator} from "../helpers/WormholeSimulator.sol";
+import {CircleMessageTransmitterSimulator} from "../helpers/CircleCCTPSimulator.sol";
 import "./DeliveryInstructionDecoder.sol";
 import "./ExecutionParameters.sol";
 
@@ -166,13 +166,13 @@ contract MockOffchainRelayer {
                 console.log(
                     "Found VAA from chain %s emitted from %s",
                     parsed[i].emitterChainId,
-                    fromWormholeFormat(parsed[i].emitterAddress)
+                    fromUniversalAddress(parsed[i].emitterAddress)
                 );
             }
 
             if (
                 parsed[i].emitterAddress ==
-                toWormholeFormat(wormholeRelayerContracts[chainId]) &&
+                toUniversalAddress(wormholeRelayerContracts[chainId]) &&
                 (parsed[i].emitterChainId == chainId)
             ) {
                 if (debugLogging) {

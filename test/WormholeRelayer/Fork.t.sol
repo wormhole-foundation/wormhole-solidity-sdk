@@ -1,16 +1,10 @@
-pragma solidity ^0.8.13;
-
-import "../src/WormholeRelayerSDK.sol";
-import "../src/interfaces/IWormholeReceiver.sol";
-import "../src/interfaces/IWormholeRelayer.sol";
-import "../src/interfaces/IERC20.sol";
-
-import "../src/testing/WormholeRelayerTest.sol";
-
-import "../src/WormholeRelayerSDK.sol";
-import "../src/Utils.sol";
+pragma solidity ^0.8.19;
 
 import "forge-std/console.sol";
+
+import "wormhole-sdk/WormholeRelayerSDK.sol";
+import "wormhole-sdk/interfaces/token/IERC20.sol";
+import "wormhole-sdk/testing/WormholeRelayerTest.sol";
 
 contract Toy is Base {
     IWormholeRelayer relayer;
@@ -83,7 +77,7 @@ contract TokenToy is TokenSender, TokenReceiver {
         bytes memory payload = abi.encode(recipient);
         sendTokenWithPayloadToEvm(
             targetChain,
-            fromWormholeFormat(registeredSenders[targetChain]), // address (on targetChain) to send token and payload to
+            fromUniversalAddress(registeredSenders[targetChain]), // address (on targetChain) to send token and payload to
             payload,
             0, // receiver value
             GAS_LIMIT,
@@ -111,7 +105,7 @@ contract TokenToy is TokenSender, TokenReceiver {
         bytes memory payload = abi.encode(recipient);
         sendTokenWithPayloadToEvm(
             targetChain,
-            fromWormholeFormat(registeredSenders[targetChain]), // address (on targetChain) to send token and payload to
+            fromUniversalAddress(registeredSenders[targetChain]), // address (on targetChain) to send token and payload to
             payload,
             0, // receiver value
             GAS_LIMIT,
@@ -154,7 +148,7 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
         toySource = new Toy(address(relayerSource), address(wormholeSource));
         toySource.setRegisteredSender(
             targetChain,
-            toWormholeFormat(address(this))
+            toUniversalAddress(address(this))
         );
 
         tokenToySource = new TokenToy(
@@ -170,7 +164,7 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
         toyTarget = new Toy(address(relayerTarget), address(wormholeTarget));
         toyTarget.setRegisteredSender(
             sourceChain,
-            toWormholeFormat(address(this))
+            toUniversalAddress(address(this))
         );
 
         tokenToyTarget = new TokenToy(
@@ -184,13 +178,13 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
         vm.selectFork(sourceFork);
         tokenToySource.setRegisteredSender(
             targetChain,
-            toWormholeFormat(address(tokenToyTarget))
+            toUniversalAddress(address(tokenToyTarget))
         );
 
         vm.selectFork(targetFork);
         tokenToyTarget.setRegisteredSender(
             sourceChain,
-            toWormholeFormat(address(tokenToySource))
+            toUniversalAddress(address(tokenToySource))
         );
     }
 
@@ -260,7 +254,7 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
         vm.selectFork(targetFork);
         address wormholeWrappedToken = tokenBridgeTarget.wrappedAsset(
             sourceChain,
-            toWormholeFormat(address(token))
+            toUniversalAddress(address(token))
         );
         assertEq(IERC20(wormholeWrappedToken).balanceOf(recipient), amount);
     }
@@ -291,7 +285,7 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
         vm.selectFork(targetFork);
         address wormholeWrappedToken = tokenBridgeTarget.wrappedAsset(
             sourceChain,
-            toWormholeFormat(address(token))
+            toUniversalAddress(address(token))
         );
         assertEq(IERC20(wormholeWrappedToken).balanceOf(recipient), amount);
         assertTrue(refundAddress.balance > 0);

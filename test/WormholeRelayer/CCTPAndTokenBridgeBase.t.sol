@@ -1,14 +1,8 @@
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.19;
 
-import "../src/WormholeRelayerSDK.sol";
-import "../src/interfaces/IWormholeReceiver.sol";
-import "../src/interfaces/IWormholeRelayer.sol";
-import "../src/interfaces/IERC20.sol";
-
-import "../src/testing/WormholeRelayerTest.sol";
-
-import "../src/WormholeRelayerSDK.sol";
-import "../src/Utils.sol";
+import "wormhole-sdk/WormholeRelayerSDK.sol";
+import "wormhole-sdk/interfaces/token/IERC20.sol";
+import "wormhole-sdk/testing/WormholeRelayerTest.sol";
 
 contract CCTPAndTokenBridgeToy is CCTPAndTokenSender, CCTPAndTokenReceiver {
     uint256 constant GAS_LIMIT = 250_000;
@@ -30,8 +24,8 @@ contract CCTPAndTokenBridgeToy is CCTPAndTokenSender, CCTPAndTokenReceiver {
             _USDC
         )
     {
-        setCCTPDomain(5, 7);
-        setCCTPDomain(6, 1);
+        setCCTPDomain(23, 3);
+        setCCTPDomain(2, 0);
     }
 
     function quoteCrossChainDeposit(
@@ -62,7 +56,7 @@ contract CCTPAndTokenBridgeToy is CCTPAndTokenSender, CCTPAndTokenReceiver {
         bytes memory payload = abi.encode(recipient, amount);
         sendTokenWithPayloadToEvm(
             targetChain,
-            fromWormholeFormat(registeredSenders[targetChain]), // address (on targetChain) to send token and payload to
+            fromUniversalAddress(registeredSenders[targetChain]), // address (on targetChain) to send token and payload to
             payload,
             0, // receiver value
             GAS_LIMIT,
@@ -87,7 +81,7 @@ contract CCTPAndTokenBridgeToy is CCTPAndTokenSender, CCTPAndTokenReceiver {
         bytes memory payload = abi.encode(recipient, amount);
         sendUSDCWithPayloadToEvm(
             targetChain,
-            fromWormholeFormat(registeredSenders[targetChain]), // address (on targetChain) to send token and payload to
+            fromUniversalAddress(registeredSenders[targetChain]), // address (on targetChain) to send token and payload to
             payload,
             0, // receiver value
             GAS_LIMIT,
@@ -144,7 +138,7 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
     ERC20Mock public token;
 
     constructor() {
-        setTestnetForkChains(5, 6);
+        setMainnetForkChains(23, 2);
     }
 
     function setUpSource() public override {
@@ -178,13 +172,13 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
         vm.selectFork(sourceFork);
         CCTPAndTokenBridgeToySource.setRegisteredSender(
             targetChain,
-            toWormholeFormat(address(CCTPAndTokenBridgeToyTarget))
+            toUniversalAddress(address(CCTPAndTokenBridgeToyTarget))
         );
 
         vm.selectFork(targetFork);
         CCTPAndTokenBridgeToyTarget.setRegisteredSender(
             sourceChain,
-            toWormholeFormat(address(CCTPAndTokenBridgeToySource))
+            toUniversalAddress(address(CCTPAndTokenBridgeToySource))
         );
     }
 
@@ -240,7 +234,7 @@ contract WormholeSDKTest is WormholeRelayerBasicTest {
         vm.selectFork(targetFork);
         address wormholeWrappedToken = tokenBridgeTarget.wrappedAsset(
             sourceChain,
-            toWormholeFormat(address(token))
+            toUniversalAddress(address(token))
         );
         assertEq(IERC20(wormholeWrappedToken).balanceOf(recipient), amount);
     }
