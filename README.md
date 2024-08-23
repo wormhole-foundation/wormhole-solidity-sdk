@@ -6,12 +6,24 @@ For off-chain code, please refer to the [TypeScript SDK](https://github.com/worm
 
 This SDK was originally created for integrations with the WormholeRelayer and then expanded to cover all integration.
 
+## Releases
+
+> License Reminder
+>
+> The code is provided on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+>
+> So make sure you check / audit any code you use before deploying to mainnet.
+
+The `main` branch is considered the nightly version of the SDK. Stick to tagged releases for a stable experience.
+
+**Note: The SDK is currently on its way to a version 1.0 . Proceed with extra caution until then.**
+
 ## Installation
 
 **Foundry and Forge**
 
 ```bash
-forge install wormhole-foundation/wormhole-solidity-sdk
+forge install wormhole-foundation/wormhole-solidity-sdk@v0.1.0
 ```
 
 **Solc Version**
