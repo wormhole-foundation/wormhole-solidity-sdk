@@ -664,38 +664,38 @@ contract TestQueryResponse is Test {
         queryResponse.verifyQueryResponseSignatures(resp, signatures);
     }
 
+    uint64 constant private SECOND_RESOLUTION = 1_000_000;
+    uint64 constant private MAX_SECONDS = type(uint64).max/SECOND_RESOLUTION;
+
     function testFuzz_validateBlockTime_success(uint64 _blockTime, uint64 _minBlockTime) public view {
-        _blockTime %= type(uint64).max/1_000_000 + 1;
-        _minBlockTime %= type(uint64).max/1_000_000 + 1;
-        if (_minBlockTime > type(uint64).max/1_000_000 - _blockTime)
-            _blockTime %= type(uint64).max/1_000_000 - _minBlockTime + 1;
+        //assure: blockTime >= minBlockTime
+        _minBlockTime = uint64(bound(_minBlockTime, 0, MAX_SECONDS));
+        _blockTime = uint64(bound(_blockTime, _minBlockTime, MAX_SECONDS));
 
-        _blockTime += _minBlockTime;
-
-        queryResponse.validateBlockTime(uint64(_blockTime * 1_000_000), _minBlockTime);
+        queryResponse.validateBlockTime(_blockTime * SECOND_RESOLUTION, _minBlockTime);
     }
 
-    function testFuzz_validateBlockTime_fail(uint64 _blockTime, uint64 _minBlockTime) public {
-        _minBlockTime %= type(uint64).max/1_000_000 + 1;
+    function testFuzz_validateBlockTime_fail(uint64 _blockTime, uint256 _minBlockTime) public {
+        //assure: blockTime < minBlockTime
         vm.assume(_minBlockTime > 0);
-        _blockTime %= _minBlockTime;
+        uint upperBound = _minBlockTime <= MAX_SECONDS ? _minBlockTime-1 : MAX_SECONDS;
+        _blockTime = uint64(bound(_blockTime, 0, upperBound));
 
         vm.expectRevert(StaleBlockTime.selector);
-        queryResponse.validateBlockTime(uint64(_blockTime * 1_000_000), _minBlockTime);
+        queryResponse.validateBlockTime(_blockTime * SECOND_RESOLUTION, _minBlockTime);
     }
 
     function testFuzz_validateBlockNum_success(uint64 _blockNum, uint64 _minBlockNum) public view {
-        if (_minBlockNum > type(uint64).max - _blockNum) //can't safely add _minBlockNum
-            _blockNum %= type(uint64).max - _minBlockNum + 1; //prevent overflow
-
-        _blockNum += _minBlockNum;
+        //assure: blockNum >= minBlockNum
+        _blockNum = uint64(bound(_blockNum, _minBlockNum, type(uint64).max));
 
         queryResponse.validateBlockNum(_blockNum, _minBlockNum);
     }
 
     function testFuzz_validateBlockNum_fail(uint256 _blockNum, uint256 _minBlockNum) public {
+        //assure: blockNum < minBlockNum
         vm.assume(_minBlockNum > 0);
-        _blockNum %= _minBlockNum;
+        _blockNum = uint64(bound(_blockNum, 0, _minBlockNum-1));
 
         vm.expectRevert(StaleBlockNum.selector);
         queryResponse.validateBlockNum(uint64(_blockNum), _minBlockNum);
