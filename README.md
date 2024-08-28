@@ -28,9 +28,17 @@ forge install wormhole-foundation/wormhole-solidity-sdk@v0.1.0
 
 **EVM Version**
 
-One hazard of developing EVM contracts in a cross-chain environment is that different chains have varying levels EVM-equivalence. This means you have to ensure that all chains that you are planning to deploy to  support all EIPs/opcodes that you rely on.
+One hazard of developing EVM contracts in a cross-chain environment is that different chains have varying levels of "EVM-equivalence". This means you have to ensure that all chains that you are planning to deploy to support all EIPs/opcodes that you rely on.
 
 For example, if you are using a solc version newer than `0.8.19` and are planning to deploy to a chain that does not support [PUSH0 opcode](https://eips.ethereum.org/EIPS/eip-3855) (introduced as part of the Shanghai hardfork), you should set `evm_version = "paris"` in your `foundry.toml`, since the default EVM version of solc was advanced from Paris to Shanghai as part of solc's `0.8.20` release.
+
+**Testing**
+
+It is strongly recommended that you run the forge test suite of this SDK with your own compiler version to catch potential errors that stem from differences in compiler versions early. Yes, strictly speaking the Solidity version pragma should prevent these issues, but better to be safe than sorry, especially given that some components make extensive use of inline assembly.
+
+**IERC20 Remapping**
+
+This SDK comes with its own IERC20 interface. Given that projects tend to combine different SDKs, there's often this annoying issue of clashes of IERC20 interfaces, even though the are effectively the same. We handle this issue by importing `IERC20/IERC20.sol` which allows remapping the `IERC20/` prefix to whatever directory contains `IERC20.sol` in your project, thus providing an override mechanism that should allow dealing with this problem seamlessly until forge allows remapping of individual files.
 
 ## Philosophy/Creeds
 

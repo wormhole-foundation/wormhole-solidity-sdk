@@ -1,87 +1,76 @@
 // SPDX-License-Identifier: Apache 2
+// Copyright (c) 2022, Circle Internet Financial Limited.
+//
+// stripped, flattened version of:
+//   https://github.com/circlefin/evm-cctp-contracts/blob/master/src/MessageTransmitter.sol
+
 pragma solidity ^0.8.0;
 
-interface IMessageTransmitter {
-	event MessageSent(bytes message);
+import {IOwnable2Step} from "./shared/IOwnable2Step.sol";
+import {IPausable} from "./shared/IPausable.sol";
 
-	/**
-	 * @notice Emitted when tokens are minted
-	 * @param _mintRecipient recipient address of minted tokens
-	 * @param _amount amount of minted tokens
-	 * @param _mintToken contract address of minted token
-	 */
-	event MintAndWithdraw(
-		address _mintRecipient,
-		uint256 _amount,
-		address _mintToken
-	);
+interface IAttestable {
+  event AttesterEnabled(address indexed attester);
+  event AttesterDisabled(address indexed attester);
 
-	/**
-	 * @notice Receive a message. Messages with a given nonce
-	 * can only be broadcast once for a (sourceDomain, destinationDomain)
-	 * pair. The message body of a valid message is passed to the
-	 * specified recipient for further processing.
-	 *
-	 * @dev Attestation format:
-	 * A valid attestation is the concatenated 65-byte signature(s) of exactly
-	 * `thresholdSignature` signatures, in increasing order of attester address.
-	 * ***If the attester addresses recovered from signatures are not in
-	 * increasing order, signature verification will fail.***
-	 * If incorrect number of signatures or duplicate signatures are supplied,
-	 * signature verification will fail.
-	 *
-	 * Message format:
-	 * Field Bytes Type Index
-	 * version 4 uint32 0
-	 * sourceDomain 4 uint32 4
-	 * destinationDomain 4 uint32 8
-	 * nonce 8 uint64 12
-	 * sender 32 bytes32 20
-	 * recipient 32 bytes32 52
-	 * messageBody dynamic bytes 84
-	 * @param _message Message bytes
-	 * @param _attestation Concatenated 65-byte signature(s) of `_message`, in increasing order
-	 * of the attester address recovered from signatures.
-	 * @return success bool, true if successful
-	 */
-	function receiveMessage(
-		bytes memory _message,
-		bytes calldata _attestation
-	) external returns (bool success);
+  event SignatureThresholdUpdated(uint256 oldSignatureThreshold, uint256 newSignatureThreshold);
+  event AttesterManagerUpdated(
+    address indexed previousAttesterManager,
+    address indexed newAttesterManager
+  );
 
-	function attesterManager() external view returns (address);
+  function attesterManager() external view returns (address);
+  function isEnabledAttester(address attester) external view returns (bool);
+  function getNumEnabledAttesters() external view returns (uint256);
+  function getEnabledAttester(uint256 index) external view returns (address);
 
-	function availableNonces(uint32 domain) external view returns (uint64);
+  function updateAttesterManager(address newAttesterManager) external;
+  function setSignatureThreshold(uint256 newSignatureThreshold) external;
+  function enableAttester(address attester) external;
+  function disableAttester(address attester) external;
+}
 
-	function getNumEnabledAttesters() external view returns (uint256);
+interface IMessageTransmitter is IAttestable, IPausable, IOwnable2Step {
+  event MessageSent(bytes message);
 
-	function isEnabledAttester(address _attester) external view returns (bool);
+  event MessageReceived(
+    address indexed caller,
+    uint32 sourceDomain,
+    uint64 indexed nonce,
+    bytes32 sender,
+    bytes messageBody
+  );
 
-	function localDomain() external view returns (uint32);
+  function localDomain() external view returns (uint32);
+  function version() external view returns (uint32);
+  function maxMessageBodySize() external view returns (uint256);
+  function nextAvailableNonce() external view returns (uint64);
+  function usedNonces(bytes32 nonce) external view returns (bool);
 
-	function maxMessageBodySize() external view returns (uint256);
+  function sendMessage(
+    uint32 destinationDomain,
+    bytes32 recipient,
+    bytes calldata messageBody
+  ) external returns (uint64);
 
-	function owner() external view returns (address);
+  function sendMessageWithCaller(
+    uint32 destinationDomain,
+    bytes32 recipient,
+    bytes32 destinationCaller,
+    bytes calldata messageBody
+  ) external returns (uint64);
 
-	function paused() external view returns (bool);
+  function replaceMessage(
+    bytes calldata originalMessage,
+    bytes calldata originalAttestation,
+    bytes calldata newMessageBody,
+    bytes32 newDestinationCaller
+  ) external;
 
-	function pauser() external view returns (address);
+  function receiveMessage(
+    bytes calldata message,
+    bytes calldata attestation
+  ) external returns (bool success);
 
-	function rescuer() external view returns (address);
-
-	function version() external view returns (uint32);
-
-	// owner only methods
-	function transferOwnership(address newOwner) external;
-
-	function updateAttesterManager(address _newAttesterManager) external;
-
-	// attester manager only methods
-	function getEnabledAttester(uint256 _index) external view returns (address);
-
-	function disableAttester(address _attester) external;
-
-	function enableAttester(address _attester) external;
-
-	function setSignatureThreshold(uint256 newSignatureThreshold) external;
+  function setMaxMessageBodySize(uint256 newMaxMessageBodySize) external;
 }
