@@ -14,8 +14,9 @@ See test/Proxy.t.sol for a straight-forward example.
 
 1. Implement a (logic) contract that inherits from `ProxyBase`.
 2. Implement a constructor to initalize all `immutable` variables of your contract.
-3. Override `_proxyConstructor` as necessary to initialize all storage variables of your contract as necessary (and don't forget to manually check `msg.value` since the constructor of `Proxy` is `payable`!).
-4. Implement a function with a name (and access restrictions!) of your choosing that calls `_upgradeTo` internally. Make `payable` and emit an event as necessary/desired.
+3. Only use the slot pattern for a storage variables. Normal storage variables are of the devil.
+4. Override `_proxyConstructor` as necessary to initialize all storage variables of your contract as necessary (and don't forget to manually check `msg.value` since the constructor of `Proxy` is `payable`!).
+5. Implement a function with a name (and access restrictions!) of your choosing that calls `_upgradeTo` internally. Make `payable` and emit an event as necessary/desired.
 
 ### Deployment
 
