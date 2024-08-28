@@ -3,7 +3,6 @@
 
 pragma solidity ^0.8.0;
 
-import "./token/IWETH.sol";
 import "./IWormhole.sol";
 
 interface ITokenBridge {
@@ -149,7 +148,7 @@ interface ITokenBridge {
 
     function tokenImplementation() external view returns (address);
 
-    function WETH() external view returns (IWETH);
+    function WETH() external view returns (address);
 
     function outstandingBridged(address token) external view returns (uint256);
 

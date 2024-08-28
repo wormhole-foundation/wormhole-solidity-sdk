@@ -6,10 +6,16 @@ out = "out"
 libs = ["lib"]
 via_ir = true
 
+#currently, forge does not allow remapping of individual files
+# (see here: https://github.com/foundry-rs/foundry/issues/7527#issuecomment-2269444829)
+#so for now we are using the IERC20 prefix as a workaround that allows users
+# to override the IERC20 interface with whatever they use in their project
+# (well, as long as their file is also called IERC20.sol and is interface compatible)
 remappings = [
   "ds-test/=lib/forge-std/lib/ds-test/src/",
   "forge-std/=lib/forge-std/src/",
   "wormhole-sdk/=src/",
+  "IERC20/=src/interfaces/token/",
 ]
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
