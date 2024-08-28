@@ -4,11 +4,11 @@ pragma solidity ^0.8.24;
 
 import { implementationState } from "./Eip1967Implementation.sol";
 
+error ProxyConstructionFailed(bytes revertData);
+
 //slimmed down, more opinionated implementation of the EIP1967 reference implementation
 //  see: https://eips.ethereum.org/EIPS/eip-1967
 contract Proxy {
-  error ProxyConstructionFailed(bytes revertData);
-
   constructor(address logic, bytes memory data) payable {
     implementationState().implementation = logic;
 

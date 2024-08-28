@@ -26,9 +26,20 @@ The `main` branch is considered the nightly version of the SDK. Stick to tagged 
 forge install wormhole-foundation/wormhole-solidity-sdk@v0.1.0
 ```
 
-**Solc Version**
+**EVM Version**
 
-Currently the SDK uses solc version 0.8.19 to avoid issues with PUSH0 which was introduced in 0.8.20 but which is not supported on many EVM chains.
+One hazard of developing EVM contracts in a cross-chain environment is that different chains have varying levels EVM-equivalence. This means you have to ensure that all chains that you are planning to deploy to  support all EIPs/opcodes that you rely on.
+
+For example, if you are using a solc version newer than `0.8.19` and are planning to deploy to a chain that does not support [PUSH0 opcode](https://eips.ethereum.org/EIPS/eip-3855) (introduced as part of the Shanghai hardfork), you should set `evm_version = "paris"` in your `foundry.toml`, since the default EVM version of solc was advanced from Paris to Shanghai as part of solc's `0.8.20` release.
+
+## Philosophy/Creeds
+
+In This House We Believe:
+* clarity breeds security
+* Do NOT trust in the Lord (i.e. the community, auditors, fellow devs, FOSS, ...) with any of your heart (i.e. with your or your users' security), but lean _hard_ on your own understanding.
+* _Nothing_ is considered safe unless you have _personally_ verified it as such.
+* git gud
+* shut up and suffer
 
 ## WormholeRelayer
 

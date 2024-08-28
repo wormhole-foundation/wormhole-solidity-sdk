@@ -6,6 +6,8 @@ import { implementationState } from "./Eip1967Implementation.sol";
 
 error InvalidSender();
 error IdempotentUpgrade();
+error InvalidMsgValue();
+error InvalidData();
 error UpgradeFailed(bytes revertData);
 
 event Upgraded(address indexed implementation);
@@ -14,9 +16,9 @@ event Upgraded(address indexed implementation);
 abstract contract ProxyBase {
   //address private immutable _logicContract = address(this);
 
-  //deliberately not payable since the contract would only be sending funds to itself
+  //payable for proxyConstructor use case
   //selector: f4189c473
-  function checkedUpgrade(bytes calldata data) external {
+  function checkedUpgrade(bytes calldata data) payable external {
     if (msg.sender != address(this)) {
       if (implementationState().initialized)
         revert InvalidSender();
@@ -33,6 +35,7 @@ abstract contract ProxyBase {
     implementationState().initialized = true;
   }
 
+  //msg.value should be enforced/checked before calling _upgradeTo
   function _upgradeTo(address newImplementation, bytes memory data) internal {
     if (newImplementation == implementationState().implementation)
       revert IdempotentUpgrade();
@@ -52,12 +55,23 @@ abstract contract ProxyBase {
     return implementationState().implementation;
   }
 
-  function _proxyConstructor(bytes calldata) internal virtual {
-    //!!don't forget to check/enforce msg.value!!
-    //also can't externally call our own contract here
+  function _proxyConstructor(bytes calldata data) internal virtual {
+    if (msg.value > 0)
+      revert InvalidMsgValue();
+
+    _noDataAllowed(data);
+
+    //!!don't forget to check/enforce msg.value when overriding!!
   }
 
-  function _contractUpgrade(bytes calldata) internal virtual {
+  function _contractUpgrade(bytes calldata data) internal virtual {
+    _noDataAllowed(data);
+
     //override and implement in the new logic contract (if required)
+  }
+
+  function _noDataAllowed(bytes calldata data) internal pure {
+    if (data.length > 0)
+      revert InvalidData();
   }
 }
