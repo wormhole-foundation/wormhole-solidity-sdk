@@ -11,8 +11,8 @@ interface IOwnable2Step {
   event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
   function transferOwnership(address newOwner) external;
-	function acceptOwnership() external;
+  function acceptOwnership() external;
 
-	function owner() external view returns (address);
-	function pendingOwner() external view returns (address);
+  function owner() external view returns (address);
+  function pendingOwner() external view returns (address);
 }

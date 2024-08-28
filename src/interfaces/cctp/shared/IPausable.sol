@@ -14,7 +14,7 @@ interface IPausable {
   function paused() external view returns (bool);
   function pauser() external view returns (address);
 
-	function pause() external;
-	function unpause() external;
+  function pause() external;
+  function unpause() external;
   function updatePauser(address newPauser) external;
 }
