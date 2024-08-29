@@ -168,7 +168,7 @@ library WormholeCctpMessages {
     (cctpNonce,        offset) = encoded.asUint64Unchecked(offset);
     (burnSource,       offset) = encoded.asBytes32Unchecked(offset);
     (mintRecipient,    offset) = encoded.asBytes32Unchecked(offset);
-    (payload,          offset) = encoded.sliceUint16PrefixUnchecked(offset);
+    (payload,          offset) = encoded.sliceUint16PrefixedUnchecked(offset);
 
     encoded.checkLength(offset);
   }

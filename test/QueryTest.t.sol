@@ -164,13 +164,13 @@ contract QueryRequestTest is Test {
     vm.expectRevert(QueryTest.SolanaTooManySeeds.selector);
     QueryTest.buildSolanaPdaEntry(
       programId,
-      uint8(QueryTest.SolanaMaxSeeds + 1),
+      uint8(QueryTest.SOLANA_MAX_SEEDS + 1),
       seedBytes
     );
   }
 
   function test_buildSolanaPdaSeedBytesTooManySeeds() public {
-    bytes[] memory seeds = new bytes[](QueryTest.SolanaMaxSeeds + 1);
+    bytes[] memory seeds = new bytes[](QueryTest.SOLANA_MAX_SEEDS + 1);
     uint numSeeds = seeds.length;
     for (uint idx; idx < numSeeds;) {
       seeds[idx] = "junk";
