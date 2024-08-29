@@ -14,7 +14,7 @@ library LogUtils {
   function filter(
     Vm.Log[] memory logs,
     bytes32 topic
-  ) internal pure returns (Vm.Log[] memory) { 
+  ) internal pure returns (Vm.Log[] memory) {
     return filter(logs, address(0), topic, _noDataFilter);
   }
 
@@ -22,7 +22,7 @@ library LogUtils {
     Vm.Log[] memory logs,
     address emitter,
     bytes32 topic
-  ) internal pure returns (Vm.Log[] memory) { 
+  ) internal pure returns (Vm.Log[] memory) {
     return filter(logs, emitter, topic, _noDataFilter);
   }
 

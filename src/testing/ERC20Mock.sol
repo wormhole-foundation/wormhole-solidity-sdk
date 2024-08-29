@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import "IERC20/IERC20.sol";
 
 /*
- * ERC20 impl from solmate 
+ * ERC20 impl from solmate
  */
 
 /// @notice Modern and gas efficient ERC20 + EIP-2612 implementation.

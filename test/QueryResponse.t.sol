@@ -652,7 +652,7 @@ contract TestQueryResponse is Test {
     }
 
     function testFuzz_verifyQueryResponseSignatures_validSignatureWrongPrefix(bytes calldata responsePrefix) public {
-        vm.assume(keccak256(responsePrefix) != keccak256(queryResponse.responsePrefix()));
+        vm.assume(keccak256(responsePrefix) != keccak256(queryResponse.RESPONSE_PREFIX()));
       
         bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
         bytes32 responseDigest = keccak256(abi.encodePacked(responsePrefix, keccak256(resp)));

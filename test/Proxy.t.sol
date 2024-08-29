@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: Apache 2
 
-// forge test --match-contract QueryTest
-
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";

@@ -17,53 +17,65 @@ using BytesParsing for bytes;
 enum ExecutionParamsVersion {EVM_V1}
 
 struct EvmExecutionParamsV1 {
-    uint256 gasLimit;
+  uint256 gasLimit;
 }
 
 enum ExecutionInfoVersion {EVM_V1}
 
 struct EvmExecutionInfoV1 {
-    uint256 gasLimit;
-    uint256 targetChainRefundPerGasUnused;
+  uint256 gasLimit;
+  uint256 targetChainRefundPerGasUnused;
 }
 
-function decodeExecutionParamsVersion(bytes memory data) pure returns (ExecutionParamsVersion version) {
-    (version) = abi.decode(data, (ExecutionParamsVersion));
+function decodeExecutionParamsVersion(
+  bytes memory data
+) pure returns (ExecutionParamsVersion version) {
+  (version) = abi.decode(data, (ExecutionParamsVersion));
 }
 
-function decodeExecutionInfoVersion(bytes memory data) pure returns (ExecutionInfoVersion version) {
-    (version) = abi.decode(data, (ExecutionInfoVersion));
+function decodeExecutionInfoVersion(
+  bytes memory data
+) pure returns (ExecutionInfoVersion version) {
+  (version) = abi.decode(data, (ExecutionInfoVersion));
 }
 
-function encodeEvmExecutionParamsV1(EvmExecutionParamsV1 memory executionParams) pure returns (bytes memory) {
-    return abi.encode(uint8(ExecutionParamsVersion.EVM_V1), executionParams.gasLimit);
+function encodeEvmExecutionParamsV1(
+  EvmExecutionParamsV1 memory executionParams
+) pure returns (bytes memory) {
+  return abi.encode(uint8(ExecutionParamsVersion.EVM_V1), executionParams.gasLimit);
 }
 
-function decodeEvmExecutionParamsV1(bytes memory data) pure returns (EvmExecutionParamsV1 memory executionParams) {
-    uint8 version;
-    (version, executionParams.gasLimit) = abi.decode(data, (uint8, uint256));
+function decodeEvmExecutionParamsV1(
+  bytes memory data
+) pure returns (EvmExecutionParamsV1 memory executionParams) {
+  uint8 version;
+  (version, executionParams.gasLimit) = abi.decode(data, (uint8, uint256));
 
-    if (version != uint8(ExecutionParamsVersion.EVM_V1)) {
-        revert UnexpectedExecutionParamsVersion(version, uint8(ExecutionParamsVersion.EVM_V1));
-    }
+  if (version != uint8(ExecutionParamsVersion.EVM_V1)) {
+    revert UnexpectedExecutionParamsVersion(version, uint8(ExecutionParamsVersion.EVM_V1));
+  }
 }
 
-function encodeEvmExecutionInfoV1(EvmExecutionInfoV1 memory executionInfo) pure returns (bytes memory) {
-    return abi.encode(
-        uint8(ExecutionInfoVersion.EVM_V1), executionInfo.gasLimit, executionInfo.targetChainRefundPerGasUnused
-    );
+function encodeEvmExecutionInfoV1(
+  EvmExecutionInfoV1 memory executionInfo
+) pure returns (bytes memory) {
+  return abi.encode(
+    uint8(ExecutionInfoVersion.EVM_V1), executionInfo.gasLimit, executionInfo.targetChainRefundPerGasUnused
+  );
 }
 
-function decodeEvmExecutionInfoV1(bytes memory data) pure returns (EvmExecutionInfoV1 memory executionInfo) {
-    uint8 version;
-    (version, executionInfo.gasLimit, executionInfo.targetChainRefundPerGasUnused) =
-        abi.decode(data, (uint8, uint256, uint256));
+function decodeEvmExecutionInfoV1(
+  bytes memory data
+) pure returns (EvmExecutionInfoV1 memory executionInfo) {
+  uint8 version;
+  (version, executionInfo.gasLimit, executionInfo.targetChainRefundPerGasUnused) =
+    abi.decode(data, (uint8, uint256, uint256));
 
-    if (version != uint8(ExecutionInfoVersion.EVM_V1)) {
-        revert UnexpectedExecutionInfoVersion(version, uint8(ExecutionInfoVersion.EVM_V1));
-    }
+  if (version != uint8(ExecutionInfoVersion.EVM_V1)) {
+    revert UnexpectedExecutionInfoVersion(version, uint8(ExecutionInfoVersion.EVM_V1));
+  }
 }
 
 function getEmptyEvmExecutionParamsV1() pure returns (EvmExecutionParamsV1 memory executionParams) {
-    executionParams.gasLimit = 0;
+  executionParams.gasLimit = 0;
 }
