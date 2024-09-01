@@ -49,7 +49,7 @@ library QueryTest {
   function buildEthCallRequestBytes(
     bytes memory blockId,
     uint8 numCallData,
-    bytes memory callData // Created with buildEthCallDataBytes()
+    bytes memory callData // Created with buildEthCallRecordBytes()
   ) internal pure returns (bytes memory){
     return abi.encodePacked(uint32(blockId.length), blockId, numCallData, callData);
   }
@@ -60,7 +60,7 @@ library QueryTest {
     bytes memory targetBlockHint,
     bytes memory followingBlockHint,
     uint8 numCallData,
-    bytes memory callData // Created with buildEthCallDataBytes()
+    bytes memory callData // Created with buildEthCallRecordBytes()
   ) internal pure returns (bytes memory){
     return abi.encodePacked(
       targetTimeUs,
@@ -78,7 +78,7 @@ library QueryTest {
     bytes memory blockId,
     bytes memory finality,
     uint8 numCallData,
-    bytes memory callData // Created with buildEthCallDataBytes()
+    bytes memory callData // Created with buildEthCallRecordBytes()
   ) internal pure returns (bytes memory){
     return abi.encodePacked(
       uint32(blockId.length),
@@ -90,8 +90,8 @@ library QueryTest {
     );
   }
 
-  /// @dev buildEthCallDataBytes builds the call data associated with one of the eth_call family of queries.
-  function buildEthCallDataBytes(
+  /// @dev buildEthCallRecordBytes builds the call data associated with one of the eth_call family of queries.
+  function buildEthCallRecordBytes(
     address contractAddress,
     bytes memory callData
   ) internal pure returns (bytes memory){

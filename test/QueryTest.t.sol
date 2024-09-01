@@ -55,13 +55,13 @@ contract QueryRequestTest is Test {
     assertEq(ecr, hex"0000000530783166380000000966696e616c697a656402ddb64fe46a91d46ee29420539fc25fd07c5fea3e0000000406fdde03ddb64fe46a91d46ee29420539fc25fd07c5fea3e00000004313ce567");
   }
 
-  function test_buildEthCallDataBytes() public {
-    bytes memory ecd1 = QueryTest.buildEthCallDataBytes(
+  function test_buildEthCallRecordBytes() public {
+    bytes memory ecd1 = QueryTest.buildEthCallRecordBytes(
       /* contractAddress */ 0xDDb64fE46a91D46ee29420539FC25FD07c5FEa3E,
       /* callData */        hex"06fdde03"
     );
     assertEq(ecd1, hex"ddb64fe46a91d46ee29420539fc25fd07c5fea3e0000000406fdde03");
-    bytes memory ecd2 = QueryTest.buildEthCallDataBytes(
+    bytes memory ecd2 = QueryTest.buildEthCallRecordBytes(
       /* contractAddress */ 0xDDb64fE46a91D46ee29420539FC25FD07c5FEa3E,
       /* callData */        hex"313ce567"
     );

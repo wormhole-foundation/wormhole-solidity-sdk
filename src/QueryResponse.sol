@@ -5,12 +5,41 @@ pragma solidity ^0.8.4;
 import {BytesParsing} from "./libraries/BytesParsing.sol";
 import {IWormhole} from "./interfaces/IWormhole.sol";
 
+error UnsupportedQueryType(uint8 received);
+
+library QueryType {
+  //Solidity enums don't permit custom values (i.e. can't start from 1)
+  //Also invalid enum conversions result in panics and manual range checking requires assembly
+  //  to avoid superfluous double checking.
+  //So we're sticking with uint8 constants instead.
+  uint8 internal constant ETH_CALL = 1;
+  uint8 internal constant ETH_CALL_BY_TIMESTAMP = 2;
+  uint8 internal constant ETH_CALL_WITH_FINALITY = 3;
+  uint8 internal constant SOLANA_ACCOUNT = 4;
+  uint8 internal constant SOLANA_PDA = 5;
+
+  //emulate type(enum).min/max for external consumers (mainly tests)
+  function min() internal pure returns (uint8) { return ETH_CALL; }
+  function max() internal pure returns (uint8) { return SOLANA_PDA; }
+
+  function checkValid(uint8 queryType) internal pure {
+    //slightly more gas efficient than calling `isValid`
+    if (queryType == 0 || queryType > SOLANA_PDA)
+      revert UnsupportedQueryType(queryType);
+  }
+
+  function isValid(uint8 queryType) internal pure returns (bool) {
+    //see docs/optimizations.md why `< CONST + 1` rather than `<= CONST`
+    return (queryType > 0 && queryType < SOLANA_PDA + 1);
+  }
+}
+
 struct QueryResponse {
   uint8 version;
   uint16 senderChainId;
   uint32 nonce;
   bytes requestId; // 65 byte sig for off-chain, 32 byte vaaHash for on-chain
-  PerChainQueryResponse [] responses;
+  PerChainQueryResponse[] responses;
 }
 
 struct PerChainQueryResponse {
@@ -25,7 +54,7 @@ struct EthCallQueryResponse {
   uint64 blockNum;
   uint64 blockTime;
   bytes32 blockHash;
-  EthCallData [] result;
+  EthCallRecord[] results;
 }
 
 struct EthCallByTimestampQueryResponse {
@@ -38,7 +67,7 @@ struct EthCallByTimestampQueryResponse {
   bytes32 targetBlockHash;
   bytes32 followingBlockHash;
   uint64 followingBlockTime;
-  EthCallData [] result;
+  EthCallRecord[] results;
 }
 
 struct EthCallWithFinalityQueryResponse {
@@ -47,10 +76,10 @@ struct EthCallWithFinalityQueryResponse {
   uint64 blockNum;
   uint64 blockTime;
   bytes32 blockHash;
-  EthCallData [] result;
+  EthCallRecord[] results;
 }
 
-struct EthCallData {
+struct EthCallRecord {
   address contractAddress;
   bytes callData;
   bytes result;
@@ -64,7 +93,7 @@ struct SolanaAccountQueryResponse {
   uint64 slotNumber;
   uint64 blockTime;
   bytes32 blockHash;
-  SolanaAccountResult [] results;
+  SolanaAccountResult[] results;
 }
 
 struct SolanaAccountResult {
@@ -84,7 +113,7 @@ struct SolanaPdaQueryResponse {
   uint64 slotNumber;
   uint64 blockTime;
   bytes32 blockHash;
-  SolanaPdaResult [] results;
+  SolanaPdaResult[] results;
 }
 
 struct SolanaPdaResult {
@@ -100,7 +129,7 @@ struct SolanaPdaResult {
 }
 
 // Custom errors
-error UnsupportedQueryType(uint8 received);
+
 error WrongQueryType(uint8 received, uint8 expected);
 error InvalidResponseVersion();
 error VersionMismatch();
@@ -118,27 +147,6 @@ error StaleBlockTime();
 error NoQuorum();
 error VerificationFailed();
 
-library QueryType {
-  //Deliberately not using an enum because failed enum casts result in a Panic and a custom
-  //  conversion before the cast produces inefficient bytecode (duplicated range checking).
-  uint8 internal constant ETH_CALL = 1;
-  uint8 internal constant ETH_CALL_BY_TIMESTAMP = 2;
-  uint8 internal constant ETH_CALL_WITH_FINALITY = 3;
-  uint8 internal constant SOL_ACCOUNT = 4;
-  uint8 internal constant SOL_PDA = 5;
-
-  uint8 internal constant MAX_QT = 5;
-
-  function isValid(uint8 queryType) internal pure returns (bool) {
-    return (queryType > 0 && queryType < (MAX_QT + 1));
-  }
-
-  function checkValid(uint8 queryType) internal pure {
-    if (queryType == 0 || queryType > MAX_QT)
-      revert UnsupportedQueryType(queryType);
-  }
-}
-
 //QueryResponse is a library that implements the parsing and verification of
 //  Cross Chain Query (CCQ) responses.
 //
@@ -149,11 +157,13 @@ library QueryResponseLib {
 
   bytes internal constant RESPONSE_PREFIX = bytes("query_response_0000000000000000000|");
   uint8 internal constant VERSION = 1;
+  uint256 internal constant MICROSECONDS_PER_SECOND = 1_000_000;
 
-  function calcResponseDigest(bytes memory response) internal pure returns (bytes32) {
+  function calcPrefixedResponseHash(bytes memory response) internal pure returns (bytes32) {
     return keccak256(abi.encodePacked(RESPONSE_PREFIX, keccak256(response)));
   }
 
+  //WARNING: see verifyQueryResponse WARNING
   function parseAndVerifyQueryResponse(
     address wormhole,
     bytes memory response,
@@ -163,6 +173,11 @@ library QueryResponseLib {
     return parseQueryResponse(response);
   }
 
+  //WARNING: This call can fail during times of guardian set rotation.
+  //  Unlikely, but possible:
+  //  Since only the current guardian set is considered when verifying signatures here, a response
+  //    will be rejected with a failed verification, even if the signing guardian is still within
+  //    what would otherwise be the 24 hour transition window.
   function verifyQueryResponse(
     address wormhole,
     bytes memory response,
@@ -176,7 +191,7 @@ library QueryResponseLib {
       revert NoQuorum();
 
     (bool signaturesValid, ) =
-      wormhole_.verifySignatures(calcResponseDigest(response), signatures, guardianSet);
+      wormhole_.verifySignatures(calcPrefixedResponseHash(response), signatures, guardianSet);
     if(!signaturesValid)
       revert VerificationFailed();
   }}
@@ -277,14 +292,14 @@ library QueryResponseLib {
     if (respNumResults != numBatchCallData)
       revert UnexpectedNumberOfResults();
 
-    ret.result = new EthCallData[](numBatchCallData);
+    ret.results = new EthCallRecord[](numBatchCallData);
 
-    //Walk through the call data and results in lock step.
+    //Walk through the call inputs and outputs in lock step.
     for (uint i; i < numBatchCallData; ++i) {
-      (ret.result[i].contractAddress, reqOff) = pcr.request.asAddressUnchecked(reqOff);
-      (ret.result[i].callData,        reqOff) = pcr.request.sliceUint32PrefixedUnchecked(reqOff);
+      (ret.results[i].contractAddress, reqOff) = pcr.request.asAddressUnchecked(reqOff);
+      (ret.results[i].callData,        reqOff) = pcr.request.sliceUint32PrefixedUnchecked(reqOff);
 
-      (ret.result[i].result, respOff) = pcr.response.sliceUint32PrefixedUnchecked(respOff);
+      (ret.results[i].result, respOff) = pcr.response.sliceUint32PrefixedUnchecked(respOff);
     }
 
     checkLength(pcr.request, reqOff);
@@ -319,14 +334,14 @@ library QueryResponseLib {
     if (respNumResults != numBatchCallData)
       revert UnexpectedNumberOfResults();
 
-    ret.result = new EthCallData[](numBatchCallData);
+    ret.results = new EthCallRecord[](numBatchCallData);
 
-    // Walk through the call data and results in lock step.
+    // Walk through the call inputs and outputs in lock step.
     for (uint i; i < numBatchCallData; ++i) {
-      (ret.result[i].contractAddress, reqOff) = pcr.request.asAddressUnchecked(reqOff);
-      (ret.result[i].callData,        reqOff) = pcr.request.sliceUint32PrefixedUnchecked(reqOff);
+      (ret.results[i].contractAddress, reqOff) = pcr.request.asAddressUnchecked(reqOff);
+      (ret.results[i].callData,        reqOff) = pcr.request.sliceUint32PrefixedUnchecked(reqOff);
 
-      (ret.result[i].result, respOff) = pcr.response.sliceUint32PrefixedUnchecked(respOff);
+      (ret.results[i].result, respOff) = pcr.response.sliceUint32PrefixedUnchecked(respOff);
     }
 
     checkLength(pcr.request, reqOff);
@@ -356,14 +371,14 @@ library QueryResponseLib {
     if (respNumResults != numBatchCallData)
       revert UnexpectedNumberOfResults();
 
-    ret.result = new EthCallData[](numBatchCallData);
+    ret.results = new EthCallRecord[](numBatchCallData);
 
-    //Walk through the call data and results in lock step.
+    //Walk through the call inputs and outputs in lock step.
     for (uint i; i < numBatchCallData; ++i) {
-      (ret.result[i].contractAddress, reqOff) = pcr.request.asAddressUnchecked(reqOff);
-      (ret.result[i].callData,        reqOff) = pcr.request.sliceUint32PrefixedUnchecked(reqOff);
+      (ret.results[i].contractAddress, reqOff) = pcr.request.asAddressUnchecked(reqOff);
+      (ret.results[i].callData,        reqOff) = pcr.request.sliceUint32PrefixedUnchecked(reqOff);
 
-      (ret.result[i].result, respOff) = pcr.response.sliceUint32PrefixedUnchecked(respOff);
+      (ret.results[i].result, respOff) = pcr.response.sliceUint32PrefixedUnchecked(respOff);
     }
 
     checkLength(pcr.request, reqOff);
@@ -373,8 +388,8 @@ library QueryResponseLib {
   function parseSolanaAccountQueryResponse(
     PerChainQueryResponse memory pcr
   ) internal pure returns (SolanaAccountQueryResponse memory ret) { unchecked {
-    if (pcr.queryType != QueryType.SOL_ACCOUNT)
-      revert WrongQueryType(pcr.queryType, QueryType.SOL_ACCOUNT);
+    if (pcr.queryType != QueryType.SOLANA_ACCOUNT)
+      revert WrongQueryType(pcr.queryType, QueryType.SOLANA_ACCOUNT);
 
     uint reqOff;
     uint respOff;
@@ -397,7 +412,7 @@ library QueryResponseLib {
 
     ret.results = new SolanaAccountResult[](numAccounts);
 
-    //Walk through the call data and results in lock step.
+    //Walk through the call inputs and outputs in lock step.
     for (uint i; i < numAccounts; ++i) {
       (ret.results[i].account, reqOff) = pcr.request.asBytes32Unchecked(reqOff);
 
@@ -415,8 +430,8 @@ library QueryResponseLib {
   function parseSolanaPdaQueryResponse(
     PerChainQueryResponse memory pcr
   ) internal pure returns (SolanaPdaQueryResponse memory ret) { unchecked {
-    if (pcr.queryType != QueryType.SOL_PDA)
-      revert WrongQueryType(pcr.queryType, QueryType.SOL_PDA);
+    if (pcr.queryType != QueryType.SOLANA_PDA)
+      revert WrongQueryType(pcr.queryType, QueryType.SOLANA_PDA);
 
     uint reqOff;
     uint respOff;
@@ -440,7 +455,7 @@ library QueryResponseLib {
 
     ret.results = new SolanaPdaResult[](numPdas);
 
-    //Walk through the call data and results in lock step.
+    //Walk through the call inputs and outputs in lock step.
     for (uint i; i < numPdas; ++i) {
       (ret.results[i].programId, reqOff) = pcr.request.asBytes32Unchecked(reqOff);
 
@@ -467,7 +482,7 @@ library QueryResponseLib {
     uint64 blockTimeInMicroSeconds,
     uint256 minBlockTimeInSeconds
   ) internal pure {
-    uint256 blockTimeInSeconds = blockTimeInMicroSeconds / 1_000_000; // Rounds down
+    uint256 blockTimeInSeconds = blockTimeInMicroSeconds / MICROSECONDS_PER_SECOND; // Rounds down
 
     if (blockTimeInSeconds < minBlockTimeInSeconds)
       revert StaleBlockTime();
@@ -482,25 +497,25 @@ library QueryResponseLib {
     uint16 chainId,
     uint16[] memory validChainIds
   ) internal pure { unchecked {
-    uint numChainIds = validChainIds.length;
-    for (uint i; i < numChainIds; ++i)
+    uint len = validChainIds.length;
+    for (uint i; i < len; ++i)
       if (chainId == validChainIds[i])
         return;
 
     revert InvalidChainId();
   }}
 
-  function validateEthCallData(
-    EthCallData[] memory ecds,
+  function validateEthCallRecord(
+    EthCallRecord[] memory ecrs,
     address[] memory validContractAddresses,
     bytes4[] memory validFunctionSignatures
   ) internal pure { unchecked {
-    uint callDatasLength = ecds.length;
-    for (uint i; i < callDatasLength; ++i)
-      validateEthCallData(ecds[i], validContractAddresses, validFunctionSignatures);
+    uint len = ecrs.length;
+    for (uint i; i < len; ++i)
+      validateEthCallRecord(ecrs[i], validContractAddresses, validFunctionSignatures);
   }}
 
-  //validates that EthCallData comes from a function signature and contract address we expect
+  //validates that EthCallRecord a valid function signature and contract address
   //An empty array means we accept all addresses/function signatures
   //  Example 1: To accept signatures 0xaaaaaaaa and 0xbbbbbbbb from `address(abcd)`
   //    you'd pass in [0xaaaaaaaa, 0xbbbbbbbb], [address(abcd)]
@@ -515,8 +530,8 @@ library QueryResponseLib {
   //    This would accept both 0xaaaaaaaa and 0xbbbbbbbb from `address(abcd)` AND `address(efab)`.
   //    Instead you should make 2 calls to this method using the pattern in Example 1.
   //    [0xaaaaaaaa], [address(abcd)] OR [0xbbbbbbbb], [address(efab)]
-  function validateEthCallData(
-    EthCallData memory ecd,
+  function validateEthCallRecord(
+    EthCallRecord memory ecd,
     address[] memory validContractAddresses, //empty array means accept all
     bytes4[] memory validFunctionSignatures  //empty array means accept all
   ) internal pure { unchecked {

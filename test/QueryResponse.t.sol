@@ -12,8 +12,8 @@ import {WormholeMock} from "../src/testing/helpers/WormholeMock.sol";
 
 //wrap library to allow testing via vm.expectRevert
 contract QueryResponseLibWrapper {
-  function calcResponseDigest(bytes memory response) external pure returns (bytes32) {
-    return QueryResponseLib.calcResponseDigest(response);
+  function calcPrefixedResponseHash(bytes memory response) external pure returns (bytes32) {
+    return QueryResponseLib.calcPrefixedResponseHash(response);
   }
 
   function parseAndVerifyQueryResponse(
@@ -86,20 +86,20 @@ contract QueryResponseLibWrapper {
     QueryResponseLib.validateChainId(chainId, validChainIds);
   }
 
-  function validateEthCallData(
-    EthCallData[] memory ecds,
+  function validateEthCallRecord(
+    EthCallRecord[] memory ecds,
     address[] memory validContractAddresses,
     bytes4[] memory validFunctionSignatures
   ) external pure {
-    QueryResponseLib.validateEthCallData(ecds, validContractAddresses, validFunctionSignatures);
+    QueryResponseLib.validateEthCallRecord(ecds, validContractAddresses, validFunctionSignatures);
   }
 
-  function validateEthCallData(
-    EthCallData memory ecd,
+  function validateEthCallRecord(
+    EthCallRecord memory ecd,
     address[] memory validContractAddresses, //empty array means accept all
     bytes4[] memory validFunctionSignatures  //empty array means accept all
   ) external pure {
-    QueryResponseLib.validateEthCallData(ecd, validContractAddresses, validFunctionSignatures);
+    QueryResponseLib.validateEthCallRecord(ecd, validContractAddresses, validFunctionSignatures);
   }
 }
 
@@ -158,8 +158,8 @@ contract TestQueryResponse is Test {
 
   function getSignature(
     bytes memory response
-  ) internal view returns (IWormhole.Signature[] memory signatures) {
-    bytes32 responseDigest = QueryResponseLib.calcResponseDigest(response);
+  ) internal pure returns (IWormhole.Signature[] memory signatures) {
+    bytes32 responseDigest = QueryResponseLib.calcPrefixedResponseHash(response);
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(DEVNET_GUARDIAN_PRIVATE_KEY, responseDigest);
     signatures = new IWormhole.Signature[](1);
     signatures[0] = IWormhole.Signature(r, s, v, SIG_GUARDIAN_INDEX);
@@ -192,9 +192,9 @@ contract TestQueryResponse is Test {
     );
   }
 
-  function test_calcResponseDigest() public {
+  function test_calcPrefixedResponseHash() public {
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
-    bytes32 digest = wrapper.calcResponseDigest(resp);
+    bytes32 digest = wrapper.calcPrefixedResponseHash(resp);
     bytes32 expectedDigest = 0x5b84b19c68ee0b37899230175a92ee6eda4c5192e8bffca1d057d811bb3660e2;
     assertEq(digest, expectedDigest);
   }
@@ -233,15 +233,15 @@ contract TestQueryResponse is Test {
     assertEq(eqr.blockNum, 44440260);
     assertEq(eqr.blockHash, hex"c1adff9f6e180309e7d0d94c063338ddc61c1c4474cd6957c960efe659534d04");
     assertEq(eqr.blockTime, 1687961579000000);
-    assertEq(eqr.result.length, 2);
+    assertEq(eqr.results.length, 2);
 
-    assertEq(eqr.result[0].contractAddress, address(0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270));
-    assertEq(eqr.result[0].callData, hex"06fdde03");
-    assertEq(eqr.result[0].result, hex"0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d57726170706564204d6174696300000000000000000000000000000000000000");
+    assertEq(eqr.results[0].contractAddress, address(0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270));
+    assertEq(eqr.results[0].callData, hex"06fdde03");
+    assertEq(eqr.results[0].result, hex"0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d57726170706564204d6174696300000000000000000000000000000000000000");
 
-    assertEq(eqr.result[1].contractAddress, address(0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270));
-    assertEq(eqr.result[1].callData, hex"18160ddd");
-    assertEq(eqr.result[1].result, hex"0000000000000000000000000000000000000000007ae5649beabeddf889364a");
+    assertEq(eqr.results[1].contractAddress, address(0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270));
+    assertEq(eqr.results[1].callData, hex"18160ddd");
+    assertEq(eqr.results[1].result, hex"0000000000000000000000000000000000000000007ae5649beabeddf889364a");
   }
 
   function test_parseEthCallQueryResponseRevertWrongQueryType() public {
@@ -271,16 +271,16 @@ contract TestQueryResponse is Test {
     assertEq(eqr.blockHash, hex"b9848f128b3658a0b9b50aa174e3ddc15ac4e54c84ee534b6d247adbdfc300c9");
     vm.warp(1694814937);
     assertEq(eqr.blockTime / 1_000_000, block.timestamp);
-    assertEq(eqr.result.length, 1);
+    assertEq(eqr.results.length, 1);
 
-    assertEq(eqr.result[0].contractAddress, address(0x3ce792601c936b1c81f73Ea2fa77208C0A478BaE));
-    assertEq(eqr.result[0].callData, hex"916d5743");
-    bytes memory callData = eqr.result[0].callData;
+    assertEq(eqr.results[0].contractAddress, address(0x3ce792601c936b1c81f73Ea2fa77208C0A478BaE));
+    assertEq(eqr.results[0].callData, hex"916d5743");
+    bytes memory callData = eqr.results[0].callData;
     bytes4 callSignature;
     assembly { callSignature := mload(add(callData, 32)) }
     assertEq(callSignature, bytes4(keccak256("getMyCounter()")));
-    assertEq(eqr.result[0].result, hex"0000000000000000000000000000000000000000000000000000000000000004");
-    assertEq(abi.decode(eqr.result[0].result, (uint256)), 4);
+    assertEq(eqr.results[0].result, hex"0000000000000000000000000000000000000000000000000000000000000004");
+    assertEq(abi.decode(eqr.results[0].result, (uint256)), 4);
   }
 
   function test_parseEthCallByTimestampQueryResponse() public {
@@ -302,15 +302,15 @@ contract TestQueryResponse is Test {
     assertEq(eqr.followingBlockNum, 0x0000000000004272);
     assertEq(eqr.followingBlockHash, hex"0b1608c2cddfd9d7fb4ec94f79ec1389e2410e611a2c2bbde94e9ad37519ebbb");
     assertEq(eqr.followingBlockTime, 0x03f4904f00);    
-    assertEq(eqr.result.length, 2);
+    assertEq(eqr.results.length, 2);
 
-    assertEq(eqr.result[0].contractAddress, address(0xDDb64fE46a91D46ee29420539FC25FD07c5FEa3E));
-    assertEq(eqr.result[0].callData, hex"06fdde03");
-    assertEq(eqr.result[0].result, hex"0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d5772617070656420457468657200000000000000000000000000000000000000");
+    assertEq(eqr.results[0].contractAddress, address(0xDDb64fE46a91D46ee29420539FC25FD07c5FEa3E));
+    assertEq(eqr.results[0].callData, hex"06fdde03");
+    assertEq(eqr.results[0].result, hex"0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d5772617070656420457468657200000000000000000000000000000000000000");
 
-    assertEq(eqr.result[1].contractAddress, address(0xDDb64fE46a91D46ee29420539FC25FD07c5FEa3E));
-    assertEq(eqr.result[1].callData, hex"18160ddd");
-    assertEq(eqr.result[1].result, hex"0000000000000000000000000000000000000000000000000000000000000000");
+    assertEq(eqr.results[1].contractAddress, address(0xDDb64fE46a91D46ee29420539FC25FD07c5FEa3E));
+    assertEq(eqr.results[1].callData, hex"18160ddd");
+    assertEq(eqr.results[1].result, hex"0000000000000000000000000000000000000000000000000000000000000000");
   }
 
   function test_parseEthCallByTimestampQueryResponseRevertWrongQueryType() public {
@@ -341,15 +341,15 @@ contract TestQueryResponse is Test {
     assertEq(eqr.blockNum, 0x6029);
     assertEq(eqr.blockHash, hex"9eb9c56ffdae81214867ed217f5ab37e295c196b4f04b23a795d3e4aea6ff3d7");
     assertEq(eqr.blockTime, 0x05bb1bd580);
-    assertEq(eqr.result.length, 2);
+    assertEq(eqr.results.length, 2);
 
-    assertEq(eqr.result[0].contractAddress, address(0xDDb64fE46a91D46ee29420539FC25FD07c5FEa3E));
-    assertEq(eqr.result[0].callData, hex"06fdde03");
-    assertEq(eqr.result[0].result, hex"0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d5772617070656420457468657200000000000000000000000000000000000000");
+    assertEq(eqr.results[0].contractAddress, address(0xDDb64fE46a91D46ee29420539FC25FD07c5FEa3E));
+    assertEq(eqr.results[0].callData, hex"06fdde03");
+    assertEq(eqr.results[0].result, hex"0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d5772617070656420457468657200000000000000000000000000000000000000");
 
-    assertEq(eqr.result[1].contractAddress, address(0xDDb64fE46a91D46ee29420539FC25FD07c5FEa3E));
-    assertEq(eqr.result[1].callData, hex"18160ddd");
-    assertEq(eqr.result[1].result, hex"0000000000000000000000000000000000000000000000000000000000000000");
+    assertEq(eqr.results[1].contractAddress, address(0xDDb64fE46a91D46ee29420539FC25FD07c5FEa3E));
+    assertEq(eqr.results[1].callData, hex"18160ddd");
+    assertEq(eqr.results[1].result, hex"0000000000000000000000000000000000000000000000000000000000000000");
   }
 
   function test_parseEthCallWithFinalityQueryResponseRevertWrongQueryType() public {
@@ -417,7 +417,7 @@ contract TestQueryResponse is Test {
       response: solanaAccountPerChainResponsesInner
     });
 
-    vm.expectRevert(abi.encodeWithSelector(WrongQueryType.selector, 1, QueryType.SOL_ACCOUNT));
+    vm.expectRevert(abi.encodeWithSelector(WrongQueryType.selector, 1, QueryType.SOLANA_ACCOUNT));
     wrapper.parseSolanaAccountQueryResponse(r);
   }
 
@@ -506,7 +506,7 @@ contract TestQueryResponse is Test {
       response: solanaPdaPerChainResponsesInner
     });
 
-    vm.expectRevert(abi.encodeWithSelector(WrongQueryType.selector, 1, QueryType.SOL_PDA));
+    vm.expectRevert(abi.encodeWithSelector(WrongQueryType.selector, 1, QueryType.SOLANA_PDA));
     wrapper.parseSolanaPdaQueryResponse(r);
   }
 
@@ -626,7 +626,7 @@ contract TestQueryResponse is Test {
 
   function testFuzz_parseAndVerifyQueryResponse_fuzzChainIds(uint16 _requestChainId, uint16 _responseChainId, uint256 _requestQueryType) public {
     vm.assume(_requestChainId != _responseChainId);
-    _requestQueryType = bound(_requestQueryType, QueryType.ETH_CALL, QueryType.MAX_QT);
+    _requestQueryType = bound(_requestQueryType, QueryType.min(), QueryType.max());
 
     bytes memory packedPerChainQueries = abi.encodePacked(_requestChainId, uint8(_requestQueryType), uint32(perChainQueriesInner.length), perChainQueriesInner);
     bytes memory packedPerChainResponses = abi.encodePacked(_responseChainId, uint8(_requestQueryType), uint32(perChainResponsesInner.length),  perChainResponsesInner);
@@ -636,8 +636,8 @@ contract TestQueryResponse is Test {
   }
 
   function testFuzz_parseAndVerifyQueryResponse_fuzzMistmatchedRequestType(uint256 _requestQueryType, uint256 _responseQueryType) public {
-    _requestQueryType = bound(_requestQueryType, QueryType.ETH_CALL, QueryType.MAX_QT);
-    _responseQueryType = bound(_responseQueryType, QueryType.ETH_CALL, QueryType.MAX_QT);
+    _requestQueryType = bound(_requestQueryType, QueryType.min(), QueryType.max());
+    _responseQueryType = bound(_responseQueryType, QueryType.min(), QueryType.max());
     vm.assume(_requestQueryType != _responseQueryType);
 
     bytes memory packedPerChainQueries = abi.encodePacked(uint16(0x0005), uint8(_requestQueryType), uint32(perChainQueriesInner.length), perChainQueriesInner);
@@ -648,7 +648,7 @@ contract TestQueryResponse is Test {
   }
 
   function testFuzz_parseAndVerifyQueryResponse_fuzzUnsupportedRequestType(uint8 _requestQueryType) public {
-    vm.assume(_requestQueryType < QueryType.ETH_CALL || _requestQueryType > QueryType.MAX_QT);
+    vm.assume(!QueryType.isValid(_requestQueryType));
 
     bytes memory packedPerChainQueries = abi.encodePacked(uint16(0x0005), uint8(_requestQueryType), uint32(perChainQueriesInner.length), perChainQueriesInner);
     bytes memory packedPerChainResponses = abi.encodePacked(uint16(0x0005), uint8(_requestQueryType), uint32(perChainResponsesInner.length),  perChainResponsesInner);
@@ -678,7 +678,7 @@ contract TestQueryResponse is Test {
     vm.assume(privateKey < 115792089237316195423570985008687907852837564279074904382605163141518161494337);
     vm.assume(privateKey != 0);
 
-    (uint8 sigV, bytes32 sigR, bytes32 sigS) = vm.sign(privateKey, wrapper.calcResponseDigest(resp));
+    (uint8 sigV, bytes32 sigR, bytes32 sigS) = vm.sign(privateKey, wrapper.calcPrefixedResponseHash(resp));
     IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
     signatures[0] = IWormhole.Signature(sigR, sigS, sigV, SIG_GUARDIAN_INDEX);
     vm.expectRevert(VerificationFailed.selector);
@@ -698,15 +698,15 @@ contract TestQueryResponse is Test {
     wrapper.verifyQueryResponse(wormhole, resp, signatures);
   }
 
-  uint64 constant private SECOND_RESOLUTION = 1_000_000;
-  uint64 constant private MAX_SECONDS = type(uint64).max/SECOND_RESOLUTION;
+  uint64 constant private MICROSECONDS_PER_SECOND = 1_000_000;
+  uint64 constant private MAX_SECONDS = type(uint64).max/MICROSECONDS_PER_SECOND;
 
   function testFuzz_validateBlockTime_success(uint64 _blockTime, uint64 _minBlockTime) public view {
     //assure: blockTime >= minBlockTime
     _minBlockTime = uint64(bound(_minBlockTime, 0, MAX_SECONDS));
     _blockTime = uint64(bound(_blockTime, _minBlockTime, MAX_SECONDS));
 
-    wrapper.validateBlockTime(_blockTime * SECOND_RESOLUTION, _minBlockTime);
+    wrapper.validateBlockTime(_blockTime * MICROSECONDS_PER_SECOND, _minBlockTime);
   }
 
   function testFuzz_validateBlockTime_fail(uint64 _blockTime, uint256 _minBlockTime) public {
@@ -716,7 +716,7 @@ contract TestQueryResponse is Test {
     _blockTime = uint64(bound(_blockTime, 0, upperBound));
 
     vm.expectRevert(StaleBlockTime.selector);
-    wrapper.validateBlockTime(_blockTime * SECOND_RESOLUTION, _minBlockTime);
+    wrapper.validateBlockTime(_blockTime * MICROSECONDS_PER_SECOND, _minBlockTime);
   }
 
   function testFuzz_validateBlockNum_success(uint64 _blockNum, uint64 _minBlockNum) public view {
@@ -751,27 +751,27 @@ contract TestQueryResponse is Test {
     wrapper.validateChainId(_chainId, _validChainIds);
   }
 
-  function testFuzz_validateEthCallData_success(bytes memory randomBytes, uint256 _contractAddressIndex, uint256 _functionSignatureIndex, address[] memory _validContractAddresses, bytes4[] memory _validFunctionSignatures) public view {
+  function testFuzz_validateEthCallRecord_success(bytes memory randomBytes, uint256 _contractAddressIndex, uint256 _functionSignatureIndex, address[] memory _validContractAddresses, bytes4[] memory _validFunctionSignatures) public view {
     vm.assume(randomBytes.length >= 4);
     vm.assume(_validContractAddresses.length > 0);
     _contractAddressIndex %= _validContractAddresses.length;
     vm.assume(_validFunctionSignatures.length > 0);
     _functionSignatureIndex %= _validFunctionSignatures.length;
 
-    EthCallData memory callData = EthCallData({
+    EthCallRecord memory callData = EthCallRecord({
       contractAddress: _validContractAddresses[_contractAddressIndex],
       callData: bytes.concat(_validFunctionSignatures[_functionSignatureIndex], randomBytes),
       result: randomBytes
     });
 
-    wrapper.validateEthCallData(callData, _validContractAddresses, _validFunctionSignatures);
+    wrapper.validateEthCallRecord(callData, _validContractAddresses, _validFunctionSignatures);
   }
 
-  function testFuzz_validateEthCallData_successZeroSignatures(bytes4 randomSignature, bytes memory randomBytes, uint256 _contractAddressIndex, address[] memory _validContractAddresses) public view {
+  function testFuzz_validateEthCallRecord_successZeroSignatures(bytes4 randomSignature, bytes memory randomBytes, uint256 _contractAddressIndex, address[] memory _validContractAddresses) public view {
     vm.assume(_validContractAddresses.length > 0);
     _contractAddressIndex %= _validContractAddresses.length;
 
-    EthCallData memory callData = EthCallData({
+    EthCallRecord memory callData = EthCallRecord({
       contractAddress: _validContractAddresses[_contractAddressIndex],
       callData: bytes.concat(randomSignature, randomBytes),
       result: randomBytes
@@ -779,15 +779,15 @@ contract TestQueryResponse is Test {
 
     bytes4[] memory validSignatures = new bytes4[](0);
 
-    wrapper.validateEthCallData(callData, _validContractAddresses, validSignatures);
+    wrapper.validateEthCallRecord(callData, _validContractAddresses, validSignatures);
   }
 
-  function testFuzz_validateEthCallData_successZeroAddresses(address randomAddress, bytes memory randomBytes, uint256 _functionSignatureIndex, bytes4[] memory _validFunctionSignatures) public view {
+  function testFuzz_validateEthCallRecord_successZeroAddresses(address randomAddress, bytes memory randomBytes, uint256 _functionSignatureIndex, bytes4[] memory _validFunctionSignatures) public view {
     vm.assume(randomBytes.length >= 4);
     vm.assume(_validFunctionSignatures.length > 0);
     _functionSignatureIndex %= _validFunctionSignatures.length;
 
-    EthCallData memory callData = EthCallData({
+    EthCallRecord memory callData = EthCallRecord({
       contractAddress: randomAddress,
       callData: bytes.concat(_validFunctionSignatures[_functionSignatureIndex], randomBytes),
       result: randomBytes
@@ -795,10 +795,10 @@ contract TestQueryResponse is Test {
 
     address[] memory validAddresses = new address[](0);
 
-    wrapper.validateEthCallData(callData, validAddresses, _validFunctionSignatures);
+    wrapper.validateEthCallRecord(callData, validAddresses, _validFunctionSignatures);
   }
 
-  function testFuzz_validateEthCallData_failSignature(bytes memory randomBytes, uint256 _contractAddressIndex, address[] memory _validContractAddresses, bytes4[] memory _validFunctionSignatures) public {
+  function testFuzz_validateEthCallRecord_failSignature(bytes memory randomBytes, uint256 _contractAddressIndex, address[] memory _validContractAddresses, bytes4[] memory _validFunctionSignatures) public {
     vm.assume(randomBytes.length >= 4);
     vm.assume(_validContractAddresses.length > 0);
     _contractAddressIndex %= _validContractAddresses.length;
@@ -808,17 +808,17 @@ contract TestQueryResponse is Test {
       vm.assume(bytes4(randomBytes) != _validFunctionSignatures[i]);
     }
 
-    EthCallData memory callData = EthCallData({
+    EthCallRecord memory callData = EthCallRecord({
       contractAddress: _validContractAddresses[_contractAddressIndex],
       callData: randomBytes,
       result: randomBytes
     });
 
     vm.expectRevert(InvalidFunctionSignature.selector);
-    wrapper.validateEthCallData(callData, _validContractAddresses, _validFunctionSignatures);
+    wrapper.validateEthCallRecord(callData, _validContractAddresses, _validFunctionSignatures);
   }
 
-  function testFuzz_validateEthCallData_failAddress(bytes memory randomBytes, address randomAddress, uint256 _functionSignatureIndex, address[] memory _validContractAddresses, bytes4[] memory _validFunctionSignatures) public {
+  function testFuzz_validateEthCallRecord_failAddress(bytes memory randomBytes, address randomAddress, uint256 _functionSignatureIndex, address[] memory _validContractAddresses, bytes4[] memory _validFunctionSignatures) public {
     vm.assume(_validFunctionSignatures.length > 0);
     _functionSignatureIndex %= _validFunctionSignatures.length;
     vm.assume(_validContractAddresses.length > 0);
@@ -827,32 +827,32 @@ contract TestQueryResponse is Test {
       vm.assume(randomAddress != _validContractAddresses[i]);
     }
 
-    EthCallData memory callData = EthCallData({
+    EthCallRecord memory callData = EthCallRecord({
       contractAddress: randomAddress,
       callData: bytes.concat(_validFunctionSignatures[_functionSignatureIndex], randomBytes),
       result: randomBytes
     });
 
     vm.expectRevert(InvalidContractAddress.selector);
-    wrapper.validateEthCallData(callData, _validContractAddresses, _validFunctionSignatures);
+    wrapper.validateEthCallRecord(callData, _validContractAddresses, _validFunctionSignatures);
   }
 
-  function testFuzz_validateMultipleEthCallData_success(uint8 numInputs, bytes memory randomBytes, uint256 _contractAddressIndex, uint256 _functionSignatureIndex, address[] memory _validContractAddresses, bytes4[] memory _validFunctionSignatures) public view {
+  function testFuzz_validateMultipleEthCallRecord_success(uint8 numInputs, bytes memory randomBytes, uint256 _contractAddressIndex, uint256 _functionSignatureIndex, address[] memory _validContractAddresses, bytes4[] memory _validFunctionSignatures) public view {
     vm.assume(_validContractAddresses.length > 0);
     _contractAddressIndex %= _validContractAddresses.length;
     vm.assume(_validFunctionSignatures.length > 0);
     _functionSignatureIndex %= _validFunctionSignatures.length;
 
-    EthCallData[] memory callDatas = new EthCallData[](numInputs);
+    EthCallRecord[] memory callDatas = new EthCallRecord[](numInputs);
 
     for (uint256 i = 0; i < numInputs; ++i) {
-      callDatas[i] = EthCallData({
+      callDatas[i] = EthCallRecord({
         contractAddress: _validContractAddresses[_contractAddressIndex],
         callData: bytes.concat(_validFunctionSignatures[_functionSignatureIndex], randomBytes),
         result: randomBytes
     });
     }
 
-    wrapper.validateEthCallData(callDatas, _validContractAddresses, _validFunctionSignatures);
+    wrapper.validateEthCallRecord(callDatas, _validContractAddresses, _validFunctionSignatures);
   }
 }
