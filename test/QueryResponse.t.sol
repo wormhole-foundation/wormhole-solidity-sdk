@@ -9,7 +9,6 @@ import "forge-std/Test.sol";
 import "../src/testing/helpers/QueryTest.sol";
 import {WormholeMock} from "../src/testing/helpers/WormholeMock.sol";
 
-
 //wrap library to allow testing via vm.expectRevert
 contract QueryResponseLibWrapper {
   function calcPrefixedResponseHash(bytes memory response) external pure returns (bytes32) {
@@ -698,7 +697,7 @@ contract TestQueryResponse is Test {
     wrapper.verifyQueryResponse(wormhole, resp, signatures);
   }
 
-  uint64 constant private MICROSECONDS_PER_SECOND = 1_000_000;
+  uint64 constant private MICROSECONDS_PER_SECOND = QueryResponseLib.MICROSECONDS_PER_SECOND;
   uint64 constant private MAX_SECONDS = type(uint64).max/MICROSECONDS_PER_SECOND;
 
   function testFuzz_validateBlockTime_success(uint64 _blockTime, uint64 _minBlockTime) public view {

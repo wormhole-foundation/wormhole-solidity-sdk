@@ -157,7 +157,7 @@ library QueryResponseLib {
 
   bytes internal constant RESPONSE_PREFIX = bytes("query_response_0000000000000000000|");
   uint8 internal constant VERSION = 1;
-  uint256 internal constant MICROSECONDS_PER_SECOND = 1_000_000;
+  uint64 internal constant MICROSECONDS_PER_SECOND = 1_000_000;
 
   function calcPrefixedResponseHash(bytes memory response) internal pure returns (bytes32) {
     return keccak256(abi.encodePacked(RESPONSE_PREFIX, keccak256(response)));
