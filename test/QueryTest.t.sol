@@ -38,17 +38,17 @@ contract QueryRequestTest is Test {
     bytes memory ecr = QueryTest.buildEthCallByTimestampRequestBytes(
       /* targetTimeUs */       0x10642ac0,
       /* targetBlockHint */    "0x15d",
-      /* followingBlockHint */ "0x15e",      
+      /* followingBlockHint */ "0x15e",
       /* numCallData */        2,
       /* callData */           hex"ddb64fe46a91d46ee29420539fc25fd07c5fea3e0000000406fdde03ddb64fe46a91d46ee29420539fc25fd07c5fea3e00000004313ce567"
     );
     assertEq(ecr, hex"0000000010642ac000000005307831356400000005307831356502ddb64fe46a91d46ee29420539fc25fd07c5fea3e0000000406fdde03ddb64fe46a91d46ee29420539fc25fd07c5fea3e00000004313ce567");
   }
-  
+
   function test_buildEthCallWithFinalityRequestBytes() public {
     bytes memory ecr = QueryTest.buildEthCallWithFinalityRequestBytes(
       /* blockId */     "0x1f8",
-      /* finality */    "finalized",      
+      /* finality */    "finalized",
       /* numCallData */ 2,
       /* callData */    hex"ddb64fe46a91d46ee29420539fc25fd07c5fea3e0000000406fdde03ddb64fe46a91d46ee29420539fc25fd07c5fea3e00000004313ce567"
     );
@@ -66,8 +66,8 @@ contract QueryRequestTest is Test {
       /* callData */        hex"313ce567"
     );
     assertEq(ecd2, hex"ddb64fe46a91d46ee29420539fc25fd07c5fea3e00000004313ce567");
-  }    
-    
+  }
+
   function test_buildSolanaAccountRequestBytes() public {
     bytes memory ecr = QueryTest.buildSolanaAccountRequestBytes(
       /* commitment */      "finalized",
@@ -231,7 +231,7 @@ contract QueryResponseTest is Test {
       /* targetBlockTimeUs */    0x10642ac0,
       /* followingBlockNumber */ 350,
       /* followingBlockHash */   hex"04b022afaab8da2dd80bd8e6ae55e6303473a5e1de846a5de76d619e162429ce",
-      /* followingBlockTimeUs */ 0x10736d00,      
+      /* followingBlockTimeUs */ 0x10736d00,
       /* numResults */           2,
       /* results */              hex"000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d5772617070656420457468657200000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000012"
     );

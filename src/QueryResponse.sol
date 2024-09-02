@@ -195,7 +195,7 @@ library QueryResponseLib {
     if(!signaturesValid)
       revert VerificationFailed();
   }}
-  
+
   function parseQueryResponse(
     bytes memory response
   ) internal pure returns (QueryResponse memory ret) { unchecked {
@@ -537,7 +537,7 @@ library QueryResponseLib {
   ) internal pure { unchecked {
     if (validContractAddresses.length > 0)
       validateContractAddress(ecd.contractAddress, validContractAddresses);
-    
+
     if (validFunctionSignatures.length > 0) {
       (bytes4 funcSig,) = ecd.callData.asBytes4(0);
       validateFunctionSignature(funcSig, validFunctionSignatures);

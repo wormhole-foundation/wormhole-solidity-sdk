@@ -30,7 +30,7 @@ contract QueryResponseLibWrapper {
   ) external view {
     return QueryResponseLib.verifyQueryResponse(wormhole, response, signatures);
   }
-  
+
   function parseQueryResponse(
     bytes memory response
   ) external pure returns (QueryResponse memory ret) {
@@ -300,7 +300,7 @@ contract TestQueryResponse is Test {
     assertEq(eqr.targetBlockTime, 0x03f4810cc0);
     assertEq(eqr.followingBlockNum, 0x0000000000004272);
     assertEq(eqr.followingBlockHash, hex"0b1608c2cddfd9d7fb4ec94f79ec1389e2410e611a2c2bbde94e9ad37519ebbb");
-    assertEq(eqr.followingBlockTime, 0x03f4904f00);    
+    assertEq(eqr.followingBlockTime, 0x03f4904f00);
     assertEq(eqr.results.length, 2);
 
     assertEq(eqr.results[0].contractAddress, address(0xDDb64fE46a91D46ee29420539FC25FD07c5FEa3E));
@@ -495,7 +495,7 @@ contract TestQueryResponse is Test {
     assertEq(sar.results[0].owner, hex"02c806312cbe5b79ef8aa6c17e3f423d8fdfe1d46909fb1f6cdf65ee8e2e6faa");
     assertEq(sar.results[0].data, hex"57cd18b7f8a4d91a2da9ab4af05d0fbece2dcd65");
   }
-  
+
   function test_parseSolanaPdaQueryResponseRevertWrongQueryType() public {
     // Pass an ETH per chain response into the Solana parser.
     PerChainQueryResponse memory r = PerChainQueryResponse({
@@ -593,7 +593,7 @@ contract TestQueryResponse is Test {
 
   function testFuzz_parseAndVerifyQueryResponse_fuzzQueryRequestLen(uint32 _queryRequestLen, bytes calldata _perChainQueries) public {
     // We add 6 to account for version + nonce + numPerChainQueries
-    vm.assume(_queryRequestLen != _perChainQueries.length + 6); 
+    vm.assume(_queryRequestLen != _perChainQueries.length + 6);
 
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, _perChainQueries, numPerChainResponses, perChainResponses);
     vm.expectRevert();
@@ -601,7 +601,7 @@ contract TestQueryResponse is Test {
   }
 
   function testFuzz_parseAndVerifyQueryResponse_fuzzQueryRequestVersion(uint8 _version, uint8 _queryRequestVersion) public {
-    vm.assume(_version != _queryRequestVersion); 
+    vm.assume(_version != _queryRequestVersion);
 
     bytes memory resp = concatenateQueryResponseBytesOffChain(_version, senderChainId, signature, _queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
     vm.expectRevert();
@@ -611,7 +611,7 @@ contract TestQueryResponse is Test {
   function testFuzz_parseAndVerifyQueryResponse_fuzzQueryRequestNonce(uint32 _queryRequestNonce) public {
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, _queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
     QueryResponse memory r = wrapper.parseAndVerifyQueryResponse(wormhole, resp, getSignature(resp));
-    
+
     assertEq(r.nonce, _queryRequestNonce);
   }
 
@@ -686,10 +686,10 @@ contract TestQueryResponse is Test {
 
   function testFuzz_verifyQueryResponse_validSignatureWrongPrefix(bytes calldata responsePrefix) public {
     vm.assume(keccak256(responsePrefix) != keccak256(QueryResponseLib.RESPONSE_PREFIX));
-    
+
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
     bytes32 responseDigest = keccak256(abi.encodePacked(responsePrefix, keccak256(resp)));
-    
+
     (uint8 sigV, bytes32 sigR, bytes32 sigS) = vm.sign(DEVNET_GUARDIAN_PRIVATE_KEY, responseDigest);
     IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
     signatures[0] = IWormhole.Signature(sigR, sigS, sigV, SIG_GUARDIAN_INDEX);
