@@ -31,7 +31,7 @@ library CctpOverride {
     require(attesterPrivateKey(messageTransmitter) == 0, "CctpOverride: already set up");
 
     require(messageTransmitter.version() == CctpMessages.MESSAGE_TRANSMITTER_HEADER_VERSION);
-    
+
     //as pioneered in WormholeOverride
     vm.store(address(messageTransmitter), _ATTESTER_PK_SLOT, bytes32(signer));
 

@@ -2,8 +2,8 @@
 pragma solidity ^0.8.4;
 
 library BytesParsing {
-  uint256 private constant freeMemoryPtr = 0x40;
-  uint256 private constant wordSize = 32;
+  uint256 private constant _FREE_MEMORY_PTR = 0x40;
+  uint256 private constant _WORD_SIZE = 32;
 
   error OutOfBounds(uint256 offset, uint256 length);
   error LengthMismatch(uint256 encodedLength, uint256 expectedLength);
@@ -49,7 +49,7 @@ library BytesParsing {
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, length)
-      ret := mload(freeMemoryPtr)
+      ret := mload(_FREE_MEMORY_PTR)
 
       //Explanation on how we copy data here:
       //  The bytes type has the following layout in memory:
@@ -65,7 +65,7 @@ library BytesParsing {
       //    overwritting those garbage bytes.
       let shift := and(length, 31) //equivalent to `mod(length, 32)` but 2 gas cheaper
       if iszero(shift) {
-        shift := wordSize
+        shift := _WORD_SIZE
       }
 
       let dest := add(ret, shift)
@@ -73,8 +73,8 @@ library BytesParsing {
       for {
         let src := add(add(encoded, shift), offset)
       } lt(dest, end) {
-        src := add(src, wordSize)
-        dest := add(dest, wordSize)
+        src := add(src, _WORD_SIZE)
+        dest := add(dest, _WORD_SIZE)
       } {
         mstore(dest, mload(src))
       }
@@ -82,7 +82,7 @@ library BytesParsing {
       mstore(ret, length)
       //When compiling with --via-ir then normally allocated memory (i.e. via new) will have 32 byte
       //  memory alignment and so we enforce the same memory alignment here.
-      mstore(freeMemoryPtr, and(add(dest, 31), not(31)))
+      mstore(_FREE_MEMORY_PTR, and(add(dest, 31), not(31)))
     }
   }
 
@@ -218,7 +218,7 @@ function asBytes${bytes}Unchecked(
 ) internal pure returns (bytes${bytes} ret, uint nextOffset) {
   /// @solidity memory-safe-assembly
   assembly {
-    ret := mload(add(encoded, add(offset, wordSize)))
+    ret := mload(add(encoded, add(offset, _WORD_SIZE)))
     nextOffset := add(offset, ${bytes})
   }
 }
@@ -260,7 +260,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes1 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 1)
     }
   }
@@ -298,7 +298,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes2 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 2)
     }
   }
@@ -336,7 +336,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes3 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 3)
     }
   }
@@ -374,7 +374,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes4 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 4)
     }
   }
@@ -412,7 +412,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes5 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 5)
     }
   }
@@ -450,7 +450,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes6 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 6)
     }
   }
@@ -488,7 +488,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes7 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 7)
     }
   }
@@ -526,7 +526,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes8 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 8)
     }
   }
@@ -564,7 +564,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes9 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 9)
     }
   }
@@ -602,7 +602,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes10 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 10)
     }
   }
@@ -640,7 +640,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes11 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 11)
     }
   }
@@ -678,7 +678,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes12 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 12)
     }
   }
@@ -716,7 +716,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes13 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 13)
     }
   }
@@ -754,7 +754,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes14 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 14)
     }
   }
@@ -792,7 +792,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes15 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 15)
     }
   }
@@ -830,7 +830,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes16 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 16)
     }
   }
@@ -868,7 +868,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes17 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 17)
     }
   }
@@ -906,7 +906,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes18 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 18)
     }
   }
@@ -944,7 +944,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes19 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 19)
     }
   }
@@ -982,7 +982,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes20 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 20)
     }
   }
@@ -1020,7 +1020,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes21 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 21)
     }
   }
@@ -1058,7 +1058,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes22 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 22)
     }
   }
@@ -1096,7 +1096,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes23 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 23)
     }
   }
@@ -1134,7 +1134,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes24 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 24)
     }
   }
@@ -1172,7 +1172,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes25 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 25)
     }
   }
@@ -1210,7 +1210,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes26 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 26)
     }
   }
@@ -1248,7 +1248,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes27 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 27)
     }
   }
@@ -1286,7 +1286,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes28 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 28)
     }
   }
@@ -1324,7 +1324,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes29 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 29)
     }
   }
@@ -1362,7 +1362,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes30 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 30)
     }
   }
@@ -1400,7 +1400,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes31 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 31)
     }
   }
@@ -1438,7 +1438,7 @@ function asBytes${bytes}(
   ) internal pure returns (bytes32 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, wordSize)))
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
       nextOffset := add(offset, 32)
     }
   }
