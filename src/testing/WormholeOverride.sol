@@ -31,7 +31,7 @@ library WormholeOverride {
   // keccak256("devnetGuardianPrivateKey") - 1
   bytes32 private constant _DEVNET_GUARDIAN_PK_SLOT =
     0x4c7087e9f1bf599f9f9fff4deb3ecae99b29adaab34a0f53d9fa9d61aeaecb63;
-  
+
   uint32  constant DEFAULT_NONCE = 0xBBBBBBBB;
   uint8   constant DEFAULT_CONSISTENCY_LEVEL = 1;
   uint8   constant WORMHOLE_VAA_VERSION = 1;

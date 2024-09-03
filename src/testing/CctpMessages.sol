@@ -95,7 +95,7 @@ library CctpMessages {
   function isCctpTokenBurnMessage(bytes memory encoded) internal pure returns (bool) {
     if (encoded.length != _CCTP_TOKEN_BURN_MESSAGE_SIZE)
       return false;
-    
+
     (uint headerVersion,) = encoded.asUint32Unchecked(0);
     (uint bodyVersion,  ) = encoded.asUint32Unchecked(_CCTP_HEADER_SIZE);
     return headerVersion == MESSAGE_TRANSMITTER_HEADER_VERSION &&

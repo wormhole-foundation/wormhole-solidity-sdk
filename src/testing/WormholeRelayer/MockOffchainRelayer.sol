@@ -134,7 +134,7 @@ contract MockOffchainRelayer {
         bytes[] memory encodedSignedVaas = new bytes[](pms.length);
         for (uint256 i = 0; i < encodedSignedVaas.length; ++i)
             (vaas[i], encodedSignedVaas[i]) = emitterWormhole.sign(pms[i]);
-        
+
         CCTPMessageLib.CCTPMessage[] memory cctpSignedMsgs = new CCTPMessageLib.CCTPMessage[](0);
         IMessageTransmitter emitterMessageTransmitter = getForkMessageTransmitter();
         if (address(emitterMessageTransmitter) != address(0)) {
@@ -228,7 +228,7 @@ contract MockOffchainRelayer {
                     }
                 } else if (instruction.messageKeys[i].keyType == 2) {
                     // CCTP Key
-                    (CCTPMessageLib.CCTPKey memory key,) = decodeCCTPKey(instruction.messageKeys[i].encodedKey, 0);                    
+                    (CCTPMessageLib.CCTPKey memory key,) = decodeCCTPKey(instruction.messageKeys[i].encodedKey, 0);
                     for (uint8 j = 0; j < cctpMessages.length; j++) {
                         if (cctpKeyMatchesCCTPMessage(key, cctpMessages[j])) {
                             encodedSignedVaasToBeDelivered[i] = abi.encode(cctpMessages[j].message, cctpMessages[j].signature);
