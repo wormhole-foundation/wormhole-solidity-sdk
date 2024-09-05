@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.4;
 
+//This file appears commically large, but all unused functions are removed by the compiler.
 library BytesParsing {
   uint256 private constant _FREE_MEMORY_PTR = 0x40;
   uint256 private constant _WORD_SIZE = 32;
+  //we can't define _WORD_SIZE_MINUS_ONE via _WORD_SIZE - 1 because of solc restrictions
+  //  what constants can be used in inline assembly
+  uint256 private constant _WORD_SIZE_MINUS_ONE = 31; //=0x1f=0b00011111
 
   error OutOfBounds(uint256 offset, uint256 length);
   error LengthMismatch(uint256 encodedLength, uint256 expectedLength);
@@ -14,42 +18,66 @@ library BytesParsing {
       revert OutOfBounds(offset, length);
   }
 
-  function checkLength(bytes memory encoded, uint256 expected) internal pure {
-    if (encoded.length != expected)
-      revert LengthMismatch(encoded.length, expected);
-  }
-
   //Summary of all remaining functions:
   //
-  //Each function has two versions:
-  // 1. unchecked - no bounds checking (uses suffix `Unchecked`)
-  // 2. checked (no suffix)
+  //Each function has 2*2=4 versions:
+  //  1. unchecked - no bounds checking (uses suffix `Unchecked`)
+  //  2. checked (no suffix)
+  //and
+  //  1. calldata input (uses suffix `Cd` (can't overload based on storage location))
+  //  2. memory input (no suffix)
   //
   //The canoncial/recommended way of parsing data to be maximally gas efficient is to use the
   //  unchecked versions and do a manual check at the end using `checkLength` to ensure that
   //  encoded data was consumed exactly (neither too short nor too long).
   //
+  //WARNING: Neither version uses safe math! It is up to the dev to ensure that offset and length
+  //  values are sensible. In other words, verify user inputs before passing them on. Preferably,
+  //  the format that's being parsed does not allow for such overflows in the first place by e.g.
+  //  encoding lengths using at most 4 bytes, etc.
+  //
   //Functions:
-  // * slice
+  //  Unless stated otherwise, all functions take an `encoded` bytes calldata/memory and an `offset`
+  //    as input and return the parsed value and the next offset (i.e. the offset pointing to the
+  //    next, unparsed byte).
+  //
+  // * checkLength(encoded, expected) - no return, reverts if encoded.length != expected
+  // * slice(encoded, offset, length)
   // * sliceUint<n>Prefixed - n in {8, 16, 32} - parses n bytes of length prefix followed by data
   // * asAddress
   // * asBool
   // * asUint<8*n> - n in {1, ..., 32}, i.e. asUint8, asUint16, ..., asUint256
   // * asBytes<n>  - n in {1, ..., 32}, i.e. asBytes1, asBytes2, ..., asBytes32
 
+  function sliceCdUnchecked(
+    bytes calldata encoded,
+    uint offset,
+    uint length
+  ) internal pure returns (bytes memory ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      nextOffset := add(offset, length)
+      mstore(ret, length)
+      let retStart := add(ret, _WORD_SIZE)
+      let sliceStart := add(encoded.offset, offset)
+      calldatacopy(retStart, sliceStart, length)
+      //When compiling with --via-ir then normally allocated memory (i.e. via new) will have 32 byte
+      //  memory alignment and so we enforce the same memory alignment here.
+      mstore(
+        _FREE_MEMORY_PTR,
+        and(add(add(retStart, length), _WORD_SIZE_MINUS_ONE), not(_WORD_SIZE_MINUS_ONE))
+      )
+    }
+  }
+
   function sliceUnchecked(
     bytes memory encoded,
     uint offset,
     uint length
   ) internal pure returns (bytes memory ret, uint nextOffset) {
-    //bail early for degenerate case
-    if (length == 0)
-      return (new bytes(0), offset);
-
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, length)
-      ret := mload(_FREE_MEMORY_PTR)
 
       //Explanation on how we copy data here:
       //  The bytes type has the following layout in memory:
@@ -63,7 +91,9 @@ library BytesParsing {
       //    will be written into the length part of our `ret` slice.
       //  We remedy this issue by writing the length of our `ret` slice at the end, thus
       //    overwritting those garbage bytes.
-      let shift := and(length, 31) //equivalent to `mod(length, 32)` but 2 gas cheaper
+
+      //and(length, 31) is equivalent to `mod(length, 32)`, but 2 gas cheaper
+      let shift := and(length, _WORD_SIZE_MINUS_ONE)
       if iszero(shift) {
         shift := _WORD_SIZE
       }
@@ -82,61 +112,135 @@ library BytesParsing {
       mstore(ret, length)
       //When compiling with --via-ir then normally allocated memory (i.e. via new) will have 32 byte
       //  memory alignment and so we enforce the same memory alignment here.
-      mstore(_FREE_MEMORY_PTR, and(add(dest, 31), not(31)))
+      mstore(
+        _FREE_MEMORY_PTR,
+        and(add(dest, _WORD_SIZE_MINUS_ONE), not(_WORD_SIZE_MINUS_ONE))
+      )
     }
   }
 
-  function sliceUint8PrefixedUnchecked(
-    bytes memory encoded,
-    uint offset
-  ) internal pure returns (bytes memory, uint) {
-    (uint8 len, uint nextOffset) = asUint8Unchecked(encoded, offset);
-    return sliceUnchecked(encoded, nextOffset, uint(len));
+/* -------------------------------------------------------------------------------------------------
+Remaining library code below was auto-generated via the following js/node code:
+
+for (const cd of ["Cd", ""])
+  console.log(
+`function checkLength${cd}(
+  bytes ${cd ? "calldata" : "memory"} encoded,
+  uint256 expected
+) internal pure {
+  if (encoded.length != expected)
+    revert LengthMismatch(encoded.length, expected);
+}
+
+function slice${cd}(
+  bytes ${cd ? "calldata" : "memory"} encoded,
+  uint offset,
+  uint length
+) internal pure returns (bytes memory ret, uint nextOffset) {
+  (ret, nextOffset) = slice${cd}Unchecked(encoded, offset, length);
+  checkBound(nextOffset, encoded.length);
+}
+`);
+
+const funcs = [
+  ...[8,16,32].map(n => [
+    `sliceUint${n}Prefixed`,
+    cd => [
+      `uint${n} len;`,
+      `(len, nextOffset) = asUint${n}Unchecked(encoded, offset);`,
+      `(ret, nextOffset) = slice${cd}Unchecked(encoded, nextOffset, uint(len));`
+    ],
+    `bytes memory`,
+  ]), [
+    `asAddress`,
+    cd => [
+      `uint160 tmp;`,
+      `(tmp, nextOffset) = asUint160${cd}Unchecked(encoded, offset);`,
+      `ret = address(tmp);`
+    ],
+    `address`
+  ], [
+    `asBool`,
+    cd => [
+      `uint8 val;`,
+      `(val, nextOffset) = asUint8${cd}Unchecked(encoded, offset);`,
+      `if (val & 0xfe != 0)`,
+      `  revert InvalidBoolVal(val);`,
+      `uint cleanedVal = uint(val);`,
+      `//skip 2x iszero opcode`,
+      `/// @solidity memory-safe-assembly`,
+      `assembly { ret := cleanedVal }`
+    ],
+    `bool`
+  ],
+  ...Array.from({length: 32}, (_, i) => [
+    `asUint${(i+1)*8}`,
+    cd => [
+      `/// @solidity memory-safe-assembly`,
+      `assembly {`,
+      `  nextOffset := add(offset, ${i+1})`,
+      `  ret := ${cd ? "calldataload" : "mload"}(add(encoded${cd ? ".offset" :""}, nextOffset))`,
+      `}`
+    ],
+    `uint${(i+1)*8}`
+  ]),
+  ...Array.from({length: 32}, (_, i) => [
+    `asBytes${i+1}`,
+    cd => [
+      `/// @solidity memory-safe-assembly`,
+      `assembly {`,
+      `  ret := ${cd ? "calldataload" : "mload"}(add(encoded${cd ? ".offset" :""}, add(offset, _WORD_SIZE)))`,
+      `  nextOffset := add(offset, ${i+1})`,
+      `}`
+    ],
+    `bytes${i+1}`
+  ]),
+];
+
+for (const [name, code, ret] of funcs) {
+  for (const cd of ["Cd", ""])
+    console.log(
+`function ${name}${cd}Unchecked(
+  bytes ${cd ? "calldata" : "memory"} encoded,
+  uint offset
+) internal pure returns (${ret} ret, uint nextOffset) {
+  ${code(cd).join("\n  ")}
+}
+
+function ${name}${cd}(
+  bytes ${cd ? "calldata" : "memory"} encoded,
+  uint offset
+) internal pure returns (${ret} ret, uint nextOffset) {
+  (ret, nextOffset) = ${name}${cd}Unchecked(encoded, offset);
+  checkBound(nextOffset, encoded.length);
+}
+`);
+}
+------------------------------------------------------------------------------------------------- */
+  function checkLengthCd(
+    bytes calldata encoded,
+    uint256 expected
+  ) internal pure {
+    if (encoded.length != expected)
+      revert LengthMismatch(encoded.length, expected);
   }
 
-  function sliceUint16PrefixedUnchecked(
-    bytes memory encoded,
-    uint offset
-  ) internal pure returns (bytes memory, uint) {
-    (uint16 len, uint nextOffset) = asUint16Unchecked(encoded, offset);
-    return sliceUnchecked(encoded, nextOffset, uint(len));
+  function sliceCd(
+    bytes calldata encoded,
+    uint offset,
+    uint length
+  ) internal pure returns (bytes memory ret, uint nextOffset) {
+    (ret, nextOffset) = sliceCdUnchecked(encoded, offset, length);
+    checkBound(nextOffset, encoded.length);
   }
 
-  function sliceUint32PrefixedUnchecked(
+  function checkLength(
     bytes memory encoded,
-    uint offset
-  ) internal pure returns (bytes memory, uint) {
-    (uint32 len, uint nextOffset) = asUint32Unchecked(encoded, offset);
-    return sliceUnchecked(encoded, nextOffset, uint(len));
+    uint256 expected
+  ) internal pure {
+    if (encoded.length != expected)
+      revert LengthMismatch(encoded.length, expected);
   }
-
-  function asAddressUnchecked(
-    bytes memory encoded,
-    uint offset
-  ) internal pure returns (address, uint) {
-    (uint160 ret, uint nextOffset) = asUint160Unchecked(encoded, offset);
-    return (address(ret), nextOffset);
-  }
-
-  function asBoolUnchecked(
-    bytes memory encoded,
-    uint offset
-  ) internal pure returns (bool, uint) {
-    (uint8 val, uint nextOffset) = asUint8Unchecked(encoded, offset);
-    if (val & 0xfe != 0)
-      revert InvalidBoolVal(val);
-
-    uint cleanedVal = uint(val);
-    bool ret;
-    //skip 2x iszero opcode
-    /// @solidity memory-safe-assembly
-    assembly {
-      ret := cleanedVal
-    }
-    return (ret, nextOffset);
-  }
-
-  //checked functions
 
   function slice(
     bytes memory encoded,
@@ -147,12 +251,64 @@ library BytesParsing {
     checkBound(nextOffset, encoded.length);
   }
 
+  function sliceUint8PrefixedCdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes memory ret, uint nextOffset) {
+    uint8 len;
+    (len, nextOffset) = asUint8Unchecked(encoded, offset);
+    (ret, nextOffset) = sliceCdUnchecked(encoded, nextOffset, uint(len));
+  }
+
+  function sliceUint8PrefixedCd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes memory ret, uint nextOffset) {
+    (ret, nextOffset) = sliceUint8PrefixedCdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function sliceUint8PrefixedUnchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes memory ret, uint nextOffset) {
+    uint8 len;
+    (len, nextOffset) = asUint8Unchecked(encoded, offset);
+    (ret, nextOffset) = sliceUnchecked(encoded, nextOffset, uint(len));
+  }
+
   function sliceUint8Prefixed(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes memory ret, uint nextOffset) {
     (ret, nextOffset) = sliceUint8PrefixedUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
+  }
+
+  function sliceUint16PrefixedCdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes memory ret, uint nextOffset) {
+    uint16 len;
+    (len, nextOffset) = asUint16Unchecked(encoded, offset);
+    (ret, nextOffset) = sliceCdUnchecked(encoded, nextOffset, uint(len));
+  }
+
+  function sliceUint16PrefixedCd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes memory ret, uint nextOffset) {
+    (ret, nextOffset) = sliceUint16PrefixedCdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function sliceUint16PrefixedUnchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes memory ret, uint nextOffset) {
+    uint16 len;
+    (len, nextOffset) = asUint16Unchecked(encoded, offset);
+    (ret, nextOffset) = sliceUnchecked(encoded, nextOffset, uint(len));
   }
 
   function sliceUint16Prefixed(
@@ -163,12 +319,64 @@ library BytesParsing {
     checkBound(nextOffset, encoded.length);
   }
 
+  function sliceUint32PrefixedCdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes memory ret, uint nextOffset) {
+    uint32 len;
+    (len, nextOffset) = asUint32Unchecked(encoded, offset);
+    (ret, nextOffset) = sliceCdUnchecked(encoded, nextOffset, uint(len));
+  }
+
+  function sliceUint32PrefixedCd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes memory ret, uint nextOffset) {
+    (ret, nextOffset) = sliceUint32PrefixedCdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function sliceUint32PrefixedUnchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes memory ret, uint nextOffset) {
+    uint32 len;
+    (len, nextOffset) = asUint32Unchecked(encoded, offset);
+    (ret, nextOffset) = sliceUnchecked(encoded, nextOffset, uint(len));
+  }
+
   function sliceUint32Prefixed(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes memory ret, uint nextOffset) {
     (ret, nextOffset) = sliceUint32PrefixedUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
+  }
+
+  function asAddressCdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (address ret, uint nextOffset) {
+    uint160 tmp;
+    (tmp, nextOffset) = asUint160CdUnchecked(encoded, offset);
+    ret = address(tmp);
+  }
+
+  function asAddressCd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (address ret, uint nextOffset) {
+    (ret, nextOffset) = asAddressCdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asAddressUnchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (address ret, uint nextOffset) {
+    uint160 tmp;
+    (tmp, nextOffset) = asUint160Unchecked(encoded, offset);
+    ret = address(tmp);
   }
 
   function asAddress(
@@ -179,6 +387,42 @@ library BytesParsing {
     checkBound(nextOffset, encoded.length);
   }
 
+  function asBoolCdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bool ret, uint nextOffset) {
+    uint8 val;
+    (val, nextOffset) = asUint8CdUnchecked(encoded, offset);
+    if (val & 0xfe != 0)
+      revert InvalidBoolVal(val);
+    uint cleanedVal = uint(val);
+    //skip 2x iszero opcode
+    /// @solidity memory-safe-assembly
+    assembly { ret := cleanedVal }
+  }
+
+  function asBoolCd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bool ret, uint nextOffset) {
+    (ret, nextOffset) = asBoolCdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBoolUnchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bool ret, uint nextOffset) {
+    uint8 val;
+    (val, nextOffset) = asUint8Unchecked(encoded, offset);
+    if (val & 0xfe != 0)
+      revert InvalidBoolVal(val);
+    uint cleanedVal = uint(val);
+    //skip 2x iszero opcode
+    /// @solidity memory-safe-assembly
+    assembly { ret := cleanedVal }
+  }
+
   function asBool(
     bytes memory encoded,
     uint offset
@@ -187,53 +431,24 @@ library BytesParsing {
     checkBound(nextOffset, encoded.length);
   }
 
-/* -------------------------------------------------------------------------------------------------
-Remaining library code below was auto-generated by via the following js/node code:
-
-for (let bytes = 1; bytes <= 32; ++bytes) {
-  const bits = bytes*8;
-  console.log(
-`function asUint${bits}Unchecked(
-  bytes memory encoded,
-  uint offset
-) internal pure returns (uint${bits} ret, uint nextOffset) {
-  /// @solidity memory-safe-assembly
-  assembly {
-    nextOffset := add(offset, ${bytes})
-    ret := mload(add(encoded, nextOffset))
+  function asUint8CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (uint8 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      nextOffset := add(offset, 1)
+      ret := calldataload(add(encoded.offset, nextOffset))
+    }
   }
-}
 
-function asUint${bits}(
-  bytes memory encoded,
-  uint offset
-) internal pure returns (uint${bits} ret, uint nextOffset) {
-  (ret, nextOffset) = asUint${bits}Unchecked(encoded, offset);
-  checkBound(nextOffset, encoded.length);
-}
-
-function asBytes${bytes}Unchecked(
-  bytes memory encoded,
-  uint offset
-) internal pure returns (bytes${bytes} ret, uint nextOffset) {
-  /// @solidity memory-safe-assembly
-  assembly {
-    ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-    nextOffset := add(offset, ${bytes})
+  function asUint8Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (uint8 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint8CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
   }
-}
-
-function asBytes${bytes}(
-  bytes memory encoded,
-  uint offset
-) internal pure returns (bytes${bytes} ret, uint nextOffset) {
-  (ret, nextOffset) = asBytes${bytes}Unchecked(encoded, offset);
-  checkBound(nextOffset, encoded.length);
-}
-`
-  );
-}
-------------------------------------------------------------------------------------------------- */
 
   function asUint8Unchecked(
     bytes memory encoded,
@@ -254,22 +469,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes1Unchecked(
-    bytes memory encoded,
+  function asUint16CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes1 ret, uint nextOffset) {
+  ) internal pure returns (uint16 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 1)
+      nextOffset := add(offset, 2)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes1(
-    bytes memory encoded,
+  function asUint16Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes1 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes1Unchecked(encoded, offset);
+  ) internal pure returns (uint16 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint16CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -292,22 +507,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes2Unchecked(
-    bytes memory encoded,
+  function asUint24CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes2 ret, uint nextOffset) {
+  ) internal pure returns (uint24 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 2)
+      nextOffset := add(offset, 3)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes2(
-    bytes memory encoded,
+  function asUint24Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes2 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes2Unchecked(encoded, offset);
+  ) internal pure returns (uint24 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint24CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -330,22 +545,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes3Unchecked(
-    bytes memory encoded,
+  function asUint32CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes3 ret, uint nextOffset) {
+  ) internal pure returns (uint32 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 3)
+      nextOffset := add(offset, 4)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes3(
-    bytes memory encoded,
+  function asUint32Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes3 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes3Unchecked(encoded, offset);
+  ) internal pure returns (uint32 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint32CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -368,22 +583,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes4Unchecked(
-    bytes memory encoded,
+  function asUint40CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes4 ret, uint nextOffset) {
+  ) internal pure returns (uint40 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 4)
+      nextOffset := add(offset, 5)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes4(
-    bytes memory encoded,
+  function asUint40Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes4 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes4Unchecked(encoded, offset);
+  ) internal pure returns (uint40 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint40CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -406,22 +621,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes5Unchecked(
-    bytes memory encoded,
+  function asUint48CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes5 ret, uint nextOffset) {
+  ) internal pure returns (uint48 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 5)
+      nextOffset := add(offset, 6)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes5(
-    bytes memory encoded,
+  function asUint48Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes5 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes5Unchecked(encoded, offset);
+  ) internal pure returns (uint48 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint48CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -444,22 +659,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes6Unchecked(
-    bytes memory encoded,
+  function asUint56CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes6 ret, uint nextOffset) {
+  ) internal pure returns (uint56 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 6)
+      nextOffset := add(offset, 7)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes6(
-    bytes memory encoded,
+  function asUint56Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes6 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes6Unchecked(encoded, offset);
+  ) internal pure returns (uint56 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint56CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -482,22 +697,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes7Unchecked(
-    bytes memory encoded,
+  function asUint64CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes7 ret, uint nextOffset) {
+  ) internal pure returns (uint64 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 7)
+      nextOffset := add(offset, 8)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes7(
-    bytes memory encoded,
+  function asUint64Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes7 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes7Unchecked(encoded, offset);
+  ) internal pure returns (uint64 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint64CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -520,22 +735,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes8Unchecked(
-    bytes memory encoded,
+  function asUint72CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes8 ret, uint nextOffset) {
+  ) internal pure returns (uint72 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 8)
+      nextOffset := add(offset, 9)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes8(
-    bytes memory encoded,
+  function asUint72Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes8 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes8Unchecked(encoded, offset);
+  ) internal pure returns (uint72 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint72CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -558,22 +773,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes9Unchecked(
-    bytes memory encoded,
+  function asUint80CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes9 ret, uint nextOffset) {
+  ) internal pure returns (uint80 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 9)
+      nextOffset := add(offset, 10)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes9(
-    bytes memory encoded,
+  function asUint80Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes9 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes9Unchecked(encoded, offset);
+  ) internal pure returns (uint80 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint80CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -596,22 +811,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes10Unchecked(
-    bytes memory encoded,
+  function asUint88CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes10 ret, uint nextOffset) {
+  ) internal pure returns (uint88 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 10)
+      nextOffset := add(offset, 11)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes10(
-    bytes memory encoded,
+  function asUint88Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes10 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes10Unchecked(encoded, offset);
+  ) internal pure returns (uint88 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint88CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -634,22 +849,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes11Unchecked(
-    bytes memory encoded,
+  function asUint96CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes11 ret, uint nextOffset) {
+  ) internal pure returns (uint96 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 11)
+      nextOffset := add(offset, 12)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes11(
-    bytes memory encoded,
+  function asUint96Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes11 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes11Unchecked(encoded, offset);
+  ) internal pure returns (uint96 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint96CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -672,22 +887,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes12Unchecked(
-    bytes memory encoded,
+  function asUint104CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes12 ret, uint nextOffset) {
+  ) internal pure returns (uint104 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 12)
+      nextOffset := add(offset, 13)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes12(
-    bytes memory encoded,
+  function asUint104Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes12 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes12Unchecked(encoded, offset);
+  ) internal pure returns (uint104 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint104CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -710,22 +925,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes13Unchecked(
-    bytes memory encoded,
+  function asUint112CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes13 ret, uint nextOffset) {
+  ) internal pure returns (uint112 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 13)
+      nextOffset := add(offset, 14)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes13(
-    bytes memory encoded,
+  function asUint112Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes13 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes13Unchecked(encoded, offset);
+  ) internal pure returns (uint112 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint112CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -748,22 +963,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes14Unchecked(
-    bytes memory encoded,
+  function asUint120CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes14 ret, uint nextOffset) {
+  ) internal pure returns (uint120 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 14)
+      nextOffset := add(offset, 15)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes14(
-    bytes memory encoded,
+  function asUint120Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes14 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes14Unchecked(encoded, offset);
+  ) internal pure returns (uint120 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint120CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -786,22 +1001,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes15Unchecked(
-    bytes memory encoded,
+  function asUint128CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes15 ret, uint nextOffset) {
+  ) internal pure returns (uint128 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 15)
+      nextOffset := add(offset, 16)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes15(
-    bytes memory encoded,
+  function asUint128Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes15 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes15Unchecked(encoded, offset);
+  ) internal pure returns (uint128 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint128CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -824,22 +1039,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes16Unchecked(
-    bytes memory encoded,
+  function asUint136CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes16 ret, uint nextOffset) {
+  ) internal pure returns (uint136 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 16)
+      nextOffset := add(offset, 17)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes16(
-    bytes memory encoded,
+  function asUint136Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes16 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes16Unchecked(encoded, offset);
+  ) internal pure returns (uint136 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint136CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -862,22 +1077,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes17Unchecked(
-    bytes memory encoded,
+  function asUint144CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes17 ret, uint nextOffset) {
+  ) internal pure returns (uint144 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 17)
+      nextOffset := add(offset, 18)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes17(
-    bytes memory encoded,
+  function asUint144Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes17 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes17Unchecked(encoded, offset);
+  ) internal pure returns (uint144 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint144CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -900,22 +1115,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes18Unchecked(
-    bytes memory encoded,
+  function asUint152CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes18 ret, uint nextOffset) {
+  ) internal pure returns (uint152 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 18)
+      nextOffset := add(offset, 19)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes18(
-    bytes memory encoded,
+  function asUint152Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes18 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes18Unchecked(encoded, offset);
+  ) internal pure returns (uint152 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint152CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -938,22 +1153,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes19Unchecked(
-    bytes memory encoded,
+  function asUint160CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes19 ret, uint nextOffset) {
+  ) internal pure returns (uint160 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 19)
+      nextOffset := add(offset, 20)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes19(
-    bytes memory encoded,
+  function asUint160Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes19 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes19Unchecked(encoded, offset);
+  ) internal pure returns (uint160 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint160CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -976,22 +1191,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes20Unchecked(
-    bytes memory encoded,
+  function asUint168CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes20 ret, uint nextOffset) {
+  ) internal pure returns (uint168 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 20)
+      nextOffset := add(offset, 21)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes20(
-    bytes memory encoded,
+  function asUint168Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes20 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes20Unchecked(encoded, offset);
+  ) internal pure returns (uint168 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint168CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1014,22 +1229,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes21Unchecked(
-    bytes memory encoded,
+  function asUint176CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes21 ret, uint nextOffset) {
+  ) internal pure returns (uint176 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 21)
+      nextOffset := add(offset, 22)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes21(
-    bytes memory encoded,
+  function asUint176Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes21 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes21Unchecked(encoded, offset);
+  ) internal pure returns (uint176 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint176CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1052,22 +1267,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes22Unchecked(
-    bytes memory encoded,
+  function asUint184CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes22 ret, uint nextOffset) {
+  ) internal pure returns (uint184 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 22)
+      nextOffset := add(offset, 23)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes22(
-    bytes memory encoded,
+  function asUint184Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes22 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes22Unchecked(encoded, offset);
+  ) internal pure returns (uint184 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint184CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1090,22 +1305,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes23Unchecked(
-    bytes memory encoded,
+  function asUint192CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes23 ret, uint nextOffset) {
+  ) internal pure returns (uint192 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 23)
+      nextOffset := add(offset, 24)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes23(
-    bytes memory encoded,
+  function asUint192Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes23 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes23Unchecked(encoded, offset);
+  ) internal pure returns (uint192 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint192CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1128,22 +1343,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes24Unchecked(
-    bytes memory encoded,
+  function asUint200CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes24 ret, uint nextOffset) {
+  ) internal pure returns (uint200 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 24)
+      nextOffset := add(offset, 25)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes24(
-    bytes memory encoded,
+  function asUint200Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes24 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes24Unchecked(encoded, offset);
+  ) internal pure returns (uint200 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint200CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1166,22 +1381,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes25Unchecked(
-    bytes memory encoded,
+  function asUint208CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes25 ret, uint nextOffset) {
+  ) internal pure returns (uint208 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 25)
+      nextOffset := add(offset, 26)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes25(
-    bytes memory encoded,
+  function asUint208Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes25 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes25Unchecked(encoded, offset);
+  ) internal pure returns (uint208 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint208CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1204,22 +1419,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes26Unchecked(
-    bytes memory encoded,
+  function asUint216CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes26 ret, uint nextOffset) {
+  ) internal pure returns (uint216 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 26)
+      nextOffset := add(offset, 27)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes26(
-    bytes memory encoded,
+  function asUint216Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes26 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes26Unchecked(encoded, offset);
+  ) internal pure returns (uint216 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint216CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1242,22 +1457,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes27Unchecked(
-    bytes memory encoded,
+  function asUint224CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes27 ret, uint nextOffset) {
+  ) internal pure returns (uint224 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 27)
+      nextOffset := add(offset, 28)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes27(
-    bytes memory encoded,
+  function asUint224Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes27 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes27Unchecked(encoded, offset);
+  ) internal pure returns (uint224 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint224CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1280,22 +1495,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes28Unchecked(
-    bytes memory encoded,
+  function asUint232CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes28 ret, uint nextOffset) {
+  ) internal pure returns (uint232 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 28)
+      nextOffset := add(offset, 29)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes28(
-    bytes memory encoded,
+  function asUint232Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes28 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes28Unchecked(encoded, offset);
+  ) internal pure returns (uint232 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint232CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1318,22 +1533,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes29Unchecked(
-    bytes memory encoded,
+  function asUint240CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes29 ret, uint nextOffset) {
+  ) internal pure returns (uint240 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 29)
+      nextOffset := add(offset, 30)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes29(
-    bytes memory encoded,
+  function asUint240Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes29 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes29Unchecked(encoded, offset);
+  ) internal pure returns (uint240 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint240CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1356,22 +1571,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes30Unchecked(
-    bytes memory encoded,
+  function asUint248CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes30 ret, uint nextOffset) {
+  ) internal pure returns (uint248 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 30)
+      nextOffset := add(offset, 31)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes30(
-    bytes memory encoded,
+  function asUint248Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes30 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes30Unchecked(encoded, offset);
+  ) internal pure returns (uint248 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint248CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1394,22 +1609,22 @@ function asBytes${bytes}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes31Unchecked(
-    bytes memory encoded,
+  function asUint256CdUnchecked(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes31 ret, uint nextOffset) {
+  ) internal pure returns (uint256 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
-      nextOffset := add(offset, 31)
+      nextOffset := add(offset, 32)
+      ret := calldataload(add(encoded.offset, nextOffset))
     }
   }
 
-  function asBytes31(
-    bytes memory encoded,
+  function asUint256Cd(
+    bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes31 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes31Unchecked(encoded, offset);
+  ) internal pure returns (uint256 ret, uint nextOffset) {
+    (ret, nextOffset) = asUint256CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1429,6 +1644,1203 @@ function asBytes${bytes}(
     uint offset
   ) internal pure returns (uint256 ret, uint nextOffset) {
     (ret, nextOffset) = asUint256Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes1CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes1 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 1)
+    }
+  }
+
+  function asBytes1Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes1 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes1CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes1Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes1 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 1)
+    }
+  }
+
+  function asBytes1(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes1 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes1Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes2CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes2 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 2)
+    }
+  }
+
+  function asBytes2Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes2 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes2CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes2Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes2 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 2)
+    }
+  }
+
+  function asBytes2(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes2 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes2Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes3CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes3 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 3)
+    }
+  }
+
+  function asBytes3Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes3 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes3CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes3Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes3 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 3)
+    }
+  }
+
+  function asBytes3(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes3 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes3Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes4CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes4 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 4)
+    }
+  }
+
+  function asBytes4Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes4 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes4CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes4Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes4 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 4)
+    }
+  }
+
+  function asBytes4(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes4 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes4Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes5CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes5 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 5)
+    }
+  }
+
+  function asBytes5Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes5 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes5CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes5Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes5 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 5)
+    }
+  }
+
+  function asBytes5(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes5 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes5Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes6CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes6 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 6)
+    }
+  }
+
+  function asBytes6Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes6 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes6CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes6Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes6 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 6)
+    }
+  }
+
+  function asBytes6(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes6 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes6Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes7CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes7 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 7)
+    }
+  }
+
+  function asBytes7Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes7 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes7CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes7Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes7 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 7)
+    }
+  }
+
+  function asBytes7(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes7 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes7Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes8CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes8 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 8)
+    }
+  }
+
+  function asBytes8Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes8 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes8CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes8Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes8 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 8)
+    }
+  }
+
+  function asBytes8(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes8 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes8Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes9CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes9 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 9)
+    }
+  }
+
+  function asBytes9Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes9 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes9CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes9Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes9 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 9)
+    }
+  }
+
+  function asBytes9(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes9 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes9Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes10CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes10 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 10)
+    }
+  }
+
+  function asBytes10Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes10 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes10CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes10Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes10 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 10)
+    }
+  }
+
+  function asBytes10(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes10 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes10Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes11CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes11 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 11)
+    }
+  }
+
+  function asBytes11Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes11 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes11CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes11Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes11 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 11)
+    }
+  }
+
+  function asBytes11(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes11 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes11Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes12CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes12 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 12)
+    }
+  }
+
+  function asBytes12Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes12 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes12CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes12Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes12 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 12)
+    }
+  }
+
+  function asBytes12(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes12 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes12Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes13CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes13 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 13)
+    }
+  }
+
+  function asBytes13Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes13 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes13CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes13Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes13 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 13)
+    }
+  }
+
+  function asBytes13(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes13 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes13Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes14CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes14 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 14)
+    }
+  }
+
+  function asBytes14Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes14 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes14CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes14Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes14 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 14)
+    }
+  }
+
+  function asBytes14(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes14 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes14Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes15CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes15 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 15)
+    }
+  }
+
+  function asBytes15Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes15 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes15CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes15Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes15 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 15)
+    }
+  }
+
+  function asBytes15(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes15 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes15Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes16CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes16 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 16)
+    }
+  }
+
+  function asBytes16Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes16 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes16CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes16Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes16 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 16)
+    }
+  }
+
+  function asBytes16(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes16 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes16Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes17CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes17 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 17)
+    }
+  }
+
+  function asBytes17Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes17 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes17CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes17Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes17 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 17)
+    }
+  }
+
+  function asBytes17(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes17 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes17Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes18CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes18 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 18)
+    }
+  }
+
+  function asBytes18Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes18 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes18CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes18Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes18 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 18)
+    }
+  }
+
+  function asBytes18(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes18 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes18Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes19CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes19 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 19)
+    }
+  }
+
+  function asBytes19Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes19 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes19CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes19Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes19 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 19)
+    }
+  }
+
+  function asBytes19(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes19 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes19Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes20CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes20 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 20)
+    }
+  }
+
+  function asBytes20Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes20 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes20CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes20Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes20 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 20)
+    }
+  }
+
+  function asBytes20(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes20 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes20Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes21CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes21 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 21)
+    }
+  }
+
+  function asBytes21Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes21 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes21CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes21Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes21 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 21)
+    }
+  }
+
+  function asBytes21(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes21 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes21Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes22CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes22 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 22)
+    }
+  }
+
+  function asBytes22Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes22 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes22CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes22Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes22 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 22)
+    }
+  }
+
+  function asBytes22(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes22 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes22Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes23CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes23 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 23)
+    }
+  }
+
+  function asBytes23Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes23 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes23CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes23Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes23 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 23)
+    }
+  }
+
+  function asBytes23(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes23 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes23Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes24CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes24 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 24)
+    }
+  }
+
+  function asBytes24Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes24 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes24CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes24Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes24 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 24)
+    }
+  }
+
+  function asBytes24(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes24 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes24Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes25CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes25 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 25)
+    }
+  }
+
+  function asBytes25Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes25 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes25CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes25Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes25 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 25)
+    }
+  }
+
+  function asBytes25(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes25 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes25Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes26CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes26 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 26)
+    }
+  }
+
+  function asBytes26Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes26 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes26CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes26Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes26 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 26)
+    }
+  }
+
+  function asBytes26(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes26 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes26Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes27CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes27 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 27)
+    }
+  }
+
+  function asBytes27Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes27 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes27CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes27Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes27 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 27)
+    }
+  }
+
+  function asBytes27(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes27 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes27Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes28CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes28 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 28)
+    }
+  }
+
+  function asBytes28Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes28 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes28CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes28Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes28 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 28)
+    }
+  }
+
+  function asBytes28(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes28 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes28Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes29CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes29 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 29)
+    }
+  }
+
+  function asBytes29Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes29 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes29CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes29Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes29 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 29)
+    }
+  }
+
+  function asBytes29(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes29 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes29Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes30CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes30 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 30)
+    }
+  }
+
+  function asBytes30Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes30 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes30CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes30Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes30 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 30)
+    }
+  }
+
+  function asBytes30(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes30 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes30Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes31CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes31 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 31)
+    }
+  }
+
+  function asBytes31Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes31 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes31CdUnchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes31Unchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes31 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 31)
+    }
+  }
+
+  function asBytes31(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (bytes31 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes31Unchecked(encoded, offset);
+    checkBound(nextOffset, encoded.length);
+  }
+
+  function asBytes32CdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes32 ret, uint nextOffset) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      nextOffset := add(offset, 32)
+    }
+  }
+
+  function asBytes32Cd(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (bytes32 ret, uint nextOffset) {
+    (ret, nextOffset) = asBytes32CdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
