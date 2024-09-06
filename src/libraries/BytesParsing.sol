@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.4;
 
-//This file appears commically large, but all unused functions are removed by the compiler.
+//This file appears comically large, but all unused functions are removed by the compiler.
 library BytesParsing {
   uint256 private constant _FREE_MEMORY_PTR = 0x40;
   uint256 private constant _WORD_SIZE = 32;
