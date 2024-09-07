@@ -5,6 +5,9 @@
 //  relevant bits easier by making some basic assumptions about code formatting that any sane
 //  code should almost certainly adhere to regardless.
 
+//Solidity language grammar:
+//  https://docs.soliditylang.org/en/latest/grammar.html
+
 import { readFileSync } from "fs";
 
 // const commentTestCode = `
@@ -25,7 +28,7 @@ function removeComments(code: string): string {
   //  it matches any character including newlines (when .* would not)
   const blockCommentRegex = /(?<!\/\/.*)\/\*[\s\S]*?\*\//g;
   //m flag is multiline mode:
-  //  ensures that $ matches individual line ends rather than the whole string
+  //  ensures that ^ and $ matches individual line starts/ends rather than the whole string
   const lineCommentRegex = /\/\/.*$/gm;
   const emptyLineRegex = /(^\s*\n)+/gm;
 
@@ -36,12 +39,12 @@ function removeComments(code: string): string {
 }
 
 if (process.argv.length != 3) {
-  console.log("requires exactly one command line argument relative to src: <path/libfile.sol>");
+  console.log("requires exactly one command line argument relative to src: <path/libfile[.sol]>");
   process.exit(1);
 }
 
 const filename = process.argv[2];
-let fileCode = readFileSync("../src/" + filename + ".sol", "utf8");
+let fileCode = readFileSync("../src/" + filename + filename.endsWith(".sol") ? "" : ".sol", "utf8");
 
 //we first remove all comments so we can be sure that everything we're parsing is actual code
 fileCode = removeComments(fileCode);
@@ -78,7 +81,7 @@ for (const libs of libMatches) {
       continue; //not an internal function
 
     const retParasRegex = /returns\s*\(([\s\S]*?)\)/;
-    const retParasRaw = modsRaw.match(retParasRegex);//[1];
+    const retParasRaw = modsRaw.match(retParasRegex);
     
     const collapseSpaceRegex = /\s\s+/g;
     const paramsToArray = (paramList: string) =>
@@ -129,5 +132,3 @@ for (const [libName, funcs] of Object.entries(libraries)) {
   console.log(funcCode.join('\n\n'));
   console.log('}');
 }
-
-
