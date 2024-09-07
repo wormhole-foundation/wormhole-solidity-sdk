@@ -5,10 +5,10 @@
   "license": "Apache-2.0",
   "description": "code for generating Solidity constants to enforce a single source of truth",
   "scripts": {
-    "chains": "ts-node chains.ts",
-    "cctpDomains": "ts-node cctpDomains.ts"
+    "build": "make"
   },
   "dependencies": {
+    "@types/node": "^20.3.1",
     "@wormhole-foundation/sdk-base": "^0.10.2",
     "@wormhole-foundation/sdk-definitions": "^0.10.2",
     "@wormhole-foundation/sdk-evm": "^0.10.2",
