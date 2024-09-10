@@ -16,8 +16,8 @@ build: $(GENEREATORS) $(TEST_WRAPPER_TARGETS)
 $(GENEREATORS): node_modules
 	npx ts-node $@.ts > $($@_TARGET)
 
-node_modules:
-	npm install
+node_modules: package-lock.json
+	npm ci
 
 define ruleTestWrapper
 $(call fnTestWrapperTarget,$(1)): ../src/$($(1)_BASE_PATH)/$(1).sol
