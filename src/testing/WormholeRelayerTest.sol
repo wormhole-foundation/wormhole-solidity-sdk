@@ -8,6 +8,7 @@ import "wormhole-sdk/interfaces/IWormhole.sol";
 import "wormhole-sdk/interfaces/ITokenBridge.sol";
 import "wormhole-sdk/interfaces/cctp/IMessageTransmitter.sol";
 import "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol";
+import "wormhole-sdk/constants/Chains.sol";
 import "wormhole-sdk/Utils.sol";
 
 import "./UsdcDealer.sol";
@@ -74,8 +75,8 @@ abstract contract WormholeRelayerTest is Test {
 
     // set default active forks. These can be overridden in your test
     ChainInfo[] memory forks = new ChainInfo[](2);
-    forks[0] = chainInfosTestnet[6]; // fuji avax
-    forks[1] = chainInfosTestnet[14]; // alfajores celo
+    forks[0] = chainInfosTestnet[CHAIN_ID_AVALANCHE]; // fuji
+    forks[1] = chainInfosTestnet[CHAIN_ID_CELO]; // alfajores
     setActiveForks(forks);
   }
 
@@ -222,8 +223,8 @@ abstract contract WormholeRelayerTest is Test {
   }
 
   function initChainInfo() private {
-    chainInfosTestnet[6] = ChainInfo({
-      chainId: 6,
+    chainInfosTestnet[CHAIN_ID_AVALANCHE] = ChainInfo({
+      chainId: CHAIN_ID_AVALANCHE,
       name: "fuji - avalanche",
       url: vm.envOr(
         "AVALANCHE_FUJI_RPC_URL",
@@ -244,8 +245,8 @@ abstract contract WormholeRelayerTest is Test {
       ),
       USDC: IUSDC(0x5425890298aed601595a70AB815c96711a31Bc65)
     });
-    chainInfosTestnet[14] = ChainInfo({
-      chainId: 14,
+    chainInfosTestnet[CHAIN_ID_CELO] = ChainInfo({
+      chainId: CHAIN_ID_CELO,
       name: "alfajores - celo",
       url: vm.envOr(
         "CELO_TESTNET_RPC_URL",
@@ -262,8 +263,8 @@ abstract contract WormholeRelayerTest is Test {
       circleTokenMessenger: ITokenMessenger(address(0)),
       USDC: IUSDC(address(0))
     });
-    chainInfosTestnet[4] = ChainInfo({
-      chainId: 4,
+    chainInfosTestnet[CHAIN_ID_BSC] = ChainInfo({
+      chainId: CHAIN_ID_BSC,
       name: "bsc testnet",
       url: vm.envOr(
         "BSC_TESTNET_RPC_URL",
@@ -280,8 +281,8 @@ abstract contract WormholeRelayerTest is Test {
       circleTokenMessenger: ITokenMessenger(address(0)),
       USDC: IUSDC(address(0))
     });
-    chainInfosTestnet[16] = ChainInfo({
-      chainId: 16,
+    chainInfosTestnet[CHAIN_ID_MOONBEAM] = ChainInfo({
+      chainId: CHAIN_ID_MOONBEAM,
       name: "moonbase alpha - moonbeam",
       url: vm.envOr(
         "MOONBASE_ALPHA_RPC_URL",
@@ -298,8 +299,8 @@ abstract contract WormholeRelayerTest is Test {
       circleTokenMessenger: ITokenMessenger(address(0)),
       USDC: IUSDC(address(0))
     });
-    chainInfosMainnet[2] = ChainInfo({
-      chainId: 2,
+    chainInfosMainnet[CHAIN_ID_ETHEREUM] = ChainInfo({
+      chainId: CHAIN_ID_ETHEREUM,
       name: "ethereum",
       url: vm.envOr(
         "ETHEREUM_RPC_URL",
@@ -320,8 +321,8 @@ abstract contract WormholeRelayerTest is Test {
       ),
       USDC: IUSDC(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)
     });
-    chainInfosMainnet[4] = ChainInfo({
-      chainId: 4,
+    chainInfosMainnet[CHAIN_ID_BSC] = ChainInfo({
+      chainId: CHAIN_ID_BSC,
       name: "bsc",
       url: vm.envOr(
         "BSC_RPC_URL",
@@ -338,8 +339,8 @@ abstract contract WormholeRelayerTest is Test {
       circleTokenMessenger: ITokenMessenger(address(0)),
       USDC: IUSDC(address(0))
     });
-    chainInfosMainnet[6] = ChainInfo({
-      chainId: 6,
+    chainInfosMainnet[CHAIN_ID_AVALANCHE] = ChainInfo({
+      chainId: CHAIN_ID_AVALANCHE,
       name: "avalanche",
       url: vm.envOr(
         "AVALANCHE_RPC_URL",
@@ -360,8 +361,8 @@ abstract contract WormholeRelayerTest is Test {
       ),
       USDC: IUSDC(0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E)
     });
-    chainInfosMainnet[10] = ChainInfo({
-      chainId: 10,
+    chainInfosMainnet[CHAIN_ID_FANTOM] = ChainInfo({
+      chainId: CHAIN_ID_FANTOM,
       name: "fantom",
       url: vm.envOr(
         "FANTOM_RPC_URL",
@@ -378,8 +379,8 @@ abstract contract WormholeRelayerTest is Test {
       circleTokenMessenger: ITokenMessenger(address(0)),
       USDC: IUSDC(address(0))
     });
-    chainInfosMainnet[13] = ChainInfo({
-      chainId: 13,
+    chainInfosMainnet[CHAIN_ID_KLAYTN] = ChainInfo({
+      chainId: CHAIN_ID_KLAYTN,
       name: "klaytn",
       url: vm.envOr(
         "KLAYTN_RPC_URL",
@@ -396,8 +397,8 @@ abstract contract WormholeRelayerTest is Test {
       circleTokenMessenger: ITokenMessenger(address(0)),
       USDC: IUSDC(address(0))
     });
-    chainInfosMainnet[14] = ChainInfo({
-      chainId: 14,
+    chainInfosMainnet[CHAIN_ID_CELO] = ChainInfo({
+      chainId: CHAIN_ID_CELO,
       name: "celo",
       url: vm.envOr("CELO_RPC_URL", string("https://forno.celo.org")),
       relayer: IWormholeRelayer(
@@ -411,8 +412,8 @@ abstract contract WormholeRelayerTest is Test {
       circleTokenMessenger: ITokenMessenger(address(0)),
       USDC: IUSDC(address(0))
     });
-    chainInfosMainnet[12] = ChainInfo({
-      chainId: 12,
+    chainInfosMainnet[CHAIN_ID_ACALA] = ChainInfo({
+      chainId: CHAIN_ID_ACALA,
       name: "acala",
       url: vm.envOr(
         "ACALA_RPC_URL",
@@ -429,8 +430,8 @@ abstract contract WormholeRelayerTest is Test {
       circleTokenMessenger: ITokenMessenger(address(0)),
       USDC: IUSDC(address(0))
     });
-    chainInfosMainnet[11] = ChainInfo({
-      chainId: 11,
+    chainInfosMainnet[CHAIN_ID_KARURA] = ChainInfo({
+      chainId: CHAIN_ID_KARURA,
       name: "karura",
       url: vm.envOr(
         "KARURA_RPC_URL",
@@ -447,8 +448,8 @@ abstract contract WormholeRelayerTest is Test {
       circleTokenMessenger: ITokenMessenger(address(0)),
       USDC: IUSDC(address(0))
     });
-    chainInfosMainnet[16] = ChainInfo({
-      chainId: 16,
+    chainInfosMainnet[CHAIN_ID_MOONBEAM] = ChainInfo({
+      chainId: CHAIN_ID_MOONBEAM,
       name: "moombeam",
       url: vm.envOr(
         "MOOMBEAM_RPC_URL",
@@ -465,8 +466,8 @@ abstract contract WormholeRelayerTest is Test {
       circleTokenMessenger: ITokenMessenger(address(0)),
       USDC: IUSDC(address(0))
     });
-    chainInfosMainnet[23] = ChainInfo({
-      chainId: 23,
+    chainInfosMainnet[CHAIN_ID_ARBITRUM] = ChainInfo({
+      chainId: CHAIN_ID_ARBITRUM,
       name: "arbitrum",
       url: vm.envOr(
         "ARBITRUM_RPC_URL",
@@ -487,8 +488,8 @@ abstract contract WormholeRelayerTest is Test {
       ),
       USDC: IUSDC(0xaf88d065e77c8cC2239327C5EDb3A432268e5831)
     });
-    chainInfosMainnet[24] = ChainInfo({
-      chainId: 24,
+    chainInfosMainnet[CHAIN_ID_OPTIMISM] = ChainInfo({
+      chainId: CHAIN_ID_OPTIMISM,
       name: "optimism",
       url: vm.envOr(
         "OPTIMISM_RPC_URL",
@@ -509,8 +510,8 @@ abstract contract WormholeRelayerTest is Test {
       ),
       USDC: IUSDC(0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85)
     });
-    chainInfosMainnet[30] = ChainInfo({
-      chainId: 30,
+    chainInfosMainnet[CHAIN_ID_BASE] = ChainInfo({
+      chainId: CHAIN_ID_BASE,
       name: "base",
       url: vm.envOr("BASE_RPC_URL", string("https://mainnet.base.org")),
       relayer: IWormholeRelayer(
@@ -576,7 +577,7 @@ abstract contract WormholeRelayerBasicTest is WormholeRelayerTest {
    */
 
   constructor() WormholeRelayerTest() {
-    setTestnetForkChains(6, 14);
+    setTestnetForkChains(CHAIN_ID_AVALANCHE, CHAIN_ID_CELO);
   }
 
   function setUp() public override {
