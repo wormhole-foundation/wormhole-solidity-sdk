@@ -154,6 +154,7 @@ contract TestBytesParsing is Test {
       assertEq(encodedResult, encodedOutOfBounds(expectedNewOffset, data.length), "wrong error");
   }
 
+  /// forge-config: default.fuzz.runs = 1000
   function testFuzzPrefixedSlice(
     uint offset,
     uint size,
