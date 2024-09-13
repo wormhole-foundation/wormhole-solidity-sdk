@@ -1,14 +1,10 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.4;
 
+import "../constants/Common.sol";
+
 //This file appears comically large, but all unused functions are removed by the compiler.
 library BytesParsing {
-  uint256 private constant _FREE_MEMORY_PTR = 0x40;
-  uint256 private constant _WORD_SIZE = 32;
-  //we can't define _WORD_SIZE_MINUS_ONE via _WORD_SIZE - 1 because of solc restrictions
-  //  what constants can be used in inline assembly
-  uint256 private constant _WORD_SIZE_MINUS_ONE = 31; //=0x1f=0b00011111
-
   error OutOfBounds(uint256 offset, uint256 length);
   error LengthMismatch(uint256 encodedLength, uint256 expectedLength);
   error InvalidBoolVal(uint8 val);
@@ -57,15 +53,17 @@ library BytesParsing {
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, length)
+      ret := mload(FREE_MEMORY_PTR)
+
       mstore(ret, length)
-      let retStart := add(ret, _WORD_SIZE)
+      let retStart := add(ret, WORD_SIZE)
       let sliceStart := add(encoded.offset, offset)
       calldatacopy(retStart, sliceStart, length)
       //When compiling with --via-ir then normally allocated memory (i.e. via new) will have 32 byte
       //  memory alignment and so we enforce the same memory alignment here.
       mstore(
-        _FREE_MEMORY_PTR,
-        and(add(add(retStart, length), _WORD_SIZE_MINUS_ONE), not(_WORD_SIZE_MINUS_ONE))
+        FREE_MEMORY_PTR,
+        and(add(add(retStart, length), WORD_SIZE_MINUS_ONE), not(WORD_SIZE_MINUS_ONE))
       )
     }
   }
@@ -78,6 +76,7 @@ library BytesParsing {
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, length)
+      ret := mload(FREE_MEMORY_PTR)
 
       //Explanation on how we copy data here:
       //  The bytes type has the following layout in memory:
@@ -93,9 +92,9 @@ library BytesParsing {
       //    overwritting those garbage bytes.
 
       //and(length, 31) is equivalent to `mod(length, 32)`, but 2 gas cheaper
-      let shift := and(length, _WORD_SIZE_MINUS_ONE)
+      let shift := and(length, WORD_SIZE_MINUS_ONE)
       if iszero(shift) {
-        shift := _WORD_SIZE
+        shift := WORD_SIZE
       }
 
       let dest := add(ret, shift)
@@ -103,8 +102,8 @@ library BytesParsing {
       for {
         let src := add(add(encoded, shift), offset)
       } lt(dest, end) {
-        src := add(src, _WORD_SIZE)
-        dest := add(dest, _WORD_SIZE)
+        src := add(src, WORD_SIZE)
+        dest := add(dest, WORD_SIZE)
       } {
         mstore(dest, mload(src))
       }
@@ -113,8 +112,8 @@ library BytesParsing {
       //When compiling with --via-ir then normally allocated memory (i.e. via new) will have 32 byte
       //  memory alignment and so we enforce the same memory alignment here.
       mstore(
-        _FREE_MEMORY_PTR,
-        and(add(dest, _WORD_SIZE_MINUS_ONE), not(_WORD_SIZE_MINUS_ONE))
+        FREE_MEMORY_PTR,
+        and(add(dest, WORD_SIZE_MINUS_ONE), not(WORD_SIZE_MINUS_ONE))
       )
     }
   }
@@ -179,7 +178,8 @@ const funcs = [
       `/// @solidity memory-safe-assembly`,
       `assembly {`,
       `  nextOffset := add(offset, ${i+1})`,
-      `  ret := ${cd ? "calldataload" : "mload"}(add(encoded${cd ? ".offset" :""}, nextOffset))`,
+      cd ? `  ret := shr(${256-(i+1)*8}, calldataload(add(encoded.offset, offset)))`
+         : `  ret := mload(add(encoded, nextOffset))`,
       `}`
     ],
     `uint${(i+1)*8}`
@@ -189,7 +189,7 @@ const funcs = [
     cd => [
       `/// @solidity memory-safe-assembly`,
       `assembly {`,
-      `  ret := ${cd ? "calldataload" : "mload"}(add(encoded${cd ? ".offset" :""}, add(offset, _WORD_SIZE)))`,
+      `  ret := ${cd ? "calldataload" : "mload"}(add(encoded${cd ? ".offset" :""}, ${cd ? "offset" : "add(offset, WORD_SIZE)"}))`,
       `  nextOffset := add(offset, ${i+1})`,
       `}`
     ],
@@ -217,6 +217,7 @@ function ${name}${cd}(
 `);
 }
 ------------------------------------------------------------------------------------------------- */
+
   function checkLengthCd(
     bytes calldata encoded,
     uint256 expected
@@ -438,7 +439,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 1)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(248, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -476,7 +477,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 2)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(240, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -514,7 +515,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 3)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(232, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -552,7 +553,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 4)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(224, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -590,7 +591,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 5)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(216, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -628,7 +629,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 6)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(208, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -666,7 +667,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 7)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(200, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -704,7 +705,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 8)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(192, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -742,7 +743,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 9)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(184, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -780,7 +781,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 10)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(176, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -818,7 +819,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 11)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(168, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -856,7 +857,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 12)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(160, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -894,7 +895,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 13)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(152, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -932,7 +933,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 14)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(144, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -970,7 +971,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 15)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(136, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -1008,7 +1009,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 16)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(128, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -1046,7 +1047,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 17)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(120, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -1084,7 +1085,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 18)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(112, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -1122,7 +1123,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 19)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(104, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -1160,7 +1161,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 20)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(96, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -1198,7 +1199,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 21)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(88, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -1236,7 +1237,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 22)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(80, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -1274,7 +1275,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 23)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(72, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -1312,7 +1313,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 24)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(64, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -1350,7 +1351,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 25)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(56, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -1388,7 +1389,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 26)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(48, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -1426,7 +1427,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 27)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(40, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -1464,7 +1465,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 28)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(32, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -1502,7 +1503,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 29)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(24, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -1540,7 +1541,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 30)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(16, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -1578,7 +1579,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 31)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(8, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -1616,7 +1617,7 @@ function ${name}${cd}(
     /// @solidity memory-safe-assembly
     assembly {
       nextOffset := add(offset, 32)
-      ret := calldataload(add(encoded.offset, nextOffset))
+      ret := shr(0, calldataload(add(encoded.offset, offset)))
     }
   }
 
@@ -1653,7 +1654,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes1 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 1)
     }
   }
@@ -1672,7 +1673,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes1 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 1)
     }
   }
@@ -1691,7 +1692,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes2 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 2)
     }
   }
@@ -1710,7 +1711,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes2 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 2)
     }
   }
@@ -1729,7 +1730,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes3 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 3)
     }
   }
@@ -1748,7 +1749,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes3 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 3)
     }
   }
@@ -1767,7 +1768,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes4 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 4)
     }
   }
@@ -1786,7 +1787,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes4 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 4)
     }
   }
@@ -1805,7 +1806,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes5 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 5)
     }
   }
@@ -1824,7 +1825,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes5 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 5)
     }
   }
@@ -1843,7 +1844,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes6 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 6)
     }
   }
@@ -1862,7 +1863,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes6 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 6)
     }
   }
@@ -1881,7 +1882,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes7 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 7)
     }
   }
@@ -1900,7 +1901,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes7 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 7)
     }
   }
@@ -1919,7 +1920,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes8 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 8)
     }
   }
@@ -1938,7 +1939,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes8 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 8)
     }
   }
@@ -1957,7 +1958,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes9 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 9)
     }
   }
@@ -1976,7 +1977,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes9 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 9)
     }
   }
@@ -1995,7 +1996,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes10 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 10)
     }
   }
@@ -2014,7 +2015,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes10 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 10)
     }
   }
@@ -2033,7 +2034,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes11 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 11)
     }
   }
@@ -2052,7 +2053,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes11 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 11)
     }
   }
@@ -2071,7 +2072,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes12 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 12)
     }
   }
@@ -2090,7 +2091,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes12 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 12)
     }
   }
@@ -2109,7 +2110,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes13 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 13)
     }
   }
@@ -2128,7 +2129,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes13 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 13)
     }
   }
@@ -2147,7 +2148,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes14 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 14)
     }
   }
@@ -2166,7 +2167,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes14 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 14)
     }
   }
@@ -2185,7 +2186,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes15 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 15)
     }
   }
@@ -2204,7 +2205,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes15 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 15)
     }
   }
@@ -2223,7 +2224,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes16 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 16)
     }
   }
@@ -2242,7 +2243,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes16 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 16)
     }
   }
@@ -2261,7 +2262,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes17 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 17)
     }
   }
@@ -2280,7 +2281,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes17 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 17)
     }
   }
@@ -2299,7 +2300,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes18 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 18)
     }
   }
@@ -2318,7 +2319,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes18 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 18)
     }
   }
@@ -2337,7 +2338,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes19 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 19)
     }
   }
@@ -2356,7 +2357,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes19 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 19)
     }
   }
@@ -2375,7 +2376,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes20 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 20)
     }
   }
@@ -2394,7 +2395,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes20 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 20)
     }
   }
@@ -2413,7 +2414,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes21 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 21)
     }
   }
@@ -2432,7 +2433,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes21 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 21)
     }
   }
@@ -2451,7 +2452,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes22 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 22)
     }
   }
@@ -2470,7 +2471,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes22 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 22)
     }
   }
@@ -2489,7 +2490,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes23 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 23)
     }
   }
@@ -2508,7 +2509,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes23 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 23)
     }
   }
@@ -2527,7 +2528,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes24 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 24)
     }
   }
@@ -2546,7 +2547,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes24 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 24)
     }
   }
@@ -2565,7 +2566,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes25 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 25)
     }
   }
@@ -2584,7 +2585,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes25 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 25)
     }
   }
@@ -2603,7 +2604,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes26 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 26)
     }
   }
@@ -2622,7 +2623,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes26 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 26)
     }
   }
@@ -2641,7 +2642,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes27 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 27)
     }
   }
@@ -2660,7 +2661,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes27 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 27)
     }
   }
@@ -2679,7 +2680,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes28 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 28)
     }
   }
@@ -2698,7 +2699,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes28 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 28)
     }
   }
@@ -2717,7 +2718,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes29 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 29)
     }
   }
@@ -2736,7 +2737,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes29 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 29)
     }
   }
@@ -2755,7 +2756,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes30 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 30)
     }
   }
@@ -2774,7 +2775,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes30 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 30)
     }
   }
@@ -2793,7 +2794,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes31 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 31)
     }
   }
@@ -2812,7 +2813,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes31 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 31)
     }
   }
@@ -2831,7 +2832,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes32 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := calldataload(add(encoded.offset, add(offset, _WORD_SIZE)))
+      ret := calldataload(add(encoded.offset, offset))
       nextOffset := add(offset, 32)
     }
   }
@@ -2850,7 +2851,7 @@ function ${name}${cd}(
   ) internal pure returns (bytes32 ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
-      ret := mload(add(encoded, add(offset, _WORD_SIZE)))
+      ret := mload(add(encoded, add(offset, WORD_SIZE)))
       nextOffset := add(offset, 32)
     }
   }
