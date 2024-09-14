@@ -57,7 +57,7 @@ Besides stripping all non-essential code, `ProxyBase` is opinionated in two ways
 1. It separates the act of construction from the act of upgrading via two `internal` `virtual` methods called `_proxyConstructor` and `_contractUpgrade` respectively.
 2. It provides an external function called `checkedUpgrade` to execute these two methods, while automatically handling access control by automatically keeping track of an initialized flag (for construction) and by restricting external calls to `checkedUpgrade` to the proxy contract alone.
 
-Additionally, `checkedUpgrade` has a high function selector (starts with `0xf4`) which saves gas on every other external function call on the contract, since any function with a selector lower than the one that is being invoked results in a gas overhead of 22 gas andless than 5 % of functions will, on average, have a selector higher than `checkedUpgrade`'s.
+Additionally, `checkedUpgrade` has a high function selector (starts with `0xf4`) which saves gas on every other external function call on the contract, since any function with a selector lower than the one that is being invoked results in a gas overhead of 22 gas andless than 5 % of functions will, on average, have a selector higher than `checkedUpgrade`'s. (For a more detailed discussion of selectors, see the [RawDispatcher doc](./RawDispatcher.md).)
 
 ### Proxy
 
