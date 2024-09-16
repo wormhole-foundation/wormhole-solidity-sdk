@@ -146,7 +146,7 @@ const funcs = [
     `sliceUint${n}Prefixed`,
     cd => [
       `uint${n} len;`,
-      `(len, nextOffset) = asUint${n}Unchecked(encoded, offset);`,
+      `(len, nextOffset) = asUint${n}${cd}Unchecked(encoded, offset);`,
       `(ret, nextOffset) = slice${cd}Unchecked(encoded, nextOffset, uint(len));`
     ],
     `bytes memory`,
@@ -257,7 +257,7 @@ function ${name}${cd}(
     uint offset
   ) internal pure returns (bytes memory ret, uint nextOffset) {
     uint8 len;
-    (len, nextOffset) = asUint8Unchecked(encoded, offset);
+    (len, nextOffset) = asUint8CdUnchecked(encoded, offset);
     (ret, nextOffset) = sliceCdUnchecked(encoded, nextOffset, uint(len));
   }
 
@@ -291,7 +291,7 @@ function ${name}${cd}(
     uint offset
   ) internal pure returns (bytes memory ret, uint nextOffset) {
     uint16 len;
-    (len, nextOffset) = asUint16Unchecked(encoded, offset);
+    (len, nextOffset) = asUint16CdUnchecked(encoded, offset);
     (ret, nextOffset) = sliceCdUnchecked(encoded, nextOffset, uint(len));
   }
 
@@ -325,7 +325,7 @@ function ${name}${cd}(
     uint offset
   ) internal pure returns (bytes memory ret, uint nextOffset) {
     uint32 len;
-    (len, nextOffset) = asUint32Unchecked(encoded, offset);
+    (len, nextOffset) = asUint32CdUnchecked(encoded, offset);
     (ret, nextOffset) = sliceCdUnchecked(encoded, nextOffset, uint(len));
   }
 
