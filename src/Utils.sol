@@ -16,3 +16,13 @@ function fromUniversalAddress(bytes32 universalAddr) pure returns (address addr)
     addr := universalAddr
   }
 }
+
+/**
+ * Reverts with a given buffer data.
+ * Meant to be used to easily bubble up errors from low level calls when they fail.
+ */
+function reRevert(bytes memory err) pure {
+  assembly ("memory-safe") {
+    revert(add(err, 32), mload(err))
+  }
+}
