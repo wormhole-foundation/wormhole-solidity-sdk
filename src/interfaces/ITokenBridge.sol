@@ -183,12 +183,15 @@ interface ITokenBridge {
 
   function submitRecoverChainId(bytes memory encodedVM) external;
 
-  function parseRegisterChain(bytes memory encoded) external pure returns (RegisterChain memory chain);
+  function parseRegisterChain(
+    bytes memory encoded
+  ) external pure returns (RegisterChain memory chain);
 
-  function parseUpgrade(bytes memory encoded) external pure returns (UpgradeContract memory chain);
+  function parseUpgrade(
+    bytes memory encoded
+  ) external pure returns (UpgradeContract memory chain);
 
-  function parseRecoverChainId(bytes memory encodedRecoverChainId)
-    external
-    pure
-    returns (RecoverChainId memory rci);
+  function parseRecoverChainId(
+    bytes memory encodedRecoverChainId
+  ) external pure returns (RecoverChainId memory rci);
 }
