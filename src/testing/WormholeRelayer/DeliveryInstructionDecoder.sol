@@ -162,7 +162,7 @@ function decodeCCTPKey(
   (cctpKey.nonce,  offset) = encoded.asUint64Unchecked(offset);
 }
 
-// ------------------------------------------  --------------------------------------------
+// ------------------------------------------ private  --------------------------------------------
 
 function encodeBytes(bytes memory payload) pure returns (bytes memory encoded) {
   //casting payload.length to uint32 is safe because you'll be hard-pressed to allocate 4 GB of

@@ -3,11 +3,12 @@ pragma solidity ^0.8.24;
 
 import {Vm} from "forge-std/Vm.sol";
 
+import {WORD_SIZE, WORD_SIZE_MINUS_ONE} from "wormhole-sdk/constants/Common.sol";
 import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 import {toUniversalAddress} from "wormhole-sdk/Utils.sol";
 
-import {VM_ADDRESS} from "./Constants.sol";
+import {VM_ADDRESS, DEVNET_GUARDIAN_PRIVATE_KEY} from "./Constants.sol";
 import "./LogUtils.sol";
 
 //┌────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -24,50 +25,62 @@ struct PublishedMessage {
   bytes payload;
 }
 
-//use `using { encode } for IWormhole.VM;` to convert VAAs to bytes via .encode()
-function encode(IWormhole.VM memory vaa) pure returns (bytes memory) {
-  bytes memory sigs;
-  for (uint i = 0; i < vaa.signatures.length; ++i) {
-    IWormhole.Signature memory sig = vaa.signatures[i];
-    sigs = bytes.concat(sigs, abi.encodePacked(sig.guardianIndex, sig.r, sig.s, sig.v));
-  }
+//use `using VaaEncoding for IWormhole.VM;` to convert VAAs to bytes via .encode()
+library VaaEncoding {
+  function encode(IWormhole.VM memory vaa) internal pure returns (bytes memory) {
+    bytes memory sigs;
+    for (uint i = 0; i < vaa.signatures.length; ++i) {
+      IWormhole.Signature memory sig = vaa.signatures[i];
+      sigs = bytes.concat(sigs, abi.encodePacked(sig.guardianIndex, sig.r, sig.s, sig.v));
+    }
 
-  return abi.encodePacked(
-    vaa.version,
-    vaa.guardianSetIndex,
-    uint8(vaa.signatures.length),
-    sigs,
-    vaa.timestamp,
-    vaa.nonce,
-    vaa.emitterChainId,
-    vaa.emitterAddress,
-    vaa.sequence,
-    vaa.consistencyLevel,
-    vaa.payload
-  );
+    return abi.encodePacked(
+      vaa.version,
+      vaa.guardianSetIndex,
+      uint8(vaa.signatures.length),
+      sigs,
+      vaa.timestamp,
+      vaa.nonce,
+      vaa.emitterChainId,
+      vaa.emitterAddress,
+      vaa.sequence,
+      vaa.consistencyLevel,
+      vaa.payload
+    );
+  }
 }
 
 //simple version of the library - should be sufficient for most use cases
 library WormholeOverride {
   using AdvancedWormholeOverride for IWormhole;
 
-  //transition to a new guardian set of the same size with all keys under our control
-  // sets up default values for sequence, nonce, and consistency level (finalized)
+  //Transition to a new guardian set under our control and set up default values for
+  //  sequence (0), nonce (0), and consistency level (1 = finalized).
+  //
+  //Note: Depending on the DEFAULT_TO_DEVNET_GUARDIAN environment variable:
+  //  false (default): The current guardian set is superseded by a new set of the same size.
+  //    Keeps in line with real world conditions. Useful for realistic gas costs and VAA sizes.
+  //  true: The new guardian set is comprised of only one key: DEVNET_GUARDIAN_PRIVATE_KEY.
+  //    This is useful to reduce the size of encoded VAAs and hence call traces when debugging.
   function setUpOverride(IWormhole wormhole) internal {
     wormhole.setUpOverride();
   }
 
-  //uses block.timestamp and stored values for sequence, nonce, and consistency level
+  //convenience function:
+  // 1. creates a PublishedMessage struct with the current block.timestamp and
+  //      the stored values for sequence (auto-incremented), nonce, and consistency level
+  // 2. uses sign to turn it into a VAA
+  // 3. encodes the VAA as bytes
   function craftVaa(
     IWormhole wormhole,
     uint16 emitterChain,
     bytes32 emitterAddress,
     bytes memory payload
-  ) internal view returns (IWormhole.VM memory vaa) {
+  ) internal returns (bytes memory encodedVaa) {
     return wormhole.craftVaa(emitterChain, emitterAddress, payload);
   }
 
-  //convert a published message struct into a VAA
+  //turns a PublishedMessage struct into a VAA by having a quorum of guardians sign it
   function sign(
     IWormhole wormhole,
     PublishedMessage memory pm
@@ -75,7 +88,7 @@ library WormholeOverride {
     return wormhole.sign(pm);
   }
 
-  //fetch all messages emitted by the core bridge from the logs
+  //fetch all messages from the logs that were emitted by the core bridge
   function fetchPublishedMessages(
     IWormhole wormhole,
     Vm.Log[] memory logs
@@ -84,20 +97,11 @@ library WormholeOverride {
   }
 
   //tests should ensure support of non-zero core bridge message fees
-  function setMessageFee(uint256 msgFee) internal {
-    AdvancedWormholeOverride.setMessageFee(msgFee);
+  function setMessageFee(IWormhole wormhole, uint256 msgFee) internal {
+    wormhole.setMessageFee(msgFee);
   }
 
-  //override default values used for crafting VAAs:
-
-  function setSequence(IWormhole wormhole, uint64 sequence) internal {
-    wormhole.setSequence(sequence);
-  }
-
-  function setNonce(IWormhole wormhole, uint32 nonce) internal {
-    wormhole.setNonce(nonce);
-  }
-
+  //override the default consistency level used by craftVaa()
   function setConsistencyLevel(IWormhole wormhole, uint8 consistencyLevel) internal {
     wormhole.setConsistencyLevel(consistencyLevel);
   }
@@ -105,11 +109,12 @@ library WormholeOverride {
 
 //──────────────────────────────────────────────────────────────────────────────────────────────────
 
-//more complex library for more advanced tests
+//more complex superset of WormholeOverride for more advanced tests
 library AdvancedWormholeOverride {  
   using { toUniversalAddress } for address;
   using BytesParsing for bytes;
   using LogUtils for Vm.Log[];
+  using VaaEncoding for IWormhole.VM;
 
   Vm constant vm = Vm(VM_ADDRESS);
 
@@ -132,13 +137,14 @@ library AdvancedWormholeOverride {
   //     1 │ bytes32 │ governanceContract
   //     2 │ mapping │ guardianSets
   //     3 │ uint32  │ guardianSetIndex
-  //     3 │ uint32  │ guardianSetExpiry
+  //     3 │ uint32  │ guardianSetExpiry (this makes no sense and is unused)
   //     4 │ mapping │ sequences
   //     5 │ mapping │ consumedGovernanceActions
   //     6 │ mapping │ initializedImplementations
   //     7 │ uint256 │ messageFee
   //     8 │ uint256 │ evmChainId
   uint256 constant private _STORAGE_GUARDIAN_SETS_SLOT = 2;
+  uint256 constant private _STORAGE_GUARDIAN_SET_INDEX_SLOT = 3;
   uint256 constant private _STORAGE_MESSAGE_FEE_SLOT = 7;
 
   //CoreBridge guardian set struct:
@@ -154,6 +160,8 @@ library AdvancedWormholeOverride {
   //  library functions and to expose it to the test suite:
 
   //We store our additional data at slot keccak256("OverrideState")-1 in the core bridge
+  //We don't store this in a "local" struct in case tests use multiple forks and hence override
+  //  multiple, different instances of the core bridge
   uint256 private constant _OVERRIDE_STATE_SLOT =
     0x2e44eb2c79e88410071ac52f3c0e5ab51396d9208c2c783cdb8e12f39b763de8;
   
@@ -184,6 +192,12 @@ library AdvancedWormholeOverride {
       address(wormhole),
       bytes32(_OVERRIDE_STATE_SLOT + _OR_SEQUENCE_OFFSET)
     )));
+  }}
+
+  function getAndIncrementSequence(IWormhole wormhole) internal returns (uint64) { unchecked {
+    uint64 sequence = getSequence(wormhole);
+    setSequence(wormhole, sequence + 1);
+    return sequence;
   }}
 
   function setNonce(IWormhole wormhole, uint32 nonce) internal { unchecked {
@@ -263,16 +277,24 @@ library AdvancedWormholeOverride {
 
   function setSigningIndices(
     IWormhole wormhole,
-    bytes memory signingIndices //treated as a packed uint8 array
+    uint8[] memory signingIndices
   ) internal { unchecked {
     vm.store(
       address(wormhole),
       bytes32(_OVERRIDE_STATE_SLOT + _OR_SIGNING_INDICES_OFFSET),
       bytes32(signingIndices.length)
     );
-    uint fullSlots = signingIndices.length / 32;
+
+    //abi.encodePacked pads elements of arrays so we have to manually pack here
+    bytes memory packedIndices = new bytes(signingIndices.length);
+    for (uint i = 0; i < signingIndices.length; ++i) {
+      uint8 curIdx = signingIndices[i];
+      assembly ("memory-safe") { mstore8(add(add(packedIndices, WORD_SIZE), i), curIdx) }
+    }
+    
+    uint fullSlots = packedIndices.length / WORD_SIZE;
     for (uint i = 0; i < fullSlots; ++i) {
-      (bytes32 val,) = signingIndices.asBytes32Unchecked(i * 32);
+      (bytes32 val,) = packedIndices.asBytes32Unchecked(i * WORD_SIZE);
       vm.store(
         address(wormhole),
         bytes32(_arraySlot(_OVERRIDE_STATE_SLOT + _OR_SIGNING_INDICES_OFFSET) + i),
@@ -280,9 +302,9 @@ library AdvancedWormholeOverride {
       );
     }
     
-    uint remaining = signingIndices.length % 32;
+    uint remaining = packedIndices.length % WORD_SIZE;
     if (remaining > 0) {
-      (uint256 val, ) = signingIndices.asUint256Unchecked(fullSlots * 32);
+      (uint256 val, ) = packedIndices.asUint256Unchecked(fullSlots * WORD_SIZE);
       val &= ~(type(uint256).max >> (8 * remaining)); //clean unused bits to be safe
       vm.store(
         address(wormhole),
@@ -305,7 +327,7 @@ library AdvancedWormholeOverride {
     IWormhole wormhole
   ) internal view returns (bytes memory) { unchecked {
     uint len = _getSigningIndicesLength(wormhole);
-    bytes32[] memory individualSlots = new bytes32[]((len + 31) / 32);
+    bytes32[] memory individualSlots = new bytes32[]((len + WORD_SIZE_MINUS_ONE) / WORD_SIZE);
     for (uint i = 0; i < individualSlots.length; ++i)
       individualSlots[i] = vm.load(
         address(wormhole),
@@ -317,12 +339,8 @@ library AdvancedWormholeOverride {
     return packed;
   }}
 
-  uint32 constant DEFAULT_NONCE = 0xCCCCCCCC;
-  uint8  constant DEFAULT_CONSISTENCY_LEVEL = 1; //= finalized
-  uint64 constant DEFAULT_SEQUENCE = 0x5555555555555555;
-
   function defaultGuardianLabel(uint256 index) internal pure returns (string memory) {
-    return string.concat("guardian", vm.toString(index));
+    return string.concat("guardian", vm.toString(index + 1));
   }
 
   function _guardianSetSlot(uint32 index) private pure returns (uint256) {
@@ -331,12 +349,19 @@ library AdvancedWormholeOverride {
   }
 
   function setUpOverride(IWormhole wormhole) internal {
-    uint256[] memory guardianPrivateKeys = 
-      new uint256[](wormhole.getGuardianSet(wormhole.getCurrentGuardianSetIndex()).keys.length);
+    bool defaultToDevnetGuardian = vm.envOr("DEFAULT_TO_DEVNET_GUARDIAN", false);
+    uint256[] memory guardianPrivateKeys;
+    if (defaultToDevnetGuardian) {
+      guardianPrivateKeys = new uint256[](1);
+      guardianPrivateKeys[0] = DEVNET_GUARDIAN_PRIVATE_KEY;
+    }
+    else {
+      guardianPrivateKeys =
+        new uint256[](wormhole.getGuardianSet(wormhole.getCurrentGuardianSetIndex()).keys.length);
 
-    for (uint i = 0; i < guardianPrivateKeys.length; ++i)
-      (, guardianPrivateKeys[i]) = _makeAddrAndKey(defaultGuardianLabel(i));
-
+      for (uint i = 0; i < guardianPrivateKeys.length; ++i)
+        (, guardianPrivateKeys[i]) = _makeAddrAndKey(defaultGuardianLabel(i));
+    }
     setUpOverride(wormhole, guardianPrivateKeys);
   }
 
@@ -344,8 +369,7 @@ library AdvancedWormholeOverride {
     IWormhole wormhole,
     uint256[] memory guardianPrivateKeys
   ) internal { unchecked {
-    // OverrideState storage state = overrideState();
-    if (guardianPrivateKeys.length != 0)
+    if (getGuardianPrivateKeys(wormhole).length != 0)
       revert ("already set up");
 
     if (guardianPrivateKeys.length == 0)
@@ -355,44 +379,51 @@ library AdvancedWormholeOverride {
       revert ("too many guardians, core bridge enforces upper bound of 255");
 
     //bring the core bridge under heel by introducing a new guardian set
-    uint32 currentGuardianSetIndex = wormhole.getCurrentGuardianSetIndex();
-    uint256 currentGuardianSetSlot = _guardianSetSlot(currentGuardianSetIndex);
+    uint32 curGuardianSetIndex = wormhole.getCurrentGuardianSetIndex();
+    uint256 curGuardianSetSlot = _guardianSetSlot(curGuardianSetIndex);
 
     //expire the current guardian set like a normal guardian set transition would
     vm.store(
       address(wormhole),
-      bytes32(currentGuardianSetSlot + _GUARDIAN_SET_STRUCT_EXPIRATION_OFFSET),
+      bytes32(curGuardianSetSlot + _GUARDIAN_SET_STRUCT_EXPIRATION_OFFSET),
       bytes32(block.timestamp + 1 days)
     );
     
-    uint32 nextGuardianSetIndex = currentGuardianSetIndex + 1;
-    uint256 nextGuardianSetSlot = _guardianSetSlot(nextGuardianSetIndex);
+    uint32 newGuardianSetIndex = curGuardianSetIndex + 1;
+    uint256 newGuardianSetSlot = _guardianSetSlot(newGuardianSetIndex);
 
-    //initialize the new guardian set with the provided private keys
+    //update the guardian set index
+    vm.store(
+      address(wormhole),
+      bytes32(_STORAGE_GUARDIAN_SET_INDEX_SLOT),
+      bytes32(uint256(newGuardianSetIndex))
+    );
 
     //dynamic storage arrays store their length in their assigned slot
-    vm.store(address(wormhole), bytes32(nextGuardianSetSlot), bytes32(guardianPrivateKeys.length));
+    vm.store(address(wormhole), bytes32(newGuardianSetSlot), bytes32(guardianPrivateKeys.length));
+    //initialize the new guardian set with the provided private keys
     for (uint256 i = 0; i < guardianPrivateKeys.length; ++i)
       vm.store(
         address(wormhole),
-        bytes32(_arraySlot(nextGuardianSetSlot) + i),
+        bytes32(_arraySlot(newGuardianSetSlot) + i),
         bytes32(uint256(uint160(vm.addr(guardianPrivateKeys[i]))))
       );
     
     //initialize override state with default values
-    setSequence(wormhole, DEFAULT_SEQUENCE);
-    setNonce(wormhole, DEFAULT_NONCE);
-    setConsistencyLevel(wormhole, DEFAULT_CONSISTENCY_LEVEL);
+    setSequence(wormhole, 0);
+    setNonce(wormhole, 0);
+    setConsistencyLevel(wormhole, 1); //finalized
     _setGuardianPrivateKeys(wormhole, guardianPrivateKeys);
     uint quorum = guardianPrivateKeys.length * 2 / 3 + 1;
     uint8[] memory signingIndices = new uint8[](quorum);
     for (uint i = 0; i < quorum; ++i)
       signingIndices[i] = uint8(i);
-    setSigningIndices(wormhole, abi.encodePacked(signingIndices));
+
+    setSigningIndices(wormhole, signingIndices);
   }}
 
-  function setMessageFee(uint256 msgFee) internal {
-    vm.store(address(vm), bytes32(_STORAGE_MESSAGE_FEE_SLOT), bytes32(msgFee));
+  function setMessageFee(IWormhole wormhole, uint256 msgFee) internal {
+    vm.store(address(wormhole), bytes32(_STORAGE_MESSAGE_FEE_SLOT), bytes32(msgFee));
   }
 
   function fetchPublishedMessages(
@@ -463,18 +494,18 @@ library AdvancedWormholeOverride {
     uint16 emitterChain,
     bytes32 emitterAddress,
     bytes memory payload
-  ) internal view returns (IWormhole.VM memory vaa) {
+  ) internal returns (bytes memory encodedVaa) {
     PublishedMessage memory pm = PublishedMessage({
       timestamp: uint32(block.timestamp),
       nonce: getNonce(wormhole),
       emitterChainId: emitterChain,
       emitterAddress: emitterAddress,
-      sequence: getSequence(wormhole),
+      sequence: getAndIncrementSequence(wormhole),
       consistencyLevel: getConsistencyLevel(wormhole),
       payload: payload
     });
 
-    return sign(wormhole, pm);
+    return sign(wormhole, pm).encode();
   }
 
   function craftGovernancePublishedMessage(
@@ -483,13 +514,13 @@ library AdvancedWormholeOverride {
     uint8 action,
     uint16 targetChain,
     bytes memory decree
-  ) internal view returns (PublishedMessage memory) {
+  ) internal returns (PublishedMessage memory) {
     return PublishedMessage({
       timestamp: uint32(block.timestamp),
       nonce: getNonce(wormhole),
       emitterChainId: wormhole.governanceChainId(),
       emitterAddress: wormhole.governanceContract(),
-      sequence: getSequence(wormhole),
+      sequence: getAndIncrementSequence(wormhole),
       consistencyLevel: getConsistencyLevel(wormhole),
       payload: abi.encodePacked(module, action, targetChain, decree)
     });
