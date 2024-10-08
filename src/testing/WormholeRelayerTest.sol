@@ -49,6 +49,7 @@ abstract contract WormholeRelayerTest is Test {
   using WormholeOverride for IWormhole;
   using CctpOverride for IMessageTransmitter;
   using UsdcDealer for IUSDC;
+  using VaaEncoding for IWormhole.VM;
 
   /**
    * @dev required override to initialize active forks before each test
@@ -183,9 +184,9 @@ abstract contract WormholeRelayerTest is Test {
 
     vm.recordLogs();
     home.tokenBridge.attestToken(address(token), 0);
-    (, bytes memory attestation) = home.wormhole.sign(
+    bytes memory tokenAttestationVaa = home.wormhole.sign(
       home.wormhole.fetchPublishedMessages(vm.getRecordedLogs())[0]
-    );
+    ).encode();
 
     for (uint256 i = 0; i < activeForksList.length; ++i) {
       if (activeForksList[i] == home.chainId) {
@@ -193,7 +194,7 @@ abstract contract WormholeRelayerTest is Test {
       }
       ActiveFork memory fork = activeForks[activeForksList[i]];
       vm.selectFork(fork.fork);
-      fork.tokenBridge.createWrapped(attestation);
+      fork.tokenBridge.createWrapped(tokenAttestationVaa);
     }
 
     vm.selectFork(originalFork);

@@ -5,7 +5,7 @@ import "wormhole-sdk/interfaces/token/IERC20.sol";
 import "wormhole-sdk/testing/WormholeRelayerTest.sol";
 
 contract CCTPAndTokenBridgeToy is CCTPAndTokenSender, CCTPAndTokenReceiver {
-  uint256 constant GAS_LIMIT = 250_000;
+  uint256 constant GAS_LIMIT = 400_000;
 
   constructor(
     address _wormholeRelayer,
@@ -130,7 +130,7 @@ contract CCTPAndTokenBridgeToy is CCTPAndTokenSender, CCTPAndTokenReceiver {
   }
 }
 
-contract WormholeSDKTest is WormholeRelayerBasicTest {
+contract CCTPAndTokenBridgeTest is WormholeRelayerBasicTest {
   CCTPAndTokenBridgeToy CCTPAndTokenBridgeToySource;
   CCTPAndTokenBridgeToy CCTPAndTokenBridgeToyTarget;
   ERC20Mock USDCSource;

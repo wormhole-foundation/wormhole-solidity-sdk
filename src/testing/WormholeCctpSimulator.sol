@@ -75,8 +75,7 @@ contract WormholeCctpSimulator {
     wormhole.setUpOverride();
     messageTransmitter.setUpOverride();
 
-    foreignNonce    = 0xBBBBBBBBBBBBBBBB;
-    foreignSequence = 0xAAAAAAAAAAAAAAAA;
+    foreignNonce  = 0xBBBBBBBBBBBBBBBB;
     //default value - can be overridden if desired
     foreignCaller = 0xCA11E2000CA11E200CA11E200CA11E200CA11E200CA11E200CA11E2000CA11E2;
 
@@ -134,10 +133,9 @@ contract WormholeCctpSimulator {
     (burnMsg, encodedCctpMessage, cctpAttestation) = _craftCctpTokenBurnMessage(amount);
 
     //craft the associated VAA
-    (, encodedVaa) = wormhole.craftVaa(
+    encodedVaa = wormhole.craftVaa(
       foreignChain,
       foreignSender,
-      foreignSequence++,
       WormholeCctpMessages.encodeDeposit(
         burnMsg.burnToken,
         amount,

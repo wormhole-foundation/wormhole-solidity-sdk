@@ -43,7 +43,7 @@ contract TokenToy is TokenSender, TokenReceiver {
     address _wormhole
   ) TokenBase(_wormholeRelayer, _bridge, _wormhole) {}
 
-  uint256 constant GAS_LIMIT = 250_000;
+  uint256 constant GAS_LIMIT = 400_000;
 
   function quoteCrossChainDeposit(
     uint16 targetChain
@@ -137,7 +137,7 @@ contract TokenToy is TokenSender, TokenReceiver {
   }
 }
 
-contract WormholeSDKTest is WormholeRelayerBasicTest {
+contract ForkTest is WormholeRelayerBasicTest {
   Toy toySource;
   Toy toyTarget;
   TokenToy tokenToySource;

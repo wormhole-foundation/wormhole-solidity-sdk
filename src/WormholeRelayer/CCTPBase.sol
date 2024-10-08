@@ -11,15 +11,12 @@ import "wormhole-sdk/Utils.sol";
 import "./Base.sol";
 
 library CCTPMessageLib {
-  // The second standardized key type is a CCTP Key
-  // representing a CCTP transfer of USDC
+  // The second standardized key type is a CCTP Key representing a CCTP transfer of USDC
   // (on the IWormholeRelayer interface)
 
   // Note - the default delivery provider only will relay CCTP transfers that were sent
   // in the same transaction that this message was emitted!
   // (This will always be the case if 'CCTPSender' is used)
-
-  uint8 constant CCTP_KEY_TYPE = 2;
 
   // encoded using abi.encodePacked(domain, nonce)
   struct CCTPKey {
@@ -117,10 +114,7 @@ abstract contract CCTPSender is CCTPBase {
       USDC,
       targetAddressBytes32
     );
-    return MessageKey(
-      CCTPMessageLib.CCTP_KEY_TYPE,
-      abi.encodePacked(getCCTPDomain(wormhole.chainId()), nonce)
-    );
+    return MessageKey(CCTP_KEY_TYPE, abi.encodePacked(getCCTPDomain(wormhole.chainId()), nonce));
   }
 
   // Publishes a CCTP transfer of 'amount' of USDC

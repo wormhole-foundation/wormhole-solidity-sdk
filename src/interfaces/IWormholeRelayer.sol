@@ -27,6 +27,7 @@ struct VaaKey {
 
 // 0-127 are reserved for standardized KeyTypes, 128-255 are for custom use
 uint8 constant VAA_KEY_TYPE = 1;
+uint8 constant CCTP_KEY_TYPE = 2;
 
 struct MessageKey {
   uint8 keyType; // 0-127 are reserved for standardized KeyTypes, 128-255 are for custom use
