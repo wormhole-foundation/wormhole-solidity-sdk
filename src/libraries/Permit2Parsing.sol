@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: Apache 2
 
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.4;
 
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 
-library Permit2Parsing {
+library PermitParsing {
   using BytesParsing for bytes;
 
   uint constant SIGNATURE_SIZE = 65;
 
-  function _parsePermit(
+  function asPermitCdUnchecked(
     bytes calldata params,
     uint offset
   ) internal pure returns (uint256, uint256, bytes32, bytes32, uint8, uint) {
@@ -26,7 +26,7 @@ library Permit2Parsing {
     return (value, deadline, r, s, v, offset);
   }
 
-  function _parsePermit2Permit(
+  function asPermit2PermitCdUnchecked(
     bytes calldata params,
     uint offset
   ) internal pure returns (uint160, uint48, uint48, uint256, bytes memory, uint) {
@@ -43,7 +43,7 @@ library Permit2Parsing {
     return (amount, expiration, nonce, sigDeadline, signature, offset);
   }
 
-  function _parsePermit2Transfer(
+  function asPermit2TransferCdUnchecked(
     bytes calldata params,
     uint offset
   ) internal pure returns (uint256, uint256, uint256, bytes memory, uint) {
