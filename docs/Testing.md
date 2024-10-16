@@ -36,7 +36,7 @@ However, `CctpOverride`, rather than providing generic signing and log parsing f
 
 ### WormholeCctpSimulator
 
-The `WormholeCctpSimulator` contract can be deployed to simulate a virtual `WormholeCctpTokenMessenger` instance on some made-up foreign chain. It uses `0xDDDDDDDD` as the circle domain of that chain, and also simulates virtual instances of Circle's TokenMessenger and USDC contract, which are correctly registered with the instances on the forked chain. The foreign Wormhole chain id and the address of the foregin sender can be set during construction. Uses `WormholeOverride` and `CctpOverride`.
+The `WormholeCctpSimulator` contract can be deployed to simulate a virtual `WormholeCctpTokenMessenger` instance on some made-up foreign chain. It uses `0xDDDDDDDD` as the circle domain of that chain, and also simulates virtual instances of Circle's TokenMessenger and USDC contract, which are correctly registered with the instances on the forked chain. The foreign Wormhole chain id and the address of the foreign sender can be set during construction. Uses `WormholeOverride` and `CctpOverride`.
 
 ### UsdcDealer
 
