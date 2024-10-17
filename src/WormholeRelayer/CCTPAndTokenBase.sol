@@ -105,10 +105,7 @@ abstract contract CCTPAndTokenSender is CCTPAndTokenBase {
       USDC,
       targetAddressBytes32
     );
-    return MessageKey(
-      CCTPMessageLib.CCTP_KEY_TYPE,
-      abi.encodePacked(getCCTPDomain(wormhole.chainId()), nonce)
-    );
+    return MessageKey(CCTP_KEY_TYPE, abi.encodePacked(getCCTPDomain(wormhole.chainId()), nonce));
   }
 
   // Publishes a CCTP transfer of 'amount' of USDC

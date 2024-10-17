@@ -5,6 +5,9 @@ import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 import {toUniversalAddress} from "wormhole-sdk/Utils.sol";
 
+//Message format emitted by WormholeCctpTokenMessenger
+//  Looks similar to the CCTP message format but is its own distinct format that goes into
+//    a VAA payload, and mirrors the information in the corresponding CCTP message.
 library WormholeCctpMessages {
   using { toUniversalAddress } for address;
   using BytesParsing for bytes;
@@ -24,39 +27,9 @@ library WormholeCctpMessages {
   uint8 private constant RESERVED_9  =  9;
   uint8 private constant RESERVED_10 = 10;
 
-  error MissingPayload();
   error PayloadTooLarge(uint256);
   error InvalidMessage();
 
-  /**
-   * @dev NOTE: This method encodes the Wormhole message payload assuming the payload ID == 1.
-   */
-  function encodeDeposit(
-    address token,
-    uint256 amount,
-    uint32 sourceCctpDomain,
-    uint32 targetCctpDomain,
-    uint64 cctpNonce,
-    bytes32 burnSource,
-    bytes32 mintRecipient,
-    bytes memory payload
-  ) internal pure returns (bytes memory encoded) {
-    encoded = encodeDeposit(
-      token.toUniversalAddress(),
-      DEPOSIT,
-      amount,
-      sourceCctpDomain,
-      targetCctpDomain,
-      cctpNonce,
-      burnSource,
-      mintRecipient,
-      payload
-    );
-  }
-
-  /**
-   * @dev NOTE: This method encodes the Wormhole message payload assuming the payload ID == 1.
-   */
   function encodeDeposit(
     bytes32 universalTokenAddress,
     uint256 amount,
@@ -67,62 +40,12 @@ library WormholeCctpMessages {
     bytes32 mintRecipient,
     bytes memory payload
   ) internal pure returns (bytes memory encoded) {
-    encoded = encodeDeposit(
-      universalTokenAddress,
-      DEPOSIT,
-      amount,
-      sourceCctpDomain,
-      targetCctpDomain,
-      cctpNonce,
-      burnSource,
-      mintRecipient,
-      payload
-    );
-  }
-
-  function encodeDeposit(
-    address token,
-    uint8 payloadId,
-    uint256 amount,
-    uint32 sourceCctpDomain,
-    uint32 targetCctpDomain,
-    uint64 cctpNonce,
-    bytes32 burnSource,
-    bytes32 mintRecipient,
-    bytes memory payload
-  ) internal pure returns (bytes memory encoded) {
-    encoded = encodeDeposit(
-      token.toUniversalAddress(),
-      payloadId,
-      amount,
-      sourceCctpDomain,
-      targetCctpDomain,
-      cctpNonce,
-      burnSource,
-      mintRecipient,
-      payload
-    );
-  }
-
-  function encodeDeposit(
-    bytes32 universalTokenAddress,
-    uint8 payloadId,
-    uint256 amount,
-    uint32 sourceCctpDomain,
-    uint32 targetCctpDomain,
-    uint64 cctpNonce,
-    bytes32 burnSource,
-    bytes32 mintRecipient,
-    bytes memory payload
-  ) internal pure returns (bytes memory encoded) {
-    uint256 payloadLen = payload.length;
-    if (payloadLen == 0)
-      revert MissingPayload();
-    else if (payloadLen > type(uint16).max)
+    uint payloadLen = payload.length;
+    if (payloadLen > type(uint16).max)
       revert PayloadTooLarge(payloadLen);
 
     encoded = abi.encodePacked(
-      payloadId,
+      DEPOSIT,
       universalTokenAddress,
       amount,
       sourceCctpDomain,
@@ -134,9 +57,11 @@ library WormholeCctpMessages {
       payload
     );
   }
-
-  // left in for backwards compatibility
-  function decodeDeposit(IWormhole.VM memory vaa) internal pure returns (
+  
+  function asDepositUnchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (
     bytes32 token,
     uint256 amount,
     uint32 sourceCctpDomain,
@@ -144,9 +69,53 @@ library WormholeCctpMessages {
     uint64 cctpNonce,
     bytes32 burnSource,
     bytes32 mintRecipient,
-    bytes memory payload
+    bytes memory payload,
+    uint newOffset
   ) {
-    return decodeDeposit(vaa.payload);
+    uint8 payloadId;
+    (payloadId,        offset) = encoded.asUint8Unchecked(offset);
+    if (payloadId != DEPOSIT)
+      revert InvalidMessage();
+
+    (token,            offset) = encoded.asBytes32Unchecked(offset);
+    (amount,           offset) = encoded.asUint256Unchecked(offset);
+    (sourceCctpDomain, offset) = encoded.asUint32Unchecked(offset);
+    (targetCctpDomain, offset) = encoded.asUint32Unchecked(offset);
+    (cctpNonce,        offset) = encoded.asUint64Unchecked(offset);
+    (burnSource,       offset) = encoded.asBytes32Unchecked(offset);
+    (mintRecipient,    offset) = encoded.asBytes32Unchecked(offset);
+    (payload,          offset) = encoded.sliceUint16PrefixedUnchecked(offset);
+    newOffset = offset;
+  }
+
+  function asDepositCdUnchecked(
+    bytes calldata encoded,
+    uint offset
+  ) internal pure returns (
+    bytes32 token,
+    uint256 amount,
+    uint32 sourceCctpDomain,
+    uint32 targetCctpDomain,
+    uint64 cctpNonce,
+    bytes32 burnSource,
+    bytes32 mintRecipient,
+    bytes memory payload,
+    uint newOffset
+  ) {
+    uint8 payloadId;
+    (payloadId,        offset) = encoded.asUint8CdUnchecked(offset);
+    if (payloadId != DEPOSIT)
+      revert InvalidMessage();
+
+    (token,            offset) = encoded.asBytes32CdUnchecked(offset);
+    (amount,           offset) = encoded.asUint256CdUnchecked(offset);
+    (sourceCctpDomain, offset) = encoded.asUint32CdUnchecked(offset);
+    (targetCctpDomain, offset) = encoded.asUint32CdUnchecked(offset);
+    (cctpNonce,        offset) = encoded.asUint64CdUnchecked(offset);
+    (burnSource,       offset) = encoded.asBytes32CdUnchecked(offset);
+    (mintRecipient,    offset) = encoded.asBytes32CdUnchecked(offset);
+    (payload,          offset) = encoded.sliceUint16PrefixedCdUnchecked(offset);
+    newOffset = offset;
   }
 
   function decodeDeposit(bytes memory encoded) internal pure returns (
@@ -159,31 +128,19 @@ library WormholeCctpMessages {
     bytes32 mintRecipient,
     bytes memory payload
   ) {
-    uint256 offset = _checkPayloadId(encoded, 0, DEPOSIT);
-
-    (token,            offset) = encoded.asBytes32Unchecked(offset);
-    (amount,           offset) = encoded.asUint256Unchecked(offset);
-    (sourceCctpDomain, offset) = encoded.asUint32Unchecked(offset);
-    (targetCctpDomain, offset) = encoded.asUint32Unchecked(offset);
-    (cctpNonce,        offset) = encoded.asUint64Unchecked(offset);
-    (burnSource,       offset) = encoded.asBytes32Unchecked(offset);
-    (mintRecipient,    offset) = encoded.asBytes32Unchecked(offset);
-    (payload,          offset) = encoded.sliceUint16PrefixedUnchecked(offset);
+    uint offset = 0;
+    (
+      token,
+      amount,
+      sourceCctpDomain,
+      targetCctpDomain,
+      cctpNonce,
+      burnSource,
+      mintRecipient,
+      payload,
+      offset
+    ) = asDepositUnchecked(encoded, offset);
 
     encoded.checkLength(offset);
-  }
-
-  // ---------------------------------------- private -------------------------------------------
-
-  function _checkPayloadId(
-    bytes memory encoded,
-    uint256 startOffset,
-    uint8 expectedPayloadId
-  ) private pure returns (uint256 offset) {
-    uint8 parsedPayloadId;
-    (parsedPayloadId, offset) = encoded.asUint8Unchecked(startOffset);
-
-    if (parsedPayloadId != expectedPayloadId)
-      revert InvalidMessage();
   }
 }

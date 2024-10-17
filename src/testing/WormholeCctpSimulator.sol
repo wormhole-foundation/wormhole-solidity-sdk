@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.19;
 
-//import "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 
 import "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol";
@@ -10,9 +9,9 @@ import "wormhole-sdk/interfaces/IWormhole.sol";
 import {WormholeCctpMessages} from "wormhole-sdk/libraries/WormholeCctpMessages.sol";
 import {toUniversalAddress} from "wormhole-sdk/Utils.sol";
 
-import {VM_ADDRESS} from "./Constants.sol";
-import "./CctpOverride.sol";
-import "./WormholeOverride.sol";
+import {VM_ADDRESS} from "wormhole-sdk/testing/Constants.sol";
+import "wormhole-sdk/testing/CctpOverride.sol";
+import "wormhole-sdk/testing/WormholeOverride.sol";
 
 //faked foreign call chain:
 //  foreignCaller -> foreignSender -> FOREIGN_TOKEN_MESSENGER -> foreign MessageTransmitter
@@ -62,7 +61,8 @@ contract WormholeCctpSimulator {
     uint16 foreignChain_,
     bytes32 foreignSender_, //contract that invokes the core bridge and calls depositForBurn
     address mintRecipient_,
-    address usdc
+    address usdc,
+    bool skipOverrideSetup
   ) {
     wormhole           = wormhole_;
     tokenMessenger     = ITokenMessenger(tokenMessenger_);
@@ -72,11 +72,12 @@ contract WormholeCctpSimulator {
     destinationCaller  = mintRecipient;
     messageTransmitter = tokenMessenger.localMessageTransmitter();
 
-    wormhole.setUpOverride();
-    messageTransmitter.setUpOverride();
+    if (!skipOverrideSetup) {
+      wormhole.setUpOverride();
+      messageTransmitter.setUpOverride();
+    }
 
-    foreignNonce    = 0xBBBBBBBBBBBBBBBB;
-    foreignSequence = 0xAAAAAAAAAAAAAAAA;
+    foreignNonce  = 0xBBBBBBBBBBBBBBBB;
     //default value - can be overridden if desired
     foreignCaller = 0xCA11E2000CA11E200CA11E200CA11E200CA11E200CA11E200CA11E2000CA11E2;
 
@@ -134,10 +135,9 @@ contract WormholeCctpSimulator {
     (burnMsg, encodedCctpMessage, cctpAttestation) = _craftCctpTokenBurnMessage(amount);
 
     //craft the associated VAA
-    (, encodedVaa) = wormhole.craftVaa(
+    encodedVaa = wormhole.craftVaa(
       foreignChain,
       foreignSender,
-      foreignSequence++,
       WormholeCctpMessages.encodeDeposit(
         burnMsg.burnToken,
         amount,
