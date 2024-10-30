@@ -3,11 +3,11 @@
 pragma solidity ^0.8.4;
 
 import "forge-std/Test.sol";
-import "wormhole-sdk/testing/helpers/QueryTest.sol";
+import "wormhole-sdk/testing/QueryRequestBuilder.sol";
 
 contract QueryRequestTest is Test {
   function test_buildOffChainQueryRequestBytes() public {
-    bytes memory req = QueryTest.buildOffChainQueryRequestBytes(
+    bytes memory req = QueryRequestBuilder.buildOffChainQueryRequestBytes(
       /* version */            1,
       /* nonce */              1,
       /* numPerChainQueries */ 1,
@@ -17,7 +17,7 @@ contract QueryRequestTest is Test {
   }
 
   function test_buildPerChainRequestBytes() public {
-    bytes memory pcr = QueryTest.buildPerChainRequestBytes(
+    bytes memory pcr = QueryRequestBuilder.buildPerChainRequestBytes(
       /* chainId */    2,
       /* queryType */  1,
       /* queryBytes */ hex"00000005307837343402ddb64fe46a91d46ee29420539fc25fd07c5fea3e0000000406fdde03ddb64fe46a91d46ee29420539fc25fd07c5fea3e00000004313ce567"
@@ -26,7 +26,7 @@ contract QueryRequestTest is Test {
   }
 
   function test_buildEthCallRequestBytes() public {
-    bytes memory ecr = QueryTest.buildEthCallRequestBytes(
+    bytes memory ecr = QueryRequestBuilder.buildEthCallRequestBytes(
       /* blockId */     "0x744",
       /* numCallData */ 2,
       /* callData */    hex"ddb64fe46a91d46ee29420539fc25fd07c5fea3e0000000406fdde03ddb64fe46a91d46ee29420539fc25fd07c5fea3e00000004313ce567"
@@ -35,7 +35,7 @@ contract QueryRequestTest is Test {
   }
 
   function test_buildEthCallByTimestampRequestBytes() public {
-    bytes memory ecr = QueryTest.buildEthCallByTimestampRequestBytes(
+    bytes memory ecr = QueryRequestBuilder.buildEthCallByTimestampRequestBytes(
       /* targetTimeUs */       0x10642ac0,
       /* targetBlockHint */    "0x15d",
       /* followingBlockHint */ "0x15e",
@@ -46,7 +46,7 @@ contract QueryRequestTest is Test {
   }
 
   function test_buildEthCallWithFinalityRequestBytes() public {
-    bytes memory ecr = QueryTest.buildEthCallWithFinalityRequestBytes(
+    bytes memory ecr = QueryRequestBuilder.buildEthCallWithFinalityRequestBytes(
       /* blockId */     "0x1f8",
       /* finality */    "finalized",
       /* numCallData */ 2,
@@ -56,12 +56,12 @@ contract QueryRequestTest is Test {
   }
 
   function test_buildEthCallRecordBytes() public {
-    bytes memory ecd1 = QueryTest.buildEthCallRecordBytes(
+    bytes memory ecd1 = QueryRequestBuilder.buildEthCallRecordBytes(
       /* contractAddress */ 0xDDb64fE46a91D46ee29420539FC25FD07c5FEa3E,
       /* callData */        hex"06fdde03"
     );
     assertEq(ecd1, hex"ddb64fe46a91d46ee29420539fc25fd07c5fea3e0000000406fdde03");
-    bytes memory ecd2 = QueryTest.buildEthCallRecordBytes(
+    bytes memory ecd2 = QueryRequestBuilder.buildEthCallRecordBytes(
       /* contractAddress */ 0xDDb64fE46a91D46ee29420539FC25FD07c5FEa3E,
       /* callData */        hex"313ce567"
     );
@@ -69,7 +69,7 @@ contract QueryRequestTest is Test {
   }
 
   function test_buildSolanaAccountRequestBytes() public {
-    bytes memory ecr = QueryTest.buildSolanaAccountRequestBytes(
+    bytes memory ecr = QueryRequestBuilder.buildSolanaAccountRequestBytes(
       /* commitment */      "finalized",
       /* minContextSlot */  8069,
       /* dataSliceOffset */ 10,
@@ -87,10 +87,10 @@ contract QueryRequestTest is Test {
     bytes[] memory seeds = new bytes[](2);
     seeds[0] = hex"477561726469616e536574";
     seeds[1] = hex"00000000";
-    (bytes memory seedBytes, uint8 numSeeds) = QueryTest.buildSolanaPdaSeedBytes(seeds);
+    (bytes memory seedBytes, uint8 numSeeds) = QueryRequestBuilder.buildSolanaPdaSeedBytes(seeds);
     assertEq(seedBytes, hex"0000000b477561726469616e5365740000000400000000");
 
-    pdas[0] = QueryTest.buildSolanaPdaEntry(
+    pdas[0] = QueryRequestBuilder.buildSolanaPdaEntry(
       programId,
       numSeeds,
       seedBytes
@@ -101,10 +101,10 @@ contract QueryRequestTest is Test {
     bytes[] memory seeds2 = new bytes[](2);
     seeds2[0] = hex"477561726469616e536574";
     seeds2[1] = hex"00000001";
-    (bytes memory seedBytes2, uint8 numSeeds2) = QueryTest.buildSolanaPdaSeedBytes(seeds2);
+    (bytes memory seedBytes2, uint8 numSeeds2) = QueryRequestBuilder.buildSolanaPdaSeedBytes(seeds2);
     assertEq(seedBytes2, hex"0000000b477561726469616e5365740000000400000001");
 
-    pdas[1] = QueryTest.buildSolanaPdaEntry(
+    pdas[1] = QueryRequestBuilder.buildSolanaPdaEntry(
       programId,
       numSeeds2,
       seedBytes2
@@ -112,7 +112,7 @@ contract QueryRequestTest is Test {
     assertEq(pdas[1], hex"02c806312cbe5b79ef8aa6c17e3f423d8fdfe1d46909fb1f6cdf65ee8e2e6faa020000000b477561726469616e5365740000000400000001");
     assertEq(numSeeds2, uint8(seeds2.length));
 
-    bytes memory ecr = QueryTest.buildSolanaPdaRequestBytes(
+    bytes memory ecr = QueryRequestBuilder.buildSolanaPdaRequestBytes(
       /* commitment */      "finalized",
       /* minContextSlot */  2303,
       /* dataSliceOffset */ 12,
@@ -127,23 +127,21 @@ contract QueryRequestTest is Test {
     bytes[] memory pdas = new bytes[](256);
 
     uint numPDAs = pdas.length;
-    for (uint idx; idx < numPDAs;) {
+    for (uint idx; idx < numPDAs; ++idx) {
       bytes[] memory seeds = new bytes[](2);
       seeds[0] = hex"477561726469616e536574";
       seeds[1] = hex"00000000";
-      (bytes memory seedBytes, uint8 numSeeds) = QueryTest.buildSolanaPdaSeedBytes(seeds);
+      (bytes memory seedBytes, uint8 numSeeds) = QueryRequestBuilder.buildSolanaPdaSeedBytes(seeds);
 
-      pdas[idx] = QueryTest.buildSolanaPdaEntry(
+      pdas[idx] = QueryRequestBuilder.buildSolanaPdaEntry(
         programId,
         numSeeds,
         seedBytes
       );
-
-      unchecked { ++idx; }
     }
 
-    vm.expectRevert(QueryTest.SolanaTooManyPDAs.selector);
-    QueryTest.buildSolanaPdaRequestBytes(
+    vm.expectRevert(QueryRequestBuilder.SolanaTooManyPDAs.selector);
+    QueryRequestBuilder.buildSolanaPdaRequestBytes(
       /* commitment */      "finalized",
       /* minContextSlot */  2303,
       /* dataSliceOffset */ 12,
@@ -156,29 +154,27 @@ contract QueryRequestTest is Test {
     bytes[] memory seeds = new bytes[](2);
     seeds[0] = hex"477561726469616e536574";
     seeds[1] = hex"00000000";
-    (bytes memory seedBytes,) = QueryTest.buildSolanaPdaSeedBytes(seeds);
+    (bytes memory seedBytes,) = QueryRequestBuilder.buildSolanaPdaSeedBytes(seeds);
     assertEq(seedBytes, hex"0000000b477561726469616e5365740000000400000000");
 
     bytes32 programId = hex"02c806312cbe5b79ef8aa6c17e3f423d8fdfe1d46909fb1f6cdf65ee8e2e6faa";
 
-    vm.expectRevert(QueryTest.SolanaTooManySeeds.selector);
-    QueryTest.buildSolanaPdaEntry(
+    vm.expectRevert(QueryRequestBuilder.SolanaTooManySeeds.selector);
+    QueryRequestBuilder.buildSolanaPdaEntry(
       programId,
-      uint8(QueryTest.SOLANA_MAX_SEEDS + 1),
+      uint8(QueryRequestBuilder.SOLANA_MAX_SEEDS + 1),
       seedBytes
     );
   }
 
   function test_buildSolanaPdaSeedBytesTooManySeeds() public {
-    bytes[] memory seeds = new bytes[](QueryTest.SOLANA_MAX_SEEDS + 1);
+    bytes[] memory seeds = new bytes[](QueryRequestBuilder.SOLANA_MAX_SEEDS + 1);
     uint numSeeds = seeds.length;
-    for (uint idx; idx < numSeeds;) {
+    for (uint idx; idx < numSeeds; ++idx)
       seeds[idx] = "junk";
-      unchecked { ++idx; }
-    }
 
-    vm.expectRevert(QueryTest.SolanaTooManySeeds.selector);
-    QueryTest.buildSolanaPdaSeedBytes(seeds);
+    vm.expectRevert(QueryRequestBuilder.SolanaTooManySeeds.selector);
+    QueryRequestBuilder.buildSolanaPdaSeedBytes(seeds);
   }
 
   function test_buildSolanaPdaSeedBytesSeedTooLong() public {
@@ -186,14 +182,14 @@ contract QueryRequestTest is Test {
     seeds[0] = "junk";
     seeds[1] = "This seed is too long!!!!!!!!!!!!";
 
-    vm.expectRevert(QueryTest.SolanaSeedTooLong.selector);
-    QueryTest.buildSolanaPdaSeedBytes(seeds);
+    vm.expectRevert(QueryRequestBuilder.SolanaSeedTooLong.selector);
+    QueryRequestBuilder.buildSolanaPdaSeedBytes(seeds);
   }
 }
 
 contract QueryResponseTest is Test {
   function test_buildQueryResponseBytes() public {
-    bytes memory resp = QueryTest.buildQueryResponseBytes(
+    bytes memory resp = QueryRequestBuilder.buildQueryResponseBytes(
       /* version */              1,
       /* senderChainId */        0,
       /* signature */            hex"11b03bdbbe15a8f12b803d2193de5ddff72d92eaabd2763553ec3c3133182d1443719a05e2b65c87b923c6bd8aeff49f34937f90f3ab7cd33449388c60fa30a301",
@@ -205,7 +201,7 @@ contract QueryResponseTest is Test {
   }
 
   function test_buildPerChainResponseBytes() public {
-    bytes memory pcr = QueryTest.buildPerChainResponseBytes(
+    bytes memory pcr = QueryRequestBuilder.buildPerChainResponseBytes(
       /* chainId */       2,
       /* queryType */     1,
       /* responseBytes */ hex"00000000000007446a0b819aee8945e659e37537a0bdbe03c06275be23e499819138d1eee8337e9b000000006ab13b8002000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d5772617070656420457468657200000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000012"
@@ -214,7 +210,7 @@ contract QueryResponseTest is Test {
   }
 
   function test_buildEthCallResponseBytes() public {
-    bytes memory ecr = QueryTest.buildEthCallResponseBytes(
+    bytes memory ecr = QueryRequestBuilder.buildEthCallResponseBytes(
       /* blockNumber */ 1860,
       /* blockHash */   hex"6a0b819aee8945e659e37537a0bdbe03c06275be23e499819138d1eee8337e9b",
       /* blockTimeUs */ 0x6ab13b80,
@@ -225,7 +221,7 @@ contract QueryResponseTest is Test {
   }
 
   function test_buildEthCallByTimestampResponseBytes() public {
-    bytes memory ecr = QueryTest.buildEthCallByTimestampResponseBytes(
+    bytes memory ecr = QueryRequestBuilder.buildEthCallByTimestampResponseBytes(
       /* targetBlockNumber */    349,
       /* targetBlockHash */      hex"966cd846f812be43c4ee2d310f962bc592ba944c66de878e53584b8e75c6051f",
       /* targetBlockTimeUs */    0x10642ac0,
@@ -239,7 +235,7 @@ contract QueryResponseTest is Test {
   }
 
   function test_buildEthCallWithFinalityResponseBytes() public {
-    bytes memory ecr = QueryTest.buildEthCallWithFinalityResponseBytes(
+    bytes memory ecr = QueryRequestBuilder.buildEthCallWithFinalityResponseBytes(
       /* blockNumber */ 1860,
       /* blockHash */   hex"6a0b819aee8945e659e37537a0bdbe03c06275be23e499819138d1eee8337e9b",
       /* blockTimeUs */ 0x6ab13b80,
@@ -250,18 +246,18 @@ contract QueryResponseTest is Test {
   }
 
   function test_buildEthCallResultBytes() public {
-    bytes memory ecr1 = QueryTest.buildEthCallResultBytes(
+    bytes memory ecr1 = QueryRequestBuilder.buildEthCallResultBytes(
       /* result */  hex"0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d5772617070656420457468657200000000000000000000000000000000000000"
     );
     assertEq(ecr1, hex"000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d5772617070656420457468657200000000000000000000000000000000000000");
-    bytes memory ecr2 = QueryTest.buildEthCallResultBytes(
+    bytes memory ecr2 = QueryRequestBuilder.buildEthCallResultBytes(
       /* result */  hex"0000000000000000000000000000000000000000000000000000000000000012"
     );
     assertEq(ecr2, hex"000000200000000000000000000000000000000000000000000000000000000000000012");
   }
 
   function test_buildSolanaAccountResponseBytes() public {
-    bytes memory ecr = QueryTest.buildSolanaAccountResponseBytes(
+    bytes memory ecr = QueryRequestBuilder.buildSolanaAccountResponseBytes(
       /* slotNumber */  5603,
       /* blockTimeUs */ 0x610cdf2510500,
       /* blockHash */   hex"e0eca895a92c0347e30538cd07c50777440de58e896dd13ff86ef0dae3e12552",
@@ -272,7 +268,7 @@ contract QueryResponseTest is Test {
   }
 
   function test_buildSolanaPdaResponseBytes() public {
-    bytes memory ecr = QueryTest.buildSolanaPdaResponseBytes(
+    bytes memory ecr = QueryRequestBuilder.buildSolanaPdaResponseBytes(
       /* slotNumber */  2303,
       /* blockTimeUs */ 0x6115e3f6d7540,
       /* blockHash */   hex"e05035785e15056a8559815e71343ce31db2abf23f65b19c982b68aee7bf207b",

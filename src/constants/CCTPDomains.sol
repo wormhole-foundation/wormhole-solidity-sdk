@@ -10,6 +10,7 @@ uint32 constant CCTP_DOMAIN_ARBITRUM = 3;
 uint32 constant CCTP_DOMAIN_SOLANA = 5;
 uint32 constant CCTP_DOMAIN_BASE = 6;
 uint32 constant CCTP_DOMAIN_POLYGON = 7;
+uint32 constant CCTP_DOMAIN_SUI = 8;
 
 // Additional Testnet mappings:
 uint32 constant CCTP_DOMAIN_SEPOLIA = 0;

@@ -18,4 +18,4 @@ remappings = [
   "IERC20/=src/interfaces/token/",
 ]
 
-# See more config options https://github.com/foundry-rs/foundry/tree/master/config
+verbosity = 3

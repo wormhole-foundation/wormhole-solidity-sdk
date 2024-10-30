@@ -3,7 +3,7 @@
 pragma solidity ^0.8.4;
 
 //build Cross Chain Query (CCQ) responses for testing purposes.
-library QueryTest {
+library QueryRequestBuilder {
   error SolanaTooManyPDAs();
   error SolanaTooManySeeds();
   error SolanaSeedTooLong();
@@ -23,12 +23,12 @@ library QueryTest {
     uint32 nonce,
     uint8 numPerChainQueries,
     bytes memory perChainQueries
-  ) internal pure returns (bytes memory){
+  ) internal pure returns (bytes memory) {
     return abi.encodePacked(
       version,
       nonce,
       numPerChainQueries,
-      perChainQueries // Each created by buildPerChainRequestBytes()
+      perChainQueries //Each created by buildPerChainRequestBytes()
     );
   }
 
@@ -36,15 +36,15 @@ library QueryTest {
     uint16 chainId,
     uint8 queryType,
     bytes memory queryBytes
-  ) internal pure returns (bytes memory){
+  ) internal pure returns (bytes memory) {
     return abi.encodePacked(chainId, queryType, uint32(queryBytes.length), queryBytes);
   }
 
   function buildEthCallRequestBytes(
     bytes memory blockId,
     uint8 numCallData,
-    bytes memory callData // Created with buildEthCallRecordBytes()
-  ) internal pure returns (bytes memory){
+    bytes memory callData //Created with buildEthCallRecordBytes()
+  ) internal pure returns (bytes memory) {
     return abi.encodePacked(uint32(blockId.length), blockId, numCallData, callData);
   }
 
@@ -53,8 +53,8 @@ library QueryTest {
     bytes memory targetBlockHint,
     bytes memory followingBlockHint,
     uint8 numCallData,
-    bytes memory callData // Created with buildEthCallRecordBytes()
-  ) internal pure returns (bytes memory){
+    bytes memory callData //Created with buildEthCallRecordBytes()
+  ) internal pure returns (bytes memory) {
     return abi.encodePacked(
       targetTimeUs,
       uint32(targetBlockHint.length),
@@ -70,8 +70,8 @@ library QueryTest {
     bytes memory blockId,
     bytes memory finality,
     uint8 numCallData,
-    bytes memory callData // Created with buildEthCallRecordBytes()
-  ) internal pure returns (bytes memory){
+    bytes memory callData //Created with buildEthCallRecordBytes()
+  ) internal pure returns (bytes memory) {
     return abi.encodePacked(
       uint32(blockId.length),
       blockId,
@@ -85,7 +85,7 @@ library QueryTest {
   function buildEthCallRecordBytes(
     address contractAddress,
     bytes memory callData
-  ) internal pure returns (bytes memory){
+  ) internal pure returns (bytes memory) {
     return abi.encodePacked(contractAddress, uint32(callData.length), callData);
   }
 
@@ -95,8 +95,8 @@ library QueryTest {
     uint64 dataSliceOffset,
     uint64 dataSliceLength,
     uint8 numAccounts,
-    bytes memory accounts // Each account is 32 bytes.
-  ) internal pure returns (bytes memory){
+    bytes memory accounts //Each account is 32 bytes.
+  ) internal pure returns (bytes memory) {
     return abi.encodePacked(
       uint32(commitment.length),
       commitment,
@@ -113,8 +113,8 @@ library QueryTest {
     uint64 minContextSlot,
     uint64 dataSliceOffset,
     uint64 dataSliceLength,
-    bytes[] memory pdas // Created with multiple calls to buildSolanaPdaEntry()
-  ) internal pure returns (bytes memory){
+    bytes[] memory pdas //Created with multiple calls to buildSolanaPdaEntry()
+  ) internal pure returns (bytes memory) {
     uint numPdas = pdas.length;
     if (numPdas > type(uint8).max)
       revert SolanaTooManyPDAs();
@@ -128,11 +128,8 @@ library QueryTest {
       uint8(numPdas)
     );
 
-    for (uint idx; idx < numPdas;) {
+    for (uint idx; idx < numPdas; ++idx)
       result = abi.encodePacked(result, pdas[idx]);
-
-      unchecked { ++idx; }
-    }
 
     return result;
   }
@@ -140,8 +137,8 @@ library QueryTest {
   function buildSolanaPdaEntry(
     bytes32 programId,
     uint8 numSeeds,
-    bytes memory seeds // Created with buildSolanaPdaSeedBytes()
-  ) internal pure returns (bytes memory){
+    bytes memory seeds //Created with buildSolanaPdaSeedBytes()
+  ) internal pure returns (bytes memory) {
     if (numSeeds > SOLANA_MAX_SEEDS)
       revert SolanaTooManySeeds();
 
@@ -151,21 +148,18 @@ library QueryTest {
   //packs the seeds for a PDA entry into an array of bytes.
   function buildSolanaPdaSeedBytes(
     bytes[] memory seeds
-  ) internal pure returns (bytes memory, uint8){
+  ) internal pure returns (bytes memory, uint8) {
     uint numSeeds = seeds.length;
     if (numSeeds > SOLANA_MAX_SEEDS)
       revert SolanaTooManySeeds();
 
     bytes memory result;
-
-    for (uint idx; idx < numSeeds;) {
+    for (uint idx; idx < numSeeds; ++idx) {
       uint seedLen = seeds[idx].length;
       if (seedLen > SOLANA_MAX_SEED_LEN)
         revert SolanaSeedTooLong();
 
       result = abi.encodePacked(result, abi.encodePacked(uint32(seedLen), seeds[idx]));
-
-      unchecked { ++idx; }
     }
 
     return (result, uint8(numSeeds));
@@ -180,7 +174,7 @@ library QueryTest {
     bytes memory queryRequest,
     uint8 numPerChainResponses,
     bytes memory perChainResponses
-  ) internal pure returns (bytes memory){
+  ) internal pure returns (bytes memory) {
     return abi.encodePacked(
       version,
       senderChainId,
@@ -188,7 +182,7 @@ library QueryTest {
       uint32(queryRequest.length),
       queryRequest,
       numPerChainResponses,
-      perChainResponses // Each created by buildPerChainResponseBytes()
+      perChainResponses //Each created by buildPerChainResponseBytes()
     );
   }
 
@@ -196,7 +190,7 @@ library QueryTest {
     uint16 chainId,
     uint8 queryType,
     bytes memory responseBytes
-  ) internal pure returns (bytes memory){
+  ) internal pure returns (bytes memory) {
     return abi.encodePacked(chainId, queryType, uint32(responseBytes.length), responseBytes);
   }
 
@@ -205,8 +199,8 @@ library QueryTest {
     bytes32 blockHash,
     uint64 blockTimeUs,
     uint8 numResults,
-    bytes memory results // Created with buildEthCallResultBytes()
-  ) internal pure returns (bytes memory){
+    bytes memory results //Created with buildEthCallResultBytes()
+  ) internal pure returns (bytes memory) {
     return abi.encodePacked(blockNumber, blockHash, blockTimeUs, numResults, results);
   }
 
@@ -218,8 +212,8 @@ library QueryTest {
     bytes32 followingBlockHash,
     uint64 followingBlockTimeUs,
     uint8 numResults,
-    bytes memory results // Created with buildEthCallResultBytes()
-  ) internal pure returns (bytes memory){
+    bytes memory results //Created with buildEthCallResultBytes()
+  ) internal pure returns (bytes memory) {
     return abi.encodePacked(
       targetBlockNumber,
       targetBlockHash,
@@ -238,8 +232,8 @@ library QueryTest {
     bytes32 blockHash,
     uint64 blockTimeUs,
     uint8 numResults,
-    bytes memory results // Created with buildEthCallResultBytes()
-  ) internal pure returns (bytes memory){
+    bytes memory results //Created with buildEthCallResultBytes()
+  ) internal pure returns (bytes memory) {
     return abi.encodePacked(blockNumber, blockHash, blockTimeUs, numResults, results);
   }
 
@@ -254,8 +248,8 @@ library QueryTest {
     uint64 blockTimeUs,
     bytes32 blockHash,
     uint8 numResults,
-    bytes memory results // Created with buildEthCallResultBytes()
-  ) internal pure returns (bytes memory){
+    bytes memory results //Created with buildEthCallResultBytes()
+  ) internal pure returns (bytes memory) {
     return abi.encodePacked(slotNumber, blockTimeUs, blockHash, numResults, results);
   }
 
@@ -264,8 +258,8 @@ library QueryTest {
     uint64 blockTimeUs,
     bytes32 blockHash,
     uint8 numResults,
-    bytes memory results // Created with buildEthCallResultBytes()
-  ) internal pure returns (bytes memory){
+    bytes memory results //Created with buildEthCallResultBytes()
+  ) internal pure returns (bytes memory) {
     return abi.encodePacked(slotNumber, blockTimeUs, blockHash, numResults, results);
   }
 }

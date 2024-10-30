@@ -11,11 +11,11 @@ import {toUniversalAddress, fromUniversalAddress} from "wormhole-sdk/Utils.sol";
 import "wormhole-sdk/libraries/BytesParsing.sol";
 import {CCTPMessageLib} from "wormhole-sdk/WormholeRelayer/CCTPBase.sol";
 
-import {VM_ADDRESS} from "../Constants.sol";
-import "../WormholeOverride.sol";
-import "../CctpOverride.sol";
-import "./DeliveryInstructionDecoder.sol";
-import "./ExecutionParameters.sol";
+import {VM_ADDRESS} from "wormhole-sdk/testing/Constants.sol";
+import "wormhole-sdk/testing/WormholeOverride.sol";
+import "wormhole-sdk/testing/CctpOverride.sol";
+import "wormhole-sdk/testing/WormholeRelayer/DeliveryInstructionDecoder.sol";
+import "wormhole-sdk/testing/WormholeRelayer/ExecutionParameters.sol";
 
 using BytesParsing for bytes;
 

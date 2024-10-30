@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.4;
 
-import {BytesParsing} from "./libraries/BytesParsing.sol";
-import {IWormhole} from "./interfaces/IWormhole.sol";
+import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
+import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 
 error UnsupportedQueryType(uint8 received);
 
@@ -160,6 +160,7 @@ library QueryResponseLib {
     return keccak256(abi.encodePacked(RESPONSE_PREFIX, keccak256(response)));
   }
 
+  //TODO add calldata impl? (duplicated code but better gas efficiency)
   function parseAndVerifyQueryResponse(
     address wormhole,
     bytes memory response,
@@ -173,6 +174,14 @@ library QueryResponseLib {
     address wormhole,
     bytes memory response,
     IWormhole.Signature[] memory signatures
+  ) internal view {
+    verifyQueryResponse(wormhole, calcPrefixedResponseHash(response), signatures);
+  }
+
+  function verifyQueryResponse(
+    address wormhole,
+    bytes32 prefixedResponseHash,
+    IWormhole.Signature[] memory signatures
   ) internal view { unchecked {
     IWormhole wormhole_ = IWormhole(wormhole);
     uint32 guardianSetIndex = wormhole_.getCurrentGuardianSetIndex();
@@ -182,7 +191,7 @@ library QueryResponseLib {
       uint quorum = guardianSet.keys.length * 2 / 3 + 1;
       if (signatures.length >= quorum) {
         (bool signaturesValid, ) =
-          wormhole_.verifySignatures(calcPrefixedResponseHash(response), signatures, guardianSet);
+          wormhole_.verifySignatures(prefixedResponseHash, signatures, guardianSet);
         if (signaturesValid)
           return;
       }
@@ -268,7 +277,7 @@ library QueryResponseLib {
     if (startOfResponse != reqOff)
       revert InvalidPayloadLength(startOfResponse, reqOff);
 
-    checkLength(response, respOff);
+    _checkLength(response, respOff);
     return ret;
   }}
 
@@ -304,8 +313,8 @@ library QueryResponseLib {
       (ret.results[i].result, respOff) = pcr.response.sliceUint32PrefixedUnchecked(respOff);
     }
 
-    checkLength(pcr.request, reqOff);
-    checkLength(pcr.response, respOff);
+    _checkLength(pcr.request, reqOff);
+    _checkLength(pcr.response, respOff);
     return ret;
   }}
 
@@ -346,8 +355,8 @@ library QueryResponseLib {
       (ret.results[i].result, respOff) = pcr.response.sliceUint32PrefixedUnchecked(respOff);
     }
 
-    checkLength(pcr.request, reqOff);
-    checkLength(pcr.response, respOff);
+    _checkLength(pcr.request, reqOff);
+    _checkLength(pcr.response, respOff);
   }}
 
   function parseEthCallWithFinalityQueryResponse(
@@ -383,8 +392,8 @@ library QueryResponseLib {
       (ret.results[i].result, respOff) = pcr.response.sliceUint32PrefixedUnchecked(respOff);
     }
 
-    checkLength(pcr.request, reqOff);
-    checkLength(pcr.response, respOff);
+    _checkLength(pcr.request, reqOff);
+    _checkLength(pcr.response, respOff);
   }}
 
   function parseSolanaAccountQueryResponse(
@@ -425,8 +434,8 @@ library QueryResponseLib {
       (ret.results[i].data,       respOff) = pcr.response.sliceUint32PrefixedUnchecked(respOff);
     }
 
-    checkLength(pcr.request, reqOff);
-    checkLength(pcr.response, respOff);
+    _checkLength(pcr.request, reqOff);
+    _checkLength(pcr.response, respOff);
   }}
 
   function parseSolanaPdaQueryResponse(
@@ -476,8 +485,8 @@ library QueryResponseLib {
       (ret.results[i].data,       respOff) = pcr.response.sliceUint32PrefixedUnchecked(respOff);
     }
 
-    checkLength(pcr.request, reqOff);
-    checkLength(pcr.response, respOff);
+    _checkLength(pcr.request, reqOff);
+    _checkLength(pcr.response, respOff);
   }}
 
   function validateBlockTime(
@@ -536,20 +545,20 @@ library QueryResponseLib {
     EthCallRecord memory ecd,
     address[] memory validContractAddresses, //empty array means accept all
     bytes4[] memory validFunctionSignatures  //empty array means accept all
-  ) internal pure { unchecked {
+  ) internal pure {
     if (validContractAddresses.length > 0)
-      validateContractAddress(ecd.contractAddress, validContractAddresses);
+      _validateContractAddress(ecd.contractAddress, validContractAddresses);
 
     if (validFunctionSignatures.length > 0) {
       if (ecd.callData.length < 4)
         revert InvalidFunctionSignature();
 
-      (bytes4 funcSig, uint offset) = ecd.callData.asBytes4Unchecked(0);
-      validateFunctionSignature(funcSig, validFunctionSignatures);
+      (bytes4 funcSig, ) = ecd.callData.asBytes4Unchecked(0);
+      _validateFunctionSignature(funcSig, validFunctionSignatures);
     }
-  }}
+  }
 
-  function validateContractAddress(
+  function _validateContractAddress(
     address contractAddress,
     address[] memory validContractAddresses
   ) private pure { unchecked {
@@ -561,7 +570,7 @@ library QueryResponseLib {
     revert InvalidContractAddress();
   }}
 
-  function validateFunctionSignature(
+  function _validateFunctionSignature(
     bytes4 functionSignature,
     bytes4[] memory validFunctionSignatures
   ) private pure { unchecked {
@@ -574,9 +583,8 @@ library QueryResponseLib {
   }}
 
   //we use this over BytesParsing.checkLength to return our custom errors in all error cases
-  function checkLength(bytes memory encoded, uint256 expected) private pure {
+  function _checkLength(bytes memory encoded, uint256 expected) private pure {
     if (encoded.length != expected)
       revert InvalidPayloadLength(encoded.length, expected);
   }
 }
-

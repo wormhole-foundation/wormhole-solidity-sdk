@@ -1,108 +1,18 @@
 // SPDX-License-Identifier: Apache 2
 
-// forge test --match-contract QueryResponse
-
 pragma solidity ^0.8.4;
 
-import "../src/QueryResponse.sol";
 import "forge-std/Test.sol";
-import "../src/testing/helpers/QueryTest.sol";
-import {WormholeMock} from "../src/testing/helpers/WormholeMock.sol";
 
-//wrap library to allow testing via vm.expectRevert
-contract QueryResponseLibWrapper {
-  function calcPrefixedResponseHash(bytes memory response) external pure returns (bytes32) {
-    return QueryResponseLib.calcPrefixedResponseHash(response);
-  }
 
-  function parseAndVerifyQueryResponse(
-    address wormhole,
-    bytes memory response,
-    IWormhole.Signature[] memory signatures
-  ) external view returns (QueryResponse memory ret) {
-    return QueryResponseLib.parseAndVerifyQueryResponse(wormhole, response, signatures);
-  }
+import "wormhole-sdk/libraries/QueryResponse.sol";
+import "wormhole-sdk/testing/QueryRequestBuilder.sol";
+import "wormhole-sdk/testing/WormholeOverride.sol";
+import "./generated/QueryResponseTestWrapper.sol";
 
-  function verifyQueryResponse(
-    address wormhole,
-    bytes memory response,
-    IWormhole.Signature[] memory signatures
-  ) external view {
-    return QueryResponseLib.verifyQueryResponse(wormhole, response, signatures);
-  }
+contract QueryResponseTest is Test {
+  using AdvancedWormholeOverride for IWormhole;
 
-  function parseQueryResponse(
-    bytes memory response
-  ) external pure returns (QueryResponse memory ret) {
-    return QueryResponseLib.parseQueryResponse(response);
-  }
-
-  function parseEthCallQueryResponse(
-    PerChainQueryResponse memory pcr
-  ) external pure returns (EthCallQueryResponse memory ret) {
-    return QueryResponseLib.parseEthCallQueryResponse(pcr);
-  }
-
-  function parseEthCallByTimestampQueryResponse(
-    PerChainQueryResponse memory pcr
-  ) external pure returns (EthCallByTimestampQueryResponse memory ret) {
-    return QueryResponseLib.parseEthCallByTimestampQueryResponse(pcr);
-  }
-
-  function parseEthCallWithFinalityQueryResponse(
-    PerChainQueryResponse memory pcr
-  ) external pure returns (EthCallWithFinalityQueryResponse memory ret) {
-    return QueryResponseLib.parseEthCallWithFinalityQueryResponse(pcr);
-  }
-
-  function parseSolanaAccountQueryResponse(
-    PerChainQueryResponse memory pcr
-  ) external pure returns (SolanaAccountQueryResponse memory ret) {
-    return QueryResponseLib.parseSolanaAccountQueryResponse(pcr);
-  }
-
-  function parseSolanaPdaQueryResponse(
-    PerChainQueryResponse memory pcr
-  ) external pure returns (SolanaPdaQueryResponse memory ret) {
-    return QueryResponseLib.parseSolanaPdaQueryResponse(pcr);
-  }
-
-  function validateBlockTime(
-    uint64 blockTimeInMicroSeconds,
-    uint256 minBlockTimeInSeconds
-  ) external pure {
-    QueryResponseLib.validateBlockTime(blockTimeInMicroSeconds, minBlockTimeInSeconds);
-  }
-
-  function validateBlockNum(uint64 blockNum, uint256 minBlockNum) external pure {
-    QueryResponseLib.validateBlockNum(blockNum, minBlockNum);
-  }
-
-  function validateChainId(
-    uint16 chainId,
-    uint16[] memory validChainIds
-  ) external pure {
-    QueryResponseLib.validateChainId(chainId, validChainIds);
-  }
-
-  function validateEthCallRecord(
-    EthCallRecord[] memory ecds,
-    address[] memory validContractAddresses,
-    bytes4[] memory validFunctionSignatures
-  ) external pure {
-    QueryResponseLib.validateEthCallRecord(ecds, validContractAddresses, validFunctionSignatures);
-  }
-
-  function validateEthCallRecord(
-    EthCallRecord memory ecd,
-    address[] memory validContractAddresses, //empty array means accept all
-    bytes4[] memory validFunctionSignatures  //empty array means accept all
-  ) external pure {
-    QueryResponseLib.validateEthCallRecord(ecd, validContractAddresses, validFunctionSignatures);
-  }
-}
-
-contract TestQueryResponse is Test {
   // Some happy case defaults
   uint8 version = 0x01;
   uint16 senderChainId = 0x0000;
@@ -139,29 +49,20 @@ contract TestQueryResponse is Test {
   bytes solanaPdaPerChainResponses = hex"0001050000009b00000000000008ff0006115e3f6d7540e05035785e15056a8559815e71343ce31db2abf23f65b19c982b68aee7bf207b014fa9188b339cfd573a0778c5deaeeee94d4bcfb12b345bf8e417e5119dae773efd0000000000116ac000000000000000000002c806312cbe5b79ef8aa6c17e3f423d8fdfe1d46909fb1f6cdf65ee8e2e6faa0000001457cd18b7f8a4d91a2da9ab4af05d0fbece2dcd65";
   bytes solanaPdaPerChainResponsesInner = hex"00000000000008ff0006115e3f6d7540e05035785e15056a8559815e71343ce31db2abf23f65b19c982b68aee7bf207b014fa9188b339cfd573a0778c5deaeeee94d4bcfb12b345bf8e417e5119dae773efd0000000000116ac000000000000000000002c806312cbe5b79ef8aa6c17e3f423d8fdfe1d46909fb1f6cdf65ee8e2e6faa0000001457cd18b7f8a4d91a2da9ab4af05d0fbece2dcd65";
 
-  uint8 constant SIG_GUARDIAN_INDEX = 0;
-
   address wormhole;
-  QueryResponseLibWrapper wrapper;
+  QueryResponseLibTestWrapper wrapper;
 
   function setUp() public {
-    wormhole = address(new WormholeMock());
-    wrapper = new QueryResponseLibWrapper();
+    vm.createSelectFork(vm.envString("TEST_RPC_URL"));
+    wormhole = vm.envAddress("TEST_WORMHOLE_ADDRESS");
+    IWormhole(wormhole).setUpOverride();
+    wrapper = new QueryResponseLibTestWrapper();
   }
 
-  uint16 constant TEST_CHAIN_ID = 2;
-  address constant DEVNET_GUARDIAN = 0xbeFA429d57cD18b7F8A4d91A2da9AB4AF05d0FBe;
-  uint256 constant DEVNET_GUARDIAN_PRIVATE_KEY = 0xcfb12303a19cde580bb4dd771639b0d26bc68353645571a8cff516ab2ee113a0;
-  uint16 constant GOVERNANCE_CHAIN_ID = 1;
-  bytes32 constant GOVERNANCE_CONTRACT = 0x0000000000000000000000000000000000000000000000000000000000000004;
-
-  function getSignature(
+  function sign(
     bytes memory response
-  ) internal pure returns (IWormhole.Signature[] memory signatures) {
-    bytes32 responseDigest = QueryResponseLib.calcPrefixedResponseHash(response);
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(DEVNET_GUARDIAN_PRIVATE_KEY, responseDigest);
-    signatures = new IWormhole.Signature[](1);
-    signatures[0] = IWormhole.Signature(r, s, v, SIG_GUARDIAN_INDEX);
+  ) internal view returns (IWormhole.Signature[] memory signatures) {
+    return IWormhole(wormhole).sign(QueryResponseLib.calcPrefixedResponseHash(response));
   }
 
   function concatenateQueryResponseBytesOffChain(
@@ -175,13 +76,13 @@ contract TestQueryResponse is Test {
     uint8 _numPerChainResponses,
     bytes memory _perChainResponses
   ) internal pure returns (bytes memory){
-    bytes memory queryRequest = QueryTest.buildOffChainQueryRequestBytes(
+    bytes memory queryRequest = QueryRequestBuilder.buildOffChainQueryRequestBytes(
       _queryRequestVersion,
       _queryRequestNonce,
       _numPerChainQueries,
       _perChainQueries
     );
-    return QueryTest.buildQueryResponseBytes(
+    return QueryRequestBuilder.buildQueryResponseBytes(
       _version,
       _senderChainId,
       _signature,
@@ -200,13 +101,13 @@ contract TestQueryResponse is Test {
 
   function test_verifyQueryResponse() public view {
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
-    wrapper.verifyQueryResponse(wormhole, resp, getSignature(resp));
+    wrapper.verifyQueryResponse(wormhole, resp, sign(resp));
     // TODO: There are no assertions for this test
   }
 
   function test_parseAndVerifyQueryResponse() public {
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
-    QueryResponse memory r = wrapper.parseAndVerifyQueryResponse(wormhole, resp, getSignature(resp));
+    QueryResponse memory r = wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
     assertEq(r.version, 1);
     assertEq(r.senderChainId, 0);
     assertEq(r.requestId, hex"ff0c222dc9e3655ec38e212e9792bf1860356d1277462b6bf747db865caca6fc08e6317b64ee3245264e371146b1d315d38c867fe1f69614368dc4430bb560f200");
@@ -368,7 +269,7 @@ contract TestQueryResponse is Test {
 
   function test_verifyQueryResponseForSolana() public view {
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, solanaAccountSignature, solanaAccountQueryRequestVersion, solanaAccountQueryRequestNonce, solanaAccountNumPerChainQueries, solanaAccountPerChainQueries, solanaAccountNumPerChainResponses, solanaAccountPerChainResponses);
-    wrapper.verifyQueryResponse(wormhole, resp, getSignature(resp));
+    wrapper.verifyQueryResponse(wormhole, resp, sign(resp));
     // TODO: There are no assertions for this test
   }
 
@@ -555,75 +456,98 @@ contract TestQueryResponse is Test {
   *********** FUZZ TESTS *************
   ***********************************/
 
-  function testFuzz_parseAndVerifyQueryResponse_fuzzVersion(uint8 _version) public {
+  function testFuzz_parseAndVerifyQueryResponse_version(
+    uint8 _version
+  ) public {
     vm.assume(_version != 1);
 
     bytes memory resp = concatenateQueryResponseBytesOffChain(_version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
     vm.expectRevert(InvalidResponseVersion.selector);
-    wrapper.parseAndVerifyQueryResponse(wormhole, resp, getSignature(resp));
+    wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_fuzzSenderChainId(uint16 _senderChainId) public {
+  function testFuzz_parseAndVerifyQueryResponse_senderChainId(
+    uint16 _senderChainId
+  ) public {
     vm.assume(_senderChainId != 0);
 
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, _senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
     // This could revert for multiple reasons. But the checkLength to ensure all the bytes are consumed is the backstop.
     vm.expectRevert();
-    wrapper.parseAndVerifyQueryResponse(wormhole, resp, getSignature(resp));
+    wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_fuzzSignatureHappyCase(bytes memory _signature) public {
+  function testFuzz_parseAndVerifyQueryResponse_signatureHappyCase(
+    bytes memory _signature
+  ) public {
     // This signature isn't validated in the QueryResponse library, therefore it could be an 65 byte hex string
     vm.assume(_signature.length == 65);
 
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, _signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
-    QueryResponse memory r = wrapper.parseAndVerifyQueryResponse(wormhole, resp, getSignature(resp));
+    QueryResponse memory r = wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
 
     assertEq(r.requestId, _signature);
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_fuzzSignatureUnhappyCase(bytes memory _signature) public {
+  function testFuzz_parseAndVerifyQueryResponse_signatureUnhappyCase(
+    bytes memory _signature
+  ) public {
     // A signature that isn't 65 bytes long will always lead to a revert. The type of revert is unknown since it could be one of many.
     vm.assume(_signature.length != 65);
 
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, _signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
     vm.expectRevert();
-    wrapper.parseAndVerifyQueryResponse(wormhole, resp, getSignature(resp));
+    wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_fuzzQueryRequestLen(uint32 _queryRequestLen, bytes calldata _perChainQueries) public {
+  function testFuzz_parseAndVerifyQueryResponse_fuzzQueryRequestLen(
+    uint32 _queryRequestLen,
+    bytes calldata _perChainQueries
+  ) public {
     // We add 6 to account for version + nonce + numPerChainQueries
     vm.assume(_queryRequestLen != _perChainQueries.length + 6);
 
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, _perChainQueries, numPerChainResponses, perChainResponses);
     vm.expectRevert();
-    wrapper.parseAndVerifyQueryResponse(wormhole, resp, getSignature(resp));
+    wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_fuzzQueryRequestVersion(uint8 _version, uint8 _queryRequestVersion) public {
+  function testFuzz_parseAndVerifyQueryResponse_queryRequestVersion(
+    uint8 _version,
+    uint8 _queryRequestVersion
+  ) public {
     vm.assume(_version != _queryRequestVersion);
 
     bytes memory resp = concatenateQueryResponseBytesOffChain(_version, senderChainId, signature, _queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
     vm.expectRevert();
-    wrapper.parseAndVerifyQueryResponse(wormhole, resp, getSignature(resp));
+    wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_fuzzQueryRequestNonce(uint32 _queryRequestNonce) public {
+  function testFuzz_parseAndVerifyQueryResponse_queryRequestNonce(
+    uint32 _queryRequestNonce
+  ) public {
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, _queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
-    QueryResponse memory r = wrapper.parseAndVerifyQueryResponse(wormhole, resp, getSignature(resp));
+    QueryResponse memory r = wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
 
     assertEq(r.nonce, _queryRequestNonce);
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_fuzzNumPerChainQueriesAndResponses(uint8 _numPerChainQueries, uint8 _numPerChainResponses) public {
+  function testFuzz_parseAndVerifyQueryResponse_numPerChainQueriesAndResponses(
+    uint8 _numPerChainQueries,
+    uint8 _numPerChainResponses
+  ) public {
     vm.assume(_numPerChainQueries != _numPerChainResponses);
 
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, _numPerChainQueries, perChainQueries, _numPerChainResponses, perChainResponses);
     vm.expectRevert();
-    wrapper.parseAndVerifyQueryResponse(wormhole, resp, getSignature(resp));
+    wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_fuzzChainIds(uint16 _requestChainId, uint16 _responseChainId, uint256 _requestQueryType) public {
+  function testFuzz_parseAndVerifyQueryResponse_chainIds(
+    uint16 _requestChainId,
+    uint16 _responseChainId,
+    uint256 _requestQueryType
+  ) public {
     vm.assume(_requestChainId != _responseChainId);
     _requestQueryType = bound(_requestQueryType, QueryType.min(), QueryType.max());
 
@@ -631,10 +555,13 @@ contract TestQueryResponse is Test {
     bytes memory packedPerChainResponses = abi.encodePacked(_responseChainId, uint8(_requestQueryType), uint32(perChainResponsesInner.length),  perChainResponsesInner);
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, packedPerChainQueries, numPerChainResponses, packedPerChainResponses);
     vm.expectRevert(ChainIdMismatch.selector);
-    wrapper.parseAndVerifyQueryResponse(wormhole, resp, getSignature(resp));
+    wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_fuzzMistmatchedRequestType(uint256 _requestQueryType, uint256 _responseQueryType) public {
+  function testFuzz_parseAndVerifyQueryResponse_mistmatchedRequestType(
+    uint256 _requestQueryType,
+    uint256 _responseQueryType
+  ) public {
     _requestQueryType = bound(_requestQueryType, QueryType.min(), QueryType.max());
     _responseQueryType = bound(_responseQueryType, QueryType.min(), QueryType.max());
     vm.assume(_requestQueryType != _responseQueryType);
@@ -643,43 +570,48 @@ contract TestQueryResponse is Test {
     bytes memory packedPerChainResponses = abi.encodePacked(uint16(0x0005), uint8(_responseQueryType), uint32(perChainResponsesInner.length),  perChainResponsesInner);
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, packedPerChainQueries, numPerChainResponses, packedPerChainResponses);
     vm.expectRevert(RequestTypeMismatch.selector);
-    wrapper.parseAndVerifyQueryResponse(wormhole, resp, getSignature(resp));
+    wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_fuzzUnsupportedRequestType(uint8 _requestQueryType) public {
+  function testFuzz_parseAndVerifyQueryResponse_unsupportedRequestType(
+    uint8 _requestQueryType
+  ) public {
     vm.assume(!QueryType.isValid(_requestQueryType));
 
     bytes memory packedPerChainQueries = abi.encodePacked(uint16(0x0005), uint8(_requestQueryType), uint32(perChainQueriesInner.length), perChainQueriesInner);
     bytes memory packedPerChainResponses = abi.encodePacked(uint16(0x0005), uint8(_requestQueryType), uint32(perChainResponsesInner.length),  perChainResponsesInner);
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, packedPerChainQueries, numPerChainResponses, packedPerChainResponses);
     vm.expectRevert(abi.encodeWithSelector(UnsupportedQueryType.selector, _requestQueryType));
-    wrapper.parseAndVerifyQueryResponse(wormhole, resp, getSignature(resp));
+    wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_fuzzQueryBytesLength(uint32 _queryLength) public {
+  function testFuzz_parseAndVerifyQueryResponse_queryBytesLength(
+    uint32 _queryLength
+  ) public {
     vm.assume(_queryLength != uint32(perChainQueriesInner.length));
 
     bytes memory packedPerChainQueries = abi.encodePacked(uint16(0x0005), uint8(0x01), _queryLength, perChainQueriesInner);
     bytes memory packedPerChainResponses = abi.encodePacked(uint16(0x0005), uint8(0x01), uint32(perChainResponsesInner.length),  perChainResponsesInner);
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, packedPerChainQueries, numPerChainResponses, packedPerChainResponses);
     vm.expectRevert();
-    wrapper.parseAndVerifyQueryResponse(wormhole, resp, getSignature(resp));
+    wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
   }
 
   function testFuzz_verifyQueryResponse_validSignature(bytes calldata resp) public view {
     // This should pass with a valid signature of any payload
-    wrapper.verifyQueryResponse(wormhole, resp, getSignature(resp));
+    wrapper.verifyQueryResponse(wormhole, resp, sign(resp));
   }
 
-  function testFuzz_verifyQueryResponse_invalidSignature(bytes calldata resp, uint256 privateKey) public {
-    vm.assume(privateKey != DEVNET_GUARDIAN_PRIVATE_KEY);
-    // Less than secp256k1 curve
-    vm.assume(privateKey < 115792089237316195423570985008687907852837564279074904382605163141518161494337);
-    vm.assume(privateKey != 0);
-
-    (uint8 sigV, bytes32 sigR, bytes32 sigS) = vm.sign(privateKey, wrapper.calcPrefixedResponseHash(resp));
-    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    signatures[0] = IWormhole.Signature(sigR, sigS, sigV, SIG_GUARDIAN_INDEX);
+  function testFuzz_verifyQueryResponse_invalidSignature(
+    bytes calldata resp,
+    uint8 sigV,
+    bytes32 sigR,
+    bytes32 sigS,
+    uint8 sigIndex
+  ) public {
+    IWormhole.Signature[] memory signatures = sign(resp);
+    uint sigI = bound(sigIndex, 0, signatures.length-1);
+    signatures[sigI] = IWormhole.Signature(sigR, sigS, sigV, signatures[sigI].guardianIndex);
     vm.expectRevert(VerificationFailed.selector);
     wrapper.verifyQueryResponse(wormhole, resp, signatures);
   }
@@ -690,17 +622,32 @@ contract TestQueryResponse is Test {
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
     bytes32 responseDigest = keccak256(abi.encodePacked(responsePrefix, keccak256(resp)));
 
-    (uint8 sigV, bytes32 sigR, bytes32 sigS) = vm.sign(DEVNET_GUARDIAN_PRIVATE_KEY, responseDigest);
-    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    signatures[0] = IWormhole.Signature(sigR, sigS, sigV, SIG_GUARDIAN_INDEX);
+    IWormhole.Signature[] memory signatures = IWormhole(wormhole).sign(responseDigest);
     vm.expectRevert(VerificationFailed.selector);
     wrapper.verifyQueryResponse(wormhole, resp, signatures);
+  }
+
+  function testFuzz_verifyQueryResponse_noQuorum(
+    bytes calldata resp,
+    uint8 sigCount
+  ) public {
+    IWormhole.Signature[] memory signatures = sign(resp);
+    uint sigC = bound(sigCount, 0, signatures.length-1);
+    IWormhole.Signature[] memory signaturesToUse = new IWormhole.Signature[](sigC);
+    for (uint i = 0; i < sigC; ++i)
+      signaturesToUse[i] = signatures[i];
+
+    vm.expectRevert(VerificationFailed.selector);
+    wrapper.verifyQueryResponse(wormhole, resp, signaturesToUse);
   }
 
   uint64 constant private MICROSECONDS_PER_SECOND = QueryResponseLib.MICROSECONDS_PER_SECOND;
   uint64 constant private MAX_SECONDS = type(uint64).max/MICROSECONDS_PER_SECOND;
 
-  function testFuzz_validateBlockTime_success(uint64 _blockTime, uint64 _minBlockTime) public view {
+  function testFuzz_validateBlockTime_success(
+    uint64 _blockTime,
+    uint64 _minBlockTime
+  ) public view {
     //assure: blockTime >= minBlockTime
     _minBlockTime = uint64(bound(_minBlockTime, 0, MAX_SECONDS));
     _blockTime = uint64(bound(_blockTime, _minBlockTime, MAX_SECONDS));
@@ -708,7 +655,10 @@ contract TestQueryResponse is Test {
     wrapper.validateBlockTime(_blockTime * MICROSECONDS_PER_SECOND, _minBlockTime);
   }
 
-  function testFuzz_validateBlockTime_fail(uint64 _blockTime, uint256 _minBlockTime) public {
+  function testFuzz_validateBlockTime_fail(
+    uint64 _blockTime,
+    uint256 _minBlockTime
+  ) public {
     //assure: blockTime < minBlockTime
     vm.assume(_minBlockTime > 0);
     uint upperBound = _minBlockTime <= MAX_SECONDS ? _minBlockTime-1 : MAX_SECONDS;
@@ -718,14 +668,20 @@ contract TestQueryResponse is Test {
     wrapper.validateBlockTime(_blockTime * MICROSECONDS_PER_SECOND, _minBlockTime);
   }
 
-  function testFuzz_validateBlockNum_success(uint64 _blockNum, uint64 _minBlockNum) public view {
+  function testFuzz_validateBlockNum_success(
+    uint64 _blockNum,
+    uint64 _minBlockNum
+  ) public view {
     //assure: blockNum >= minBlockNum
     _blockNum = uint64(bound(_blockNum, _minBlockNum, type(uint64).max));
 
     wrapper.validateBlockNum(_blockNum, _minBlockNum);
   }
 
-  function testFuzz_validateBlockNum_fail(uint256 _blockNum, uint256 _minBlockNum) public {
+  function testFuzz_validateBlockNum_fail(
+    uint64 _blockNum,
+    uint64 _minBlockNum
+  ) public {
     //assure: blockNum < minBlockNum
     vm.assume(_minBlockNum > 0);
     _blockNum = uint64(bound(_blockNum, 0, _minBlockNum-1));
@@ -734,23 +690,34 @@ contract TestQueryResponse is Test {
     wrapper.validateBlockNum(uint64(_blockNum), _minBlockNum);
   }
 
-  function testFuzz_validateChainId_success(uint256 _validChainIndex, uint16[] memory _validChainIds) public view {
+  function testFuzz_validateChainId_success(
+    uint256 _validChainIndex,
+    uint16[] memory _validChainIds
+  ) public view {
     vm.assume(_validChainIds.length > 0);
     _validChainIndex %= _validChainIds.length;
 
     wrapper.validateChainId(_validChainIds[_validChainIndex], _validChainIds);
   }
 
-  function testFuzz_validateChainId_fail(uint16 _chainId, uint16[] memory _validChainIds) public {
-    for (uint16 i = 0; i < _validChainIds.length; ++i) {
+  function testFuzz_validateChainId_fail(
+    uint16 _chainId,
+    uint16[] memory _validChainIds
+  ) public {
+    for (uint16 i = 0; i < _validChainIds.length; ++i)
       vm.assume(_chainId != _validChainIds[i]);
-    }
 
     vm.expectRevert(InvalidChainId.selector);
     wrapper.validateChainId(_chainId, _validChainIds);
   }
 
-  function testFuzz_validateEthCallRecord_success(bytes memory randomBytes, uint256 _contractAddressIndex, uint256 _functionSignatureIndex, address[] memory _validContractAddresses, bytes4[] memory _validFunctionSignatures) public view {
+  function testFuzz_validateEthCallRecord_success(
+    bytes memory randomBytes,
+    uint256 _contractAddressIndex,
+    uint256 _functionSignatureIndex,
+    address[] memory _validContractAddresses,
+    bytes4[] memory _validFunctionSignatures
+  ) public view {
     vm.assume(randomBytes.length >= 4);
     vm.assume(_validContractAddresses.length > 0);
     _contractAddressIndex %= _validContractAddresses.length;
@@ -766,7 +733,12 @@ contract TestQueryResponse is Test {
     wrapper.validateEthCallRecord(callData, _validContractAddresses, _validFunctionSignatures);
   }
 
-  function testFuzz_validateEthCallRecord_successZeroSignatures(bytes4 randomSignature, bytes memory randomBytes, uint256 _contractAddressIndex, address[] memory _validContractAddresses) public view {
+  function testFuzz_validateEthCallRecord_successZeroSignatures(
+    bytes4 randomSignature,
+    bytes memory randomBytes,
+    uint256 _contractAddressIndex,
+    address[] memory _validContractAddresses
+  ) public view {
     vm.assume(_validContractAddresses.length > 0);
     _contractAddressIndex %= _validContractAddresses.length;
 
@@ -781,7 +753,12 @@ contract TestQueryResponse is Test {
     wrapper.validateEthCallRecord(callData, _validContractAddresses, validSignatures);
   }
 
-  function testFuzz_validateEthCallRecord_successZeroAddresses(address randomAddress, bytes memory randomBytes, uint256 _functionSignatureIndex, bytes4[] memory _validFunctionSignatures) public view {
+  function testFuzz_validateEthCallRecord_successZeroAddresses(
+    address randomAddress,
+    bytes memory randomBytes,
+    uint256 _functionSignatureIndex,
+    bytes4[] memory _validFunctionSignatures
+  ) public view {
     vm.assume(randomBytes.length >= 4);
     vm.assume(_validFunctionSignatures.length > 0);
     _functionSignatureIndex %= _validFunctionSignatures.length;
@@ -797,15 +774,19 @@ contract TestQueryResponse is Test {
     wrapper.validateEthCallRecord(callData, validAddresses, _validFunctionSignatures);
   }
 
-  function testFuzz_validateEthCallRecord_failSignature(bytes memory randomBytes, uint256 _contractAddressIndex, address[] memory _validContractAddresses, bytes4[] memory _validFunctionSignatures) public {
+  function testFuzz_validateEthCallRecord_failSignature(
+    bytes memory randomBytes,
+    uint256 _contractAddressIndex,
+    address[] memory _validContractAddresses,
+    bytes4[] memory _validFunctionSignatures
+  ) public {
     vm.assume(randomBytes.length >= 4);
     vm.assume(_validContractAddresses.length > 0);
     _contractAddressIndex %= _validContractAddresses.length;
     vm.assume(_validFunctionSignatures.length > 0);
 
-    for (uint256 i = 0; i < _validFunctionSignatures.length; ++i) {
+    for (uint i = 0; i < _validFunctionSignatures.length; ++i)
       vm.assume(bytes4(randomBytes) != _validFunctionSignatures[i]);
-    }
 
     EthCallRecord memory callData = EthCallRecord({
       contractAddress: _validContractAddresses[_contractAddressIndex],
@@ -817,14 +798,19 @@ contract TestQueryResponse is Test {
     wrapper.validateEthCallRecord(callData, _validContractAddresses, _validFunctionSignatures);
   }
 
-  function testFuzz_validateEthCallRecord_failAddress(bytes memory randomBytes, address randomAddress, uint256 _functionSignatureIndex, address[] memory _validContractAddresses, bytes4[] memory _validFunctionSignatures) public {
+  function testFuzz_validateEthCallRecord_failAddress(
+    bytes memory randomBytes,
+    address randomAddress,
+    uint256 _functionSignatureIndex,
+    address[] memory _validContractAddresses,
+    bytes4[] memory _validFunctionSignatures
+  ) public {
     vm.assume(_validFunctionSignatures.length > 0);
     _functionSignatureIndex %= _validFunctionSignatures.length;
     vm.assume(_validContractAddresses.length > 0);
 
-    for (uint256 i = 0; i < _validContractAddresses.length; ++i) {
+    for (uint i = 0; i < _validContractAddresses.length; ++i)
       vm.assume(randomAddress != _validContractAddresses[i]);
-    }
 
     EthCallRecord memory callData = EthCallRecord({
       contractAddress: randomAddress,
@@ -836,7 +822,14 @@ contract TestQueryResponse is Test {
     wrapper.validateEthCallRecord(callData, _validContractAddresses, _validFunctionSignatures);
   }
 
-  function testFuzz_validateMultipleEthCallRecord_success(uint8 numInputs, bytes memory randomBytes, uint256 _contractAddressIndex, uint256 _functionSignatureIndex, address[] memory _validContractAddresses, bytes4[] memory _validFunctionSignatures) public view {
+  function testFuzz_validateMultipleEthCallRecord_success(
+    uint8 numInputs,
+    bytes memory randomBytes,
+    uint256 _contractAddressIndex,
+    uint256 _functionSignatureIndex,
+    address[] memory _validContractAddresses,
+    bytes4[] memory _validFunctionSignatures
+  ) public view {
     vm.assume(_validContractAddresses.length > 0);
     _contractAddressIndex %= _validContractAddresses.length;
     vm.assume(_validFunctionSignatures.length > 0);
@@ -844,13 +837,12 @@ contract TestQueryResponse is Test {
 
     EthCallRecord[] memory callDatas = new EthCallRecord[](numInputs);
 
-    for (uint256 i = 0; i < numInputs; ++i) {
+    for (uint i = 0; i < numInputs; ++i)
       callDatas[i] = EthCallRecord({
         contractAddress: _validContractAddresses[_contractAddressIndex],
         callData: bytes.concat(_validFunctionSignatures[_functionSignatureIndex], randomBytes),
         result: randomBytes
-    });
-    }
+      });
 
     wrapper.validateEthCallRecord(callDatas, _validContractAddresses, _validFunctionSignatures);
   }
