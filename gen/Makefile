@@ -21,8 +21,8 @@ clean:
 
 FORCE:
 
-node_modules: package-lock.json
-	npm ci
+node_modules:
+	npm i
 
 define ruleGenerator
 $(call fnGeneratorTarget,$(1)): node_modules $(1).ts
