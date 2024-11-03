@@ -6,15 +6,6 @@ module.exports = {
         enabled: true,
         runs: 200,
       }
-      // viaIR: true,
-      // optimizer: {
-      //   enabled: true,
-      //   details: {
-      //     yulDetails: {
-      //       optimizerSteps: "u",
-      //     },
-      //   },
-      // },
     },
   },
   networks: {
