@@ -23,9 +23,10 @@ if [[ -d "contracts" ]]; then
   rm -rf contracts
 fi
 
-mkdir contracts
+mkdir -p contracts
 
 cp -r src/* contracts/.
+cp -r scripts/mocks contracts/.
 rm -rf contracts/testing
 node scripts/clean-remapping.js
 
@@ -40,6 +41,8 @@ npx hardhat compile
 if [ $? -ne 0 ]; then
   echo "Compilation failed. Exiting."
   exit 1
+elif
+  rm -rf contracts/mocks
 fi
 
 # Continue with the rest of your script
