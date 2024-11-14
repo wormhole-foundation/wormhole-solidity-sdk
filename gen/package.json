@@ -8,10 +8,10 @@
     "build": "make"
   },
   "dependencies": {
+    "@wormhole-foundation/sdk-base": "latest",
+    "@wormhole-foundation/sdk-definitions": "latest",
+    "@wormhole-foundation/sdk-evm": "latest",
     "@types/node": "^20.3.1",
-    "@wormhole-foundation/sdk-base": "^0.10.2",
-    "@wormhole-foundation/sdk-definitions": "^0.10.2",
-    "@wormhole-foundation/sdk-evm": "^0.10.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4"
   }

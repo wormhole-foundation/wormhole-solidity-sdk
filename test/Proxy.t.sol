@@ -34,7 +34,7 @@ contract LogicContractV1 is ProxyBase {
   function customUpgradeFun(address newImplementation, bytes calldata data) external {
     if (msg.sender != adminState().admin)
       revert NotAuthorized();
-      
+
     _upgradeTo(newImplementation, data);
   }
 }
@@ -62,7 +62,7 @@ contract TestProxy is Test {
       abi.encodePacked(bytes4(NoValueAllowed.selector))
     ));
     new Proxy{value: 1 ether}(logic1, abi.encode("v1"));
-    
+
     //deploy
     LogicContractV1 contrct = LogicContractV1(address(new Proxy(logic1, abi.encode("v1"))));
 

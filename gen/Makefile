@@ -1,28 +1,49 @@
-GENEREATORS = chains cctpDomains
-chains_TARGET = ../src/constants/Chains.sol
-cctpDomains_TARGET = ../src/constants/CCTPDomains.sol
+GENERATORS = chains cctpDomains
+chains_TARGET = constants/Chains.sol
+cctpDomains_TARGET = constants/CCTPDomains.sol
 
-TEST_WRAPPERS = BytesParsing
-BytesParsing_BASE_PATH = libraries
+fnGeneratorTarget = ../src/$($(1)_TARGET)
+GENERATOR_TARGETS = $(foreach generator,$(GENERATORS),$(call fnGeneratorTarget,$(generator)))
+
+TEST_WRAPPERS = BytesParsing QueryResponse
 
 fnTestWrapperTarget = ../test/generated/$(1)TestWrapper.sol
 TEST_WRAPPER_TARGETS =\
-  $(foreach wrapper, $(TEST_WRAPPERS), $(call fnTestWrapperTarget,$(wrapper)))
+  $(foreach wrapper,$(TEST_WRAPPERS),$(call fnTestWrapperTarget,$(wrapper)))
 
-.PHONY: generate $(GENEREATORS)
+.DEFAULT_GOAL = build
+.PHONY: build clean FORCE
 
-build: $(GENEREATORS) $(TEST_WRAPPER_TARGETS)
+build: $(GENERATOR_TARGETS) $(TEST_WRAPPER_TARGETS)
 
-$(GENEREATORS): node_modules
-	npx ts-node $@.ts > $($@_TARGET)
+clean:
+	rm -rf node_modules fork_changed testing.env
 
-node_modules: package-lock.json
-	npm ci
+FORCE:
+
+node_modules:
+	npm i
+
+define ruleGenerator
+$(call fnGeneratorTarget,$(1)): node_modules $(1).ts
+	npx ts-node $(1).ts > $$@
+endef
+$(foreach generator,$(GENERATORS),$(eval $(call ruleGenerator,$(generator))))
 
 define ruleTestWrapper
-$(call fnTestWrapperTarget,$(1)): ../src/$($(1)_BASE_PATH)/$(1).sol
-	npx ts-node libraryTestWrapper.ts $($(1)_BASE_PATH)/$(1) > $(call fnTestWrapperTarget,$(1))
+$(call fnTestWrapperTarget,$(1)): ../src/libraries/$(1).sol libraryTestWrapper.ts
+	npx ts-node libraryTestWrapper.ts libraries/$(1) > $$@
 endef
 $(foreach wrapper,$(TEST_WRAPPERS),$(eval $(call ruleTestWrapper,$(wrapper))))
 
+ifneq ($(TEST_FORK), $(shell cat fork_changed 2>/dev/null))
+#if a different chain/network for testing was supplied last time then force an update
+fork_changed: FORCE
+endif
 
+testing.env: node_modules fork_changed testingEnv.ts
+	@echo "Generating testing.env for $(TEST_FORK)"
+	npx ts-node testingEnv.ts $(TEST_FORK) > $@
+
+fork_changed:
+	@echo $(TEST_FORK) > fork_changed

@@ -27,11 +27,12 @@ struct PublishedMessage {
 
 //use `using VaaEncoding for IWormhole.VM;` to convert VAAs to bytes via .encode()
 library VaaEncoding {
-  function encode(IWormhole.VM memory vaa) internal pure returns (bytes memory) {
+  function encode(IWormhole.VM memory vaa) internal pure returns (bytes memory) { unchecked {
     bytes memory sigs;
     for (uint i = 0; i < vaa.signatures.length; ++i) {
-      IWormhole.Signature memory sig = vaa.signatures[i];
-      sigs = bytes.concat(sigs, abi.encodePacked(sig.guardianIndex, sig.r, sig.s, sig.v));
+      IWormhole.Signature memory sig = vaa.signatures[i];      
+      uint8 v = sig.v - 27; //see https://github.com/wormhole-foundation/wormhole/blob/c35940ae9689f6df9e983d51425763509b74a80f/ethereum/contracts/Messages.sol#L174
+      sigs = bytes.concat(sigs, abi.encodePacked(sig.guardianIndex, sig.r, sig.s, v));
     }
 
     return abi.encodePacked(
@@ -47,7 +48,7 @@ library VaaEncoding {
       vaa.consistencyLevel,
       vaa.payload
     );
-  }
+  }}
 }
 
 //simple version of the library - should be sufficient for most use cases
@@ -454,9 +455,16 @@ library AdvancedWormholeOverride {
 
   function sign(
     IWormhole wormhole,
+    bytes32 hash
+  ) internal view returns (IWormhole.Signature[] memory signatures) {
+    return sign(wormhole, hash, getSigningIndices(wormhole));
+  }
+
+  function sign(
+    IWormhole wormhole,
     PublishedMessage memory pm,
     bytes memory signingGuardianIndices //treated as a packed uint8 array
-  ) internal view returns (IWormhole.VM memory vaa) { unchecked {
+  ) internal view returns (IWormhole.VM memory vaa) {
     vaa.version = WORMHOLE_VAA_VERSION;
     vaa.timestamp = pm.timestamp;
     vaa.nonce = pm.nonce;
@@ -478,14 +486,21 @@ library AdvancedWormholeOverride {
     );
     vaa.hash = keccak256(abi.encodePacked(keccak256(encodedBody)));
 
-    vaa.signatures = new IWormhole.Signature[](signingGuardianIndices.length);
+    vaa.signatures = sign(wormhole, vaa.hash, signingGuardianIndices);
+  }
+
+  function sign(
+    IWormhole wormhole,
+    bytes32 hash,
+    bytes memory signingGuardianIndices //treated as a packed uint8 array
+  ) internal view returns (IWormhole.Signature[] memory signatures) { unchecked {
+    signatures = new IWormhole.Signature[](signingGuardianIndices.length);
     uint256[] memory guardianPrivateKeys = getGuardianPrivateKeys(wormhole);
     for (uint i = 0; i < signingGuardianIndices.length; ++i) {
       (uint8 gi, ) = signingGuardianIndices.asUint8(i);
-      (vaa.signatures[i].v, vaa.signatures[i].r, vaa.signatures[i].s) =
-        vm.sign(guardianPrivateKeys[gi], vaa.hash);
-      vaa.signatures[i].guardianIndex = gi;
-      vaa.signatures[i].v -= 27;
+      (signatures[i].v, signatures[i].r, signatures[i].s) =
+        vm.sign(guardianPrivateKeys[gi], hash);
+      signatures[i].guardianIndex = gi;
     }
   }}
 

@@ -107,12 +107,14 @@ for (const libs of libMatches) {
     const retParasRaw = modsRaw.match(retParasRegex);
 
     const collapseSpaceRegex = /\s\s+/g;
-    const paramsToArray = (paramList: string) =>
-      paramList.replace(collapseSpaceRegex, ' ').trim().split(',').map(param => {
+    const paramsToArray = (paramList: string) => {
+      const cleaned = paramList.replace(collapseSpaceRegex, ' ').trim();
+      return !cleaned ? [] : cleaned.split(',').map(param => {
         param = param.trim();
         const paraType = param.match(/^(\w+)/)[1];
         return structs.has(paraType) ? param.replace(paraType, `${name}.${paraType}`) : param;
       });
+    }
 
     libraries[name].push({
       name: funcName,
@@ -142,8 +144,10 @@ for (const [libName, funcs] of Object.entries(libraries)) {
   const funcCode = [];
   for (const func of funcs)
     funcCode.push([
-      `  function ${func.name}(${pConcat(func.paras)}) external ${func.stateMut}` +
-      ` ${func.rets ? `returns (${pConcat(func.rets)}) ` : ''} {`,
+      `  function ${func.name}(${pConcat(func.paras)}) external` +
+        (func.stateMut ? ` ${func.stateMut}` : "") +
+        (func.rets ? ` returns (${pConcat(func.rets)})` : "") +
+        " {",
       `    ${func.rets ? 'return ' : ''}${libName}.${func.name}(${pNames(func.paras).join(', ')});`,
       `  }`
     ].join('\n'));
