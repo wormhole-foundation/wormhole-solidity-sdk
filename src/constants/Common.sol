@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.4;
 
+/**
+ * @dev The Solidity compiler reserves 64 bytes at the start of the memory space as "scratch space".
+ * Applications can use this scratch space for short term allocations.
+ * See https://docs.soliditylang.org/en/v0.8.25/assembly.html#memory-management
+ */
+uint256 constant SCRATCH_SPACE_PTR = 0x00;
+
 uint256 constant FREE_MEMORY_PTR = 0x40;
 uint256 constant WORD_SIZE = 32;
 //we can't define _WORD_SIZE_MINUS_ONE via _WORD_SIZE - 1 because of solc restrictions
