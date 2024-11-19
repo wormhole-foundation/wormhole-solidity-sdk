@@ -43,28 +43,22 @@ contract DispatcherTestBase is Test {
 
   function invokeStaticDispatcher(bytes memory encoded) view internal returns (bytes memory data) {
     (bool success, bytes memory result) = address(dispatcher).staticcall(encoded);
-    if (!success) {
-      reRevert(result);
-    }
-    (uint length,) = result.asUint256Unchecked(32);
-    (data,) = result.sliceUnchecked(64, length);
+    return decodeBytesResult(success, result);
   }
 
   function invokeDispatcher(bytes memory encoded) internal returns (bytes memory data) {
-    (bool success, bytes memory result) = address(dispatcher).call(encoded);
-    if (!success) {
-      reRevert(result);
-    }
-    (uint length,) = result.asUint256Unchecked(32);
-    (data,) = result.sliceUnchecked(64, length);
+    return invokeDispatcher(encoded, 0);
   }
 
   function invokeDispatcher(bytes memory encoded, uint value) internal returns (bytes memory data) {
     (bool success, bytes memory result) = address(dispatcher).call{value: value}(encoded);
+    return decodeBytesResult(success, result);
+  }
+
+  function decodeBytesResult(bool success, bytes memory result) pure private returns (bytes memory data) {
     if (!success) {
       reRevert(result);
     }
-    (uint length,) = result.asUint256Unchecked(32);
-    (data,) = result.sliceUnchecked(64, length);
+    data = abi.decode(result, (bytes));
   }
 }
