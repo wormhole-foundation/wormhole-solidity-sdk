@@ -16,7 +16,7 @@ remappings = [
   "forge-std/=lib/forge-std/src/",
   "wormhole-sdk/=src/",
   "IERC20/=src/interfaces/token/",
-  "@openzeppelin/=lib/openzeppelin-contracts/contracts/"
+  "SafeERC20/=src/libraries/",
 ]
 
 verbosity = 3

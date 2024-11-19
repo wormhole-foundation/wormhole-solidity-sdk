@@ -2,9 +2,10 @@
 
 pragma solidity ^0.8.4;
 
-import {SWEEP_TOKENS_ID} from "wormhole-sdk/dispatcherComponents/ids.sol";
+import {SWEEP_TOKENS_ID}    from "wormhole-sdk/components/dispatcher/Ids.sol";
+import {UpgradeTester}      from "wormhole-sdk/testing/UpgradeTester.sol";
+import {ERC20Mock}          from "wormhole-sdk/testing/ERC20Mock.sol";
 import {DispatcherTestBase} from "./utils/DispatcherTestBase.sol";
-import {ERC20Mock} from "wormhole-sdk/testing/ERC20Mock.sol";
 
 contract SweepTokensTest is DispatcherTestBase {
   ERC20Mock token;

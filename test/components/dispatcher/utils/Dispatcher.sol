@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.4;
 
-import {AccessControl} from "wormhole-sdk/dispatcherComponents/AccessControl.sol";
-import {SweepTokens} from "wormhole-sdk/dispatcherComponents/SweepTokens.sol";
-import {Upgrade} from "wormhole-sdk/dispatcherComponents/Upgrade.sol";
-import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
+import {BytesParsing}  from "wormhole-sdk/libraries/BytesParsing.sol";
 import {RawDispatcher} from "wormhole-sdk/RawDispatcher.sol";
+import {AccessControl} from "wormhole-sdk/components/dispatcher/AccessControl.sol";
+import {SweepTokens}   from "wormhole-sdk/components/dispatcher/SweepTokens.sol";
+import {Upgrade}       from "wormhole-sdk/components/dispatcher/Upgrade.sol";
 
 contract Dispatcher is RawDispatcher, AccessControl, SweepTokens, Upgrade {
   using BytesParsing for bytes;

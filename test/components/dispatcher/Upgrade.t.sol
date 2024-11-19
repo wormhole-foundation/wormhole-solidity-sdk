@@ -2,12 +2,15 @@
 
 pragma solidity ^0.8.4;
 
-import {NotAuthorized} from "wormhole-sdk/dispatcherComponents/AccessControl.sol";
-import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
-import {UpgradeTester} from "wormhole-sdk/testing/UpgradeTester.sol";
-import {IdempotentUpgrade} from "wormhole-sdk/proxy/ProxyBase.sol";
-import {DispatcherTestBase} from "./utils/DispatcherTestBase.sol";
-import "wormhole-sdk/dispatcherComponents/ids.sol";
+import {BytesParsing}       from "wormhole-sdk/libraries/BytesParsing.sol";
+import {IdempotentUpgrade}  from "wormhole-sdk/proxy/ProxyBase.sol";
+import {NotAuthorized}      from "wormhole-sdk/components/dispatcher/AccessControl.sol";
+import {
+  UPGRADE_CONTRACT_ID,
+  IMPLEMENTATION_ID
+}                            from "wormhole-sdk/components/dispatcher/Ids.sol";
+import {UpgradeTester}       from "wormhole-sdk/testing/UpgradeTester.sol";
+import {DispatcherTestBase}  from "./utils/DispatcherTestBase.sol";
 
 contract UpgradeTest is DispatcherTestBase {
   using BytesParsing for bytes;

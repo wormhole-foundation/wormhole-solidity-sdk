@@ -36,9 +36,9 @@ For example, if you are using a solc version newer than `0.8.19` and are plannin
 
 It is strongly recommended that you run the forge test suite of this SDK with your own compiler version to catch potential errors that stem from differences in compiler versions early. Yes, strictly speaking the Solidity version pragma should prevent these issues, but better to be safe than sorry, especially given that some components make extensive use of inline assembly.
 
-**IERC20 Remapping**
+**IERC20 and SafeERC20 Remapping**
 
-This SDK comes with its own IERC20 interface. Given that projects tend to combine different SDKs, there's often this annoying issue of clashes of IERC20 interfaces, even though the are effectively the same. We handle this issue by importing `IERC20/IERC20.sol` which allows remapping the `IERC20/` prefix to whatever directory contains `IERC20.sol` in your project, thus providing an override mechanism that should allow dealing with this problem seamlessly until forge allows remapping of individual files.
+This SDK comes with its own IERC20 interface and SafeERC20 implementation. Given that projects tend to combine different SDKs, there's often this annoying issue of clashes of IERC20 interfaces, even though the are effectively the same. We handle this issue by importing `IERC20/IERC20.sol` which allows remapping the `IERC20/` prefix to whatever directory contains `IERC20.sol` in your project, thus providing an override mechanism that should allow dealing with this problem seamlessly until forge allows remapping of individual files. The same approach is used for SafeERC20.
 
 ## Components
 

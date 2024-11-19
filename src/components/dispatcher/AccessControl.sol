@@ -3,7 +3,19 @@
 pragma solidity ^0.8.4;
 
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
-import "./ids.sol";
+import {
+  ACCESS_CONTROL_ID,
+  ACCESS_CONTROL_QUERIES_ID,
+  OWNER_ID,
+  PENDING_OWNER_ID,
+  IS_ADMIN_ID,
+  ADMINS_ID,
+  REVOKE_ADMIN_ID,
+  ADD_ADMIN_ID,
+  PROPOSE_OWNERSHIP_TRANSFER_ID,
+  ACQUIRE_OWNERSHIP_ID,
+  RELINQUISH_OWNERSHIP_ID
+} from "wormhole-sdk/components/dispatcher/Ids.sol";
 
 //rationale for different roles (owner, admin):
 // * owner should be a mulit-sig / ultra cold wallet that is only activated in exceptional
@@ -42,10 +54,15 @@ enum Role {
   Admin
 }
 
-function senderHasAuth() view returns (Role) {
-  Role role = senderRole();
-  if (Role.None == role)
+function failAuthIf(bool condition) pure {
+  if (condition)
     revert NotAuthorized();
+}
+
+function senderAtLeastAdmin() view returns (Role) {
+  Role role = senderRole();
+  failAuthIf(role == Role.None);
+
   return role;
 }
 
@@ -53,10 +70,8 @@ function senderRole() view returns (Role) {
   AccessControlState storage state = accessControlState();
   if (msg.sender == state.owner) //check highest privilege level first
     return Role.Owner;
-  else if (state.isAdmin[msg.sender] != 0)
-    return Role.Admin;
-  else
-    return Role.None;
+
+  return state.isAdmin[msg.sender] != 0 ? Role.Admin : Role.None;
 }
 
 abstract contract AccessControl {
@@ -77,16 +92,14 @@ abstract contract AccessControl {
 
   function transferOwnership(address newOwner) external {
     AccessControlState storage state = accessControlState();
-    if (msg.sender != state.owner)
-      revert NotAuthorized();
+    failAuthIf(msg.sender != state.owner);
 
     state.pendingOwner = newOwner;
   }
 
   function cancelOwnershipTransfer() external {
     AccessControlState storage state = accessControlState();
-    if (state.owner != msg.sender)
-      revert NotAuthorized();
+    failAuthIf(msg.sender != state.owner);
 
     state.pendingOwner = address(0);
   }
@@ -97,27 +110,31 @@ abstract contract AccessControl {
 
   // ---- internals ----
 
-  /**
-   * Dispatch an execute function. Execute functions almost always modify contract state.
-   */
-  function dispatchExecAccessControl(bytes calldata data, uint256 offset, uint8 command) internal returns (bool, uint256) {
+  function dispatchExecAccessControl(
+    bytes calldata data,
+    uint offset,
+    uint8 command
+  ) internal returns (bool, uint) {
     if (command == ACCESS_CONTROL_ID)
       offset = _batchAccessControlCommands(data, offset);
     else if (command == ACQUIRE_OWNERSHIP_ID)
       _acquireOwnership();
-    else return (false, offset);
+    else
+      return (false, offset);
 
     return (true, offset);
   }
 
-  /**
-   * Dispatch a query function. Query functions never modify contract state.
-   */
-  function dispatchQueryAccessControl(bytes calldata data, uint256 offset, uint8 query) view internal returns (bool, bytes memory, uint256) {
+  function dispatchQueryAccessControl(
+    bytes calldata data,
+    uint offset,
+    uint8 query
+  ) view internal returns (bool, bytes memory, uint) {
     bytes memory result;
     if (query == ACCESS_CONTROL_QUERIES_ID)
       (result, offset) = _batchAccessControlQueries(data, offset);
-    else return (false, new bytes(0), offset);
+    else
+      return (false, new bytes(0), offset);
 
     return (true, result, offset);
   }
@@ -127,7 +144,7 @@ abstract contract AccessControl {
     uint offset
   ) internal returns (uint) {
     AccessControlState storage state = accessControlState();
-    bool isOwner = senderHasAuth() == Role.Owner;
+    bool isOwner = senderAtLeastAdmin() == Role.Owner;
 
     uint remainingCommands;
     (remainingCommands, offset) = commands.asUint8CdUnchecked(offset);
@@ -180,12 +197,12 @@ abstract contract AccessControl {
     for (uint i = 0; i < remainingQueries; ++i) {
       uint8 query;
       (query, offset) = queries.asUint8CdUnchecked(offset);
-      
+
       if (query == IS_ADMIN_ID) {
         address admin;
         (admin, offset) = queries.asAddressCdUnchecked(offset);
         ret = abi.encodePacked(ret, state.isAdmin[admin] != 0);
-      } 
+      }
       else if (query == ADMINS_ID) {
         ret = abi.encodePacked(ret, uint8(state.admins.length));
         for (uint j = 0; j < state.admins.length; ++j)
@@ -209,7 +226,7 @@ abstract contract AccessControl {
 
   function _acquireOwnership() internal {
     AccessControlState storage state = accessControlState();
-    if (state.pendingOwner != msg.sender)
+    if (msg.sender !=state.pendingOwner)
       revert NotAuthorized();
 
     state.pendingOwner = address(0);

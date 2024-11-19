@@ -2,10 +2,22 @@
 
 pragma solidity ^0.8.4;
 
-import { NotAuthorized } from "wormhole-sdk/dispatcherComponents/AccessControl.sol";
-import { BytesParsing } from "wormhole-sdk/libraries/BytesParsing.sol";
-import { DispatcherTestBase } from "./utils/DispatcherTestBase.sol";
-import "wormhole-sdk/dispatcherComponents/ids.sol";
+import {BytesParsing}       from "wormhole-sdk/libraries/BytesParsing.sol";
+import {NotAuthorized}      from "wormhole-sdk/components/dispatcher/AccessControl.sol";
+import {
+  ACCESS_CONTROL_ID,
+  ACCESS_CONTROL_QUERIES_ID,
+  OWNER_ID,
+  PENDING_OWNER_ID,
+  ACQUIRE_OWNERSHIP_ID,
+  IS_ADMIN_ID,
+  ADMINS_ID,
+  REVOKE_ADMIN_ID,
+  ADD_ADMIN_ID,
+  PROPOSE_OWNERSHIP_TRANSFER_ID,
+  RELINQUISH_OWNERSHIP_ID
+}                           from "wormhole-sdk/components/dispatcher/Ids.sol";
+import {DispatcherTestBase} from "./utils/DispatcherTestBase.sol";
 
 contract AcessControlTest is DispatcherTestBase {
   using BytesParsing for bytes;

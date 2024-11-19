@@ -2,11 +2,12 @@
 
 pragma solidity ^0.8.4;
 
-import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
-import {Proxy} from "wormhole-sdk/proxy/Proxy.sol";
-import {reRevert} from "wormhole-sdk/Utils.sol";
-import {Dispatcher} from "./Dispatcher.sol";
 import "forge-std/Test.sol";
+
+import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
+import {Proxy}        from "wormhole-sdk/proxy/Proxy.sol";
+import {reRevert}     from "wormhole-sdk/Utils.sol";
+import {Dispatcher}   from "./Dispatcher.sol";
 
 contract DispatcherTestBase is Test {
   using BytesParsing for bytes;
