@@ -42,6 +42,30 @@ struct DeliveryOverride {
   bytes32 redeliveryHash;
 }
 
+function encode(DeliveryInstruction memory strct)
+  pure
+  returns (bytes memory encoded)
+{
+  encoded = abi.encodePacked(
+    PAYLOAD_ID_DELIVERY_INSTRUCTION,
+    strct.targetChain,
+    strct.targetAddress,
+    encodeBytes(strct.payload),
+    strct.requestedReceiverValue,
+    strct.extraReceiverValue
+  );
+  encoded = abi.encodePacked(
+    encoded,
+    encodeBytes(strct.encodedExecutionInfo),
+    strct.refundChain,
+    strct.refundAddress,
+    strct.refundDeliveryProvider,
+    strct.sourceDeliveryProvider,
+    strct.senderAddress,
+    encodeMessageKeyArray(strct.messageKeys)
+  );
+}
+
 function decodeDeliveryInstruction(
   bytes memory encoded
 ) pure returns (DeliveryInstruction memory strct) {
@@ -61,6 +85,22 @@ function decodeDeliveryInstruction(
   (strct.messageKeys,            offset) = decodeMessageKeyArray(encoded, offset);
 
   encoded.checkLength(offset);
+}
+
+function encode(RedeliveryInstruction memory strct)
+  pure
+  returns (bytes memory encoded)
+{
+  bytes memory vaaKey = abi.encodePacked(VAA_KEY_TYPE, encodeVaaKey(strct.deliveryVaaKey));
+  encoded = abi.encodePacked(
+    PAYLOAD_ID_REDELIVERY_INSTRUCTION,
+    vaaKey,
+    strct.targetChain,
+    strct.newRequestedReceiverValue,
+    encodeBytes(strct.newEncodedExecutionInfo),
+    strct.newSourceDeliveryProvider,
+    strct.newSenderAddress
+  );
 }
 
 function decodeRedeliveryInstruction(
