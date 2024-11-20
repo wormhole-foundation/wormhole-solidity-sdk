@@ -41,17 +41,19 @@ contract DispatcherTestBase is Test {
     _setUp1();
   }
 
-  function invokeStaticDispatcher(bytes memory encoded) view internal returns (bytes memory data) {
-    (bool success, bytes memory result) = address(dispatcher).staticcall(encoded);
+  function invokeStaticDispatcher(bytes memory messages) view internal returns (bytes memory data) {
+    bytes memory getCall = abi.encodePacked(dispatcher.get1959.selector, messages);
+    (bool success, bytes memory result) = address(dispatcher).staticcall(getCall);
     return decodeBytesResult(success, result);
   }
 
-  function invokeDispatcher(bytes memory encoded) internal returns (bytes memory data) {
-    return invokeDispatcher(encoded, 0);
+  function invokeDispatcher(bytes memory messages) internal returns (bytes memory data) {
+    return invokeDispatcher(messages, 0);
   }
 
-  function invokeDispatcher(bytes memory encoded, uint value) internal returns (bytes memory data) {
-    (bool success, bytes memory result) = address(dispatcher).call{value: value}(encoded);
+  function invokeDispatcher(bytes memory messages, uint value) internal returns (bytes memory data) {
+    bytes memory execCall = abi.encodePacked(dispatcher.exec768.selector, messages);
+    (bool success, bytes memory result) = address(dispatcher).call{value: value}(execCall);
     return decodeBytesResult(success, result);
   }
 

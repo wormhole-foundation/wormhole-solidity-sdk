@@ -29,7 +29,6 @@ contract AcessControlTest is DispatcherTestBase {
     vm.prank(owner);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector,
         ACCESS_CONTROL_ID,
         commandCount,
         PROPOSE_OWNERSHIP_TRANSFER_ID,
@@ -40,7 +39,6 @@ contract AcessControlTest is DispatcherTestBase {
     commandCount = 2;
     bytes memory getRes = invokeStaticDispatcher(
       abi.encodePacked(
-        dispatcher.get1959.selector,
         ACCESS_CONTROL_QUERIES_ID,
         commandCount,
         OWNER_ID,
@@ -56,14 +54,12 @@ contract AcessControlTest is DispatcherTestBase {
     vm.prank(newOwner);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector, 
         ACQUIRE_OWNERSHIP_ID
       )
     );
 
     getRes = invokeStaticDispatcher(
       abi.encodePacked(
-        dispatcher.get1959.selector,
         
         ACCESS_CONTROL_QUERIES_ID,
         commandCount,
@@ -85,7 +81,6 @@ contract AcessControlTest is DispatcherTestBase {
     vm.expectRevert(NotAuthorized.selector);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector,
         ACCESS_CONTROL_ID,
         commandCount,
         PROPOSE_OWNERSHIP_TRANSFER_ID,
@@ -101,7 +96,6 @@ contract AcessControlTest is DispatcherTestBase {
     vm.prank(owner);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector,
         ACCESS_CONTROL_ID,
         commandCount,
         PROPOSE_OWNERSHIP_TRANSFER_ID,
@@ -112,7 +106,6 @@ contract AcessControlTest is DispatcherTestBase {
     commandCount = 2;
     bytes memory getRes = invokeStaticDispatcher(
       abi.encodePacked(
-        dispatcher.get1959.selector,
         ACCESS_CONTROL_QUERIES_ID,
         commandCount,
         OWNER_ID,
@@ -134,7 +127,6 @@ contract AcessControlTest is DispatcherTestBase {
     vm.expectRevert(NotAuthorized.selector);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector, 
         ACQUIRE_OWNERSHIP_ID
       )
     );
@@ -147,7 +139,6 @@ contract AcessControlTest is DispatcherTestBase {
     vm.prank(owner);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector,
         ACCESS_CONTROL_ID,
         commandCount,
         PROPOSE_OWNERSHIP_TRANSFER_ID,
@@ -158,14 +149,12 @@ contract AcessControlTest is DispatcherTestBase {
     vm.prank(newOwner);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector, 
         ACQUIRE_OWNERSHIP_ID
       )
     );
 
     bytes memory getRes = invokeStaticDispatcher(
       abi.encodePacked(
-        dispatcher.get1959.selector,
         
         ACCESS_CONTROL_QUERIES_ID,
         commandCount,
@@ -194,7 +183,6 @@ contract AcessControlTest is DispatcherTestBase {
     uint8 commandCount = 2;
     bytes memory getRes = invokeStaticDispatcher(
       abi.encodePacked(
-        dispatcher.get1959.selector,
         ACCESS_CONTROL_QUERIES_ID,
         commandCount,
         OWNER_ID,
@@ -223,7 +211,6 @@ contract AcessControlTest is DispatcherTestBase {
     uint8 commandCount = 2;
     bytes memory getRes = invokeStaticDispatcher(
       abi.encodePacked(
-        dispatcher.get1959.selector,
         ACCESS_CONTROL_QUERIES_ID,
         commandCount,
         OWNER_ID,
@@ -252,7 +239,6 @@ contract AcessControlTest is DispatcherTestBase {
     uint8 commandCount = 2;
     bytes memory getRes = invokeStaticDispatcher(
       abi.encodePacked(
-        dispatcher.get1959.selector,
         ACCESS_CONTROL_QUERIES_ID,
         commandCount,
         OWNER_ID,
@@ -276,7 +262,6 @@ contract AcessControlTest is DispatcherTestBase {
     vm.prank(owner);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector, 
         ACCESS_CONTROL_ID,
         commandCount, 
         PROPOSE_OWNERSHIP_TRANSFER_ID,
@@ -287,7 +272,6 @@ contract AcessControlTest is DispatcherTestBase {
     vm.prank(newOwner);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector, 
         ACQUIRE_OWNERSHIP_ID, 
         ACCESS_CONTROL_ID,
         commandCount, 
@@ -299,7 +283,6 @@ contract AcessControlTest is DispatcherTestBase {
     commandCount = 3;
     bytes memory getRes = invokeStaticDispatcher(
       abi.encodePacked(
-        dispatcher.get1959.selector, 
         ACCESS_CONTROL_QUERIES_ID,
         commandCount, 
         OWNER_ID,
@@ -328,7 +311,6 @@ contract AcessControlTest is DispatcherTestBase {
     vm.expectRevert(NotAuthorized.selector);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector,
         ACCESS_CONTROL_ID,
         commandCount, 
         ADD_ADMIN_ID,
@@ -340,7 +322,6 @@ contract AcessControlTest is DispatcherTestBase {
     vm.prank(admin);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector,
         ACCESS_CONTROL_ID,
         commandCount, 
         ADD_ADMIN_ID,
@@ -356,7 +337,6 @@ contract AcessControlTest is DispatcherTestBase {
     vm.prank(owner);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector,
         ACCESS_CONTROL_ID,
         commandCount, 
         ADD_ADMIN_ID,
@@ -367,7 +347,6 @@ contract AcessControlTest is DispatcherTestBase {
     commandCount = 2;
     bytes memory res = invokeStaticDispatcher(
       abi.encodePacked(
-        dispatcher.get1959.selector,
         ACCESS_CONTROL_QUERIES_ID,
         commandCount,
         IS_ADMIN_ID,
@@ -392,7 +371,6 @@ contract AcessControlTest is DispatcherTestBase {
     vm.expectRevert(NotAuthorized.selector);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector,
         ACCESS_CONTROL_ID,
         commandCount, 
         REVOKE_ADMIN_ID,
@@ -408,7 +386,6 @@ contract AcessControlTest is DispatcherTestBase {
     vm.prank(owner);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector,
         ACCESS_CONTROL_ID,
         commandCount, 
         ADD_ADMIN_ID,
@@ -420,7 +397,6 @@ contract AcessControlTest is DispatcherTestBase {
     vm.prank(admin);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector,
         ACCESS_CONTROL_ID,
         commandCount, 
         REVOKE_ADMIN_ID,
@@ -431,7 +407,6 @@ contract AcessControlTest is DispatcherTestBase {
     commandCount = 2;
     bytes memory res = invokeStaticDispatcher(
       abi.encodePacked(
-        dispatcher.get1959.selector,
         ACCESS_CONTROL_QUERIES_ID,
         commandCount,
         IS_ADMIN_ID,
@@ -453,7 +428,6 @@ contract AcessControlTest is DispatcherTestBase {
     vm.prank(admin);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector,
         ACCESS_CONTROL_ID,
         commandCount,
         REVOKE_ADMIN_ID,
@@ -464,7 +438,6 @@ contract AcessControlTest is DispatcherTestBase {
     bool isAdmin;
     (isAdmin, ) = invokeStaticDispatcher(
       abi.encodePacked(
-        dispatcher.get1959.selector,
         ACCESS_CONTROL_QUERIES_ID,
         commandCount,
         IS_ADMIN_ID,
@@ -481,7 +454,6 @@ contract AcessControlTest is DispatcherTestBase {
     vm.expectRevert(NotAuthorized.selector);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector,
         ACCESS_CONTROL_ID,
         commandCount,
         RELINQUISH_OWNERSHIP_ID
@@ -498,7 +470,6 @@ contract AcessControlTest is DispatcherTestBase {
     );
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector,
         ACCESS_CONTROL_ID,
         commandCount,
         RELINQUISH_OWNERSHIP_ID,
@@ -514,7 +485,6 @@ contract AcessControlTest is DispatcherTestBase {
     vm.prank(owner);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector,
         ACCESS_CONTROL_ID,
         commandCount,
         RELINQUISH_OWNERSHIP_ID
@@ -523,7 +493,6 @@ contract AcessControlTest is DispatcherTestBase {
 
     (address owner_, ) = invokeStaticDispatcher(
       abi.encodePacked(
-        dispatcher.get1959.selector,
         ACCESS_CONTROL_QUERIES_ID,
         commandCount,
         OWNER_ID

@@ -24,7 +24,6 @@ contract SweepTokensTest is DispatcherTestBase {
     vm.prank(owner);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector, 
         SWEEP_TOKENS_ID, address(token), tokenAmount
       )
     );
@@ -42,7 +41,6 @@ contract SweepTokensTest is DispatcherTestBase {
     vm.prank(owner);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector,
         SWEEP_TOKENS_ID, address(0), ethAmount
       )
     );

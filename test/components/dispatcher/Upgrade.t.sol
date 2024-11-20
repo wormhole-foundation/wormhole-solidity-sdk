@@ -21,7 +21,6 @@ contract UpgradeTest is DispatcherTestBase {
     vm.expectRevert(NotAuthorized.selector);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector,
         UPGRADE_CONTRACT_ID,
         address(fakeAddress)
       )
@@ -31,7 +30,6 @@ contract UpgradeTest is DispatcherTestBase {
     vm.expectRevert(NotAuthorized.selector);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector,
         UPGRADE_CONTRACT_ID,
         address(fakeAddress)
       )
@@ -44,7 +42,6 @@ contract UpgradeTest is DispatcherTestBase {
     vm.startPrank(owner);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector,
         UPGRADE_CONTRACT_ID,
         address(upgradeTester)
       )
@@ -59,7 +56,6 @@ contract UpgradeTest is DispatcherTestBase {
 
     bytes memory response = invokeStaticDispatcher(
       abi.encodePacked(
-        dispatcher.get1959.selector,
         IMPLEMENTATION_ID
       )
     );
@@ -69,7 +65,6 @@ contract UpgradeTest is DispatcherTestBase {
     vm.startPrank(owner);
     invokeDispatcher(
       abi.encodePacked(
-        dispatcher.exec768.selector,
         UPGRADE_CONTRACT_ID,
         address(upgradeTester)
       )
@@ -79,7 +74,6 @@ contract UpgradeTest is DispatcherTestBase {
 
     response = invokeStaticDispatcher(
       abi.encodePacked(
-        dispatcher.get1959.selector,
         IMPLEMENTATION_ID
       )
     );
@@ -114,7 +108,6 @@ contract UpgradeTest is DispatcherTestBase {
 
     bytes memory response = invokeStaticDispatcher(
       abi.encodePacked(
-        dispatcher.get1959.selector,
         IMPLEMENTATION_ID
       )
     );
@@ -128,7 +121,6 @@ contract UpgradeTest is DispatcherTestBase {
 
     response = invokeStaticDispatcher(
       abi.encodePacked(
-        dispatcher.get1959.selector,
         IMPLEMENTATION_ID
       )
     );
