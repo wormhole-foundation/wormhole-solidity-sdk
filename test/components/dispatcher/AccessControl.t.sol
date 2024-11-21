@@ -3,7 +3,7 @@
 pragma solidity ^0.8.4;
 
 import {BytesParsing}       from "wormhole-sdk/libraries/BytesParsing.sol";
-import {NotAuthorized}      from "wormhole-sdk/components/dispatcher/AccessControl.sol";
+import {AdminsUpdated, NotAuthorized}      from "wormhole-sdk/components/dispatcher/AccessControl.sol";
 import {
   ACCESS_CONTROL_ID,
   ACCESS_CONTROL_QUERIES_ID,
@@ -334,6 +334,8 @@ contract AcessControlTest is DispatcherTestBase {
     vm.assume(newAdmin != admin);
     uint8 commandCount = 1;
 
+    vm.expectEmit();
+    emit AdminsUpdated(newAdmin, true, block.timestamp);
     vm.prank(owner);
     invokeDispatcher(
       abi.encodePacked(
@@ -394,6 +396,10 @@ contract AcessControlTest is DispatcherTestBase {
     );
 
     commandCount = 1;
+
+    vm.expectEmit();
+    emit AdminsUpdated(newAdmin, false, block.timestamp);
+
     vm.prank(admin);
     invokeDispatcher(
       abi.encodePacked(
@@ -425,6 +431,9 @@ contract AcessControlTest is DispatcherTestBase {
   function testRelinquishAdministration() public {
     uint8 commandCount = 1;
 
+    vm.expectEmit();
+    emit AdminsUpdated(admin, false, block.timestamp);
+
     vm.prank(admin);
     invokeDispatcher(
       abi.encodePacked(
@@ -450,15 +459,19 @@ contract AcessControlTest is DispatcherTestBase {
 
   function testRelinquishOwnership_NotAuthorized() public {
     uint8 commandCount = 1;
+    bytes memory relinquishCommand = abi.encodePacked(
+      ACCESS_CONTROL_ID,
+      commandCount,
+      RELINQUISH_OWNERSHIP_ID
+    );
 
     vm.expectRevert(NotAuthorized.selector);
-    invokeDispatcher(
-      abi.encodePacked(
-        ACCESS_CONTROL_ID,
-        commandCount,
-        RELINQUISH_OWNERSHIP_ID
-      )
-    );
+    invokeDispatcher(relinquishCommand);
+
+
+    vm.expectRevert(NotAuthorized.selector);
+    vm.prank(admin);
+    invokeDispatcher(relinquishCommand);
   }
 
   function testRelinquishOwnership_LengthMismatch() public {
