@@ -37,14 +37,13 @@ contract AcessControlTest is DispatcherTestBase {
     );
 
     commandCount = 2;
-    bytes memory getRes = invokeStaticDispatcher(
-      abi.encodePacked(
-        ACCESS_CONTROL_QUERIES_ID,
-        commandCount,
-        OWNER_ID,
-        PENDING_OWNER_ID
-      )
-    );
+    bytes memory queries = abi.encodePacked(
+      ACCESS_CONTROL_QUERIES_ID,
+      commandCount,
+      OWNER_ID,
+      PENDING_OWNER_ID
+    )
+    bytes memory getRes = invokeStaticDispatcher(queries);
     (address owner_,        ) = getRes.asAddressUnchecked(0);
     (address pendingOwner_, ) = getRes.asAddressUnchecked(20);
 
@@ -58,15 +57,7 @@ contract AcessControlTest is DispatcherTestBase {
       )
     );
 
-    getRes = invokeStaticDispatcher(
-      abi.encodePacked(
-        
-        ACCESS_CONTROL_QUERIES_ID,
-        commandCount,
-        OWNER_ID,
-        PENDING_OWNER_ID
-      )
-    );
+    getRes = invokeStaticDispatcher(queries);
     (owner_,        ) = getRes.asAddressUnchecked(0);
     (pendingOwner_, ) = getRes.asAddressUnchecked(20);
 
@@ -155,7 +146,6 @@ contract AcessControlTest is DispatcherTestBase {
 
     bytes memory getRes = invokeStaticDispatcher(
       abi.encodePacked(
-        
         ACCESS_CONTROL_QUERIES_ID,
         commandCount,
         OWNER_ID,
@@ -308,26 +298,19 @@ contract AcessControlTest is DispatcherTestBase {
     address newAdmin = makeAddr("newAdmin");
     uint8 commandCount = 1;
 
-    vm.expectRevert(NotAuthorized.selector);
-    invokeDispatcher(
-      abi.encodePacked(
-        ACCESS_CONTROL_ID,
-        commandCount, 
-        ADD_ADMIN_ID,
-        newAdmin
-      )
+    bytes memory = addAdminCommand = abi.encodePacked(
+      ACCESS_CONTROL_ID,
+      commandCount,
+      ADD_ADMIN_ID,
+      newAdmin
     );
 
     vm.expectRevert(NotAuthorized.selector);
+    invokeDispatcher(addAdminCommand);
+
+    vm.expectRevert(NotAuthorized.selector);
     vm.prank(admin);
-    invokeDispatcher(
-      abi.encodePacked(
-        ACCESS_CONTROL_ID,
-        commandCount, 
-        ADD_ADMIN_ID,
-        newAdmin
-      )
-    );
+    invokeDispatcher(addAdminCommand);
   } 
 
   function testAddAdmin(address newAdmin) public {
