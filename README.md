@@ -38,7 +38,7 @@ It is strongly recommended that you run the forge test suite of this SDK with yo
 
 **IERC20 and SafeERC20 Remapping**
 
-This SDK comes with its own IERC20 interface and SafeERC20 implementation. Given that projects tend to combine different SDKs, there's often this annoying issue of clashes of IERC20 interfaces, even though the are effectively the same. We handle this issue by importing `IERC20/IERC20.sol` which allows remapping the `IERC20/` prefix to whatever directory contains `IERC20.sol` in your project, thus providing an override mechanism that should allow dealing with this problem seamlessly until forge allows remapping of individual files. The same approach is used for SafeERC20.
+This SDK comes with its own IERC20 interface and SafeERC20 implementation. Given that projects tend to combine different SDKs, there's often this annoying issue of clashes of IERC20 interfaces, even though they are effectively the same. We handle this issue by importing `IERC20/IERC20.sol` which allows remapping the `IERC20/` prefix to whatever directory contains `IERC20.sol` in your project, thus providing an override mechanism that should allow dealing with this problem seamlessly until forge allows remapping of individual files. The same approach is used for SafeERC20.
 
 ## Components
 
