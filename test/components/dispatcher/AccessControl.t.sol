@@ -42,7 +42,7 @@ contract AcessControlTest is DispatcherTestBase {
       commandCount,
       OWNER_ID,
       PENDING_OWNER_ID
-    )
+    );
     bytes memory getRes = invokeStaticDispatcher(queries);
     (address owner_,        ) = getRes.asAddressUnchecked(0);
     (address pendingOwner_, ) = getRes.asAddressUnchecked(20);
@@ -298,7 +298,7 @@ contract AcessControlTest is DispatcherTestBase {
     address newAdmin = makeAddr("newAdmin");
     uint8 commandCount = 1;
 
-    bytes memory = addAdminCommand = abi.encodePacked(
+    bytes memory addAdminCommand = abi.encodePacked(
       ACCESS_CONTROL_ID,
       commandCount,
       ADD_ADMIN_ID,
