@@ -15,7 +15,7 @@ import "./UsdcDealer.sol";
 import "./WormholeOverride.sol";
 import "./CctpOverride.sol";
 import "./ERC20Mock.sol";
-import "./WormholeRelayer/DeliveryInstructionDecoder.sol";
+import "./WormholeRelayer/DeliveryInstructionSerde.sol";
 import "./WormholeRelayer/ExecutionParameters.sol";
 import "./WormholeRelayer/MockOffchainRelayer.sol";
 
