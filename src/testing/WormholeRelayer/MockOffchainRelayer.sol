@@ -14,7 +14,7 @@ import {CCTPMessageLib} from "wormhole-sdk/WormholeRelayer/CCTPBase.sol";
 import {VM_ADDRESS} from "wormhole-sdk/testing/Constants.sol";
 import "wormhole-sdk/testing/WormholeOverride.sol";
 import "wormhole-sdk/testing/CctpOverride.sol";
-import "wormhole-sdk/testing/WormholeRelayer/DeliveryInstructionDecoder.sol";
+import "wormhole-sdk/testing/WormholeRelayer/DeliveryInstructionSerde.sol";
 import "wormhole-sdk/testing/WormholeRelayer/ExecutionParameters.sol";
 
 using BytesParsing for bytes;
