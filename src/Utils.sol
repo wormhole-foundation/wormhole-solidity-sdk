@@ -26,3 +26,17 @@ function reRevert(bytes memory err) pure {
     revert(add(err, 32), mload(err))
   }
 }
+
+//see Optimization.md for rationale on avoiding short-circuiting
+function eagerAnd(bool lhs, bool rhs) pure returns (bool ret) {
+  assembly ("memory-safe") {
+    ret := and(lhs, rhs)
+  }
+}
+
+//see Optimization.md for rationale on avoiding short-circuiting
+function eagerOr(bool lhs, bool rhs) pure returns (bool ret) {
+  assembly ("memory-safe") {
+    ret := or(lhs, rhs)
+ }
+}
