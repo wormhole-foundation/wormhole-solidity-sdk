@@ -24,7 +24,7 @@ If `myArray` uses `calldata` instead of `memory`, both versions produce the same
 
 Given that the EVM only supports `LT` and `GT` but not `LTE` or `GTE`, solc implements `x<=y` as `!(x>y)`. However, given a constant `MAX`, since solc resolves `MAX + 1` at compile time, `< MAX + 1` saves one `ISZERO` opcode.
 
-## consider using `eagerAnd` and `eagerOr` over short-curcuiting `&&` and `||`
+## consider using `eagerAnd` and `eagerOr` over short-circuiting `&&` and `||`
 
 Short-circuiting `lhs && rhs` requires _at least_ the insertion of:
 
