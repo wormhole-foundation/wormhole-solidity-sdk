@@ -45,7 +45,7 @@ Short-circuiting `lhs && rhs` requires _at least_ the insertion of:
 | --------------- | ---- | --- | ----------------------------------------------------------- |
 | Total           | 12   | 32  |                                                             |
 
-So our code will always bloat by at least 12 bytes, and even if the short-circuiting triggers, we still pay for the `PUSH`, the `JUMPI`, and stepping over the subsequent `JUMPDST` for a total of 17 gas, when the alternative can be as cheap as a single `AND` for 1 byte and 3 gas (if we just check a boolean thats already on the stack).
+So our code will always bloat by at least 12 bytes, and even if the short-circuiting triggers, we still pay for the `PUSH`, the `JUMPI`, and stepping over the subsequent `JUMPDST` for a total of 17 gas, when the alternative can be as cheap as a single `AND` for 1 byte and 3 gas (if we just check a boolean that's already on the stack).
 
 This is particularly unnecessary when checking that a bunch of variables all have their expected values, and where short-circuiting would _at best_ make the failing path cheaper, while always introducing the gas overhead on our precious happy path.
 
