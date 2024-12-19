@@ -3,11 +3,11 @@ pragma solidity ^0.8.24;
 
 import {Vm} from "forge-std/Vm.sol";
 
-import {WORD_SIZE, WORD_SIZE_MINUS_ONE} from "wormhole-sdk/constants/Common.sol";
-import {IWormhole}                      from "wormhole-sdk/interfaces/IWormhole.sol";
-import {BytesParsing}                   from "wormhole-sdk/libraries/BytesParsing.sol";
-import {toUniversalAddress}             from "wormhole-sdk/Utils.sol";
-
+import {WORD_SIZE, WORD_SIZE_MINUS_ONE}          from "wormhole-sdk/constants/Common.sol";
+import {IWormhole}                               from "wormhole-sdk/interfaces/IWormhole.sol";
+import {BytesParsing}                            from "wormhole-sdk/libraries/BytesParsing.sol";
+import {WormholeMessages}                        from "wormhole-sdk/libraries/WormholeMessages.sol";
+import {toUniversalAddress}                      from "wormhole-sdk/Utils.sol";
 import {VM_ADDRESS, DEVNET_GUARDIAN_PRIVATE_KEY} from "wormhole-sdk/testing/Constants.sol";
 import {LogUtils}                                from "wormhole-sdk/testing/LogUtils.sol";
 
@@ -23,32 +23,6 @@ struct PublishedMessage {
   uint32 nonce;
   uint8 consistencyLevel;
   bytes payload;
-}
-
-//use `using VaaEncoding for IWormhole.VM;` to convert VAAs to bytes via .encode()
-library VaaEncoding {
-  function encode(IWormhole.VM memory vaa) internal pure returns (bytes memory) { unchecked {
-    bytes memory sigs;
-    for (uint i = 0; i < vaa.signatures.length; ++i) {
-      IWormhole.Signature memory sig = vaa.signatures[i];      
-      uint8 v = sig.v - 27; //see https://github.com/wormhole-foundation/wormhole/blob/c35940ae9689f6df9e983d51425763509b74a80f/ethereum/contracts/Messages.sol#L174
-      sigs = bytes.concat(sigs, abi.encodePacked(sig.guardianIndex, sig.r, sig.s, v));
-    }
-
-    return abi.encodePacked(
-      vaa.version,
-      vaa.guardianSetIndex,
-      uint8(vaa.signatures.length),
-      sigs,
-      vaa.timestamp,
-      vaa.nonce,
-      vaa.emitterChainId,
-      vaa.emitterAddress,
-      vaa.sequence,
-      vaa.consistencyLevel,
-      vaa.payload
-    );
-  }}
 }
 
 //simple version of the library - should be sufficient for most use cases
@@ -111,11 +85,11 @@ library WormholeOverride {
 //──────────────────────────────────────────────────────────────────────────────────────────────────
 
 //more complex superset of WormholeOverride for more advanced tests
-library AdvancedWormholeOverride {  
+library AdvancedWormholeOverride {
   using { toUniversalAddress } for address;
   using BytesParsing for bytes;
   using LogUtils for Vm.Log[];
-  using VaaEncoding for IWormhole.VM;
+  using WormholeMessages for IWormhole.VM;
 
   Vm constant vm = Vm(VM_ADDRESS);
 
@@ -165,7 +139,7 @@ library AdvancedWormholeOverride {
   //  multiple, different instances of the core bridge
   uint256 private constant _OVERRIDE_STATE_SLOT =
     0x2e44eb2c79e88410071ac52f3c0e5ab51396d9208c2c783cdb8e12f39b763de8;
-  
+
   //extra data (ors = _OVERRIDE_STATE_SLOT):
   //   slot │ type      │ name
   // ───────┼───────────┼────────────────────────────
@@ -215,7 +189,7 @@ library AdvancedWormholeOverride {
       bytes32(_OVERRIDE_STATE_SLOT + _OR_NONCE_OFFSET)
     )));
   }}
-  
+
   function setConsistencyLevel(IWormhole wormhole, uint8 consistencyLevel) internal {
     vm.store(
       address(wormhole),
@@ -292,7 +266,7 @@ library AdvancedWormholeOverride {
       uint8 curIdx = signingIndices[i];
       assembly ("memory-safe") { mstore8(add(add(packedIndices, WORD_SIZE), i), curIdx) }
     }
-    
+
     uint fullSlots = packedIndices.length / WORD_SIZE;
     for (uint i = 0; i < fullSlots; ++i) {
       (bytes32 val,) = packedIndices.asBytes32Unchecked(i * WORD_SIZE);
@@ -302,7 +276,7 @@ library AdvancedWormholeOverride {
         val
       );
     }
-    
+
     uint remaining = packedIndices.length % WORD_SIZE;
     if (remaining > 0) {
       (uint256 val, ) = packedIndices.asUint256Unchecked(fullSlots * WORD_SIZE);
@@ -334,7 +308,7 @@ library AdvancedWormholeOverride {
         address(wormhole),
         bytes32(_arraySlot(_OVERRIDE_STATE_SLOT + _OR_SIGNING_INDICES_OFFSET) + i)
       );
-    
+
     bytes memory packed = abi.encodePacked(individualSlots);
     assembly ("memory-safe") { mstore(packed, len) }
     return packed;
@@ -375,7 +349,7 @@ library AdvancedWormholeOverride {
 
     if (guardianPrivateKeys.length == 0)
       revert ("no guardian private keys provided");
-    
+
     if (guardianPrivateKeys.length > type(uint8).max)
       revert ("too many guardians, core bridge enforces upper bound of 255");
 
@@ -389,7 +363,7 @@ library AdvancedWormholeOverride {
       bytes32(curGuardianSetSlot + _GUARDIAN_SET_STRUCT_EXPIRATION_OFFSET),
       bytes32(block.timestamp + 1 days)
     );
-    
+
     uint32 newGuardianSetIndex = curGuardianSetIndex + 1;
     uint256 newGuardianSetSlot = _guardianSetSlot(newGuardianSetIndex);
 
@@ -409,7 +383,7 @@ library AdvancedWormholeOverride {
         bytes32(_arraySlot(newGuardianSetSlot) + i),
         bytes32(uint256(uint160(vm.addr(guardianPrivateKeys[i]))))
       );
-    
+
     //initialize override state with default values
     setSequence(wormhole, 0);
     setNonce(wormhole, 0);

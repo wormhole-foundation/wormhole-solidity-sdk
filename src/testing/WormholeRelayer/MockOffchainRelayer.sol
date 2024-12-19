@@ -140,7 +140,7 @@ contract MockOffchainRelayer {
           vaas[i].emitterChainId,
           vaas[i].emitterAddress.fromUniversalAddress()
         );
-      
+
       genericRelay(
         vaas[i],
         vaas,
