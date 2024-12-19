@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 
 import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
+import {eagerAnd, eagerOr} from "wormhole-sdk/Utils.sol";
 
 error UnsupportedQueryType(uint8 received);
 
@@ -24,13 +25,14 @@ library QueryType {
 
   function checkValid(uint8 queryType) internal pure {
     //slightly more gas efficient than calling `isValid`
-    if (queryType == 0 || queryType > SOLANA_PDA)
+    if (eagerOr(queryType == 0, queryType > SOLANA_PDA))
       revert UnsupportedQueryType(queryType);
   }
 
   function isValid(uint8 queryType) internal pure returns (bool) {
-    //see docs/optimizations.md why `< CONST + 1` rather than `<= CONST`
-    return (queryType > 0 && queryType < SOLANA_PDA + 1);
+    //see docs/Optimization.md why `< CONST + 1` rather than `<= CONST`
+    //see docs/Optimization.md for rationale behind `eagerAnd`
+    return eagerAnd(queryType > 0, queryType < SOLANA_PDA + 1);
   }
 }
 
@@ -186,7 +188,7 @@ library QueryResponseLib {
     IWormhole wormhole_ = IWormhole(wormhole);
     uint32 guardianSetIndex = wormhole_.getCurrentGuardianSetIndex();
     IWormhole.GuardianSet memory guardianSet = wormhole_.getGuardianSet(guardianSetIndex);
-    
+
     while (true) {
       uint quorum = guardianSet.keys.length * 2 / 3 + 1;
       if (signatures.length >= quorum) {

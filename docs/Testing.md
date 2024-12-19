@@ -42,10 +42,6 @@ The `WormholeCctpSimulator` contract can be deployed to simulate a virtual `Worm
 
 Forge's `deal` cheat code does not work for USDC. `UsdcDealer` is another override library that implements a `deal` function that allows minting of USDC.
 
-### CctpMessages
-
-Library to parse CCTP messages composed/emitted by Circle's `TokenMessenger` and `MessageTransmitter` contracts. Used in `CctpOverride` and `WormholeCctpSimulator`.
-
 ### ERC20Mock
 
 Copy of SolMate's ERC20 Mock token that uses the overrideable `IERC20` interface of this SDK to guarantee compatibility.

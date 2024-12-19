@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.24;
 
-import { implementationState } from "./Eip1967Implementation.sol";
+import {implementationState} from "./Eip1967Implementation.sol";
 
 error InvalidSender();
 error IdempotentUpgrade();

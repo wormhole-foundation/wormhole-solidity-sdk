@@ -4,9 +4,15 @@ pragma solidity ^0.8.19;
 import "forge-std/Vm.sol";
 
 import {IMessageTransmitter} from "wormhole-sdk/interfaces/cctp/IMessageTransmitter.sol";
-import {VM_ADDRESS, DEVNET_GUARDIAN_PRIVATE_KEY} from "./Constants.sol";
-import "./CctpMessages.sol";
-import "./LogUtils.sol";
+import {LogUtils}            from "wormhole-sdk/testing/LogUtils.sol";
+import {
+  CctpMessages,
+  CctpTokenBurnMessage
+}                            from "wormhole-sdk/libraries/CctpMessages.sol";
+import {
+  VM_ADDRESS,
+  DEVNET_GUARDIAN_PRIVATE_KEY
+}                            from "wormhole-sdk/testing/Constants.sol";
 
 //create fake CCTP attestations for forge tests
 library CctpOverride {
