@@ -5,7 +5,12 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 
 import { adminState } from "wormhole-sdk/proxy/Eip1967Admin.sol";
-import { ProxyBase, UpgradeFailed, InvalidData } from "wormhole-sdk/proxy/ProxyBase.sol";
+import {
+  ProxyBase,
+  UpgradeFailed,
+  InvalidData,
+  InvalidImplementation
+} from "wormhole-sdk/proxy/ProxyBase.sol";
 import { Proxy, ProxyConstructionFailed } from "wormhole-sdk/proxy/Proxy.sol";
 
 error NotAuthorized();
@@ -103,5 +108,13 @@ contract TestProxy is Test {
     assertEq(contrct.getImplementation(), logic1);
     assertEq(contrct.immutableNum(), 1);
     assertEq(contrct.message(), "v2");
+  }
+
+  function testProxyInvalidUpgradeFails() public {
+    address logic1 = address(new LogicContractV1(1));
+    LogicContractV1 contrct = LogicContractV1(address(new Proxy(logic1, abi.encode("v1"))));
+
+    vm.expectRevert(InvalidImplementation.selector);
+    contrct.customUpgradeFun(makeAddr("wrongAddress"), abi.encode("oops"));
   }
 }

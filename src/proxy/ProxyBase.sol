@@ -8,6 +8,7 @@ error InvalidSender();
 error IdempotentUpgrade();
 error InvalidMsgValue();
 error InvalidData();
+error InvalidImplementation();
 error UpgradeFailed(bytes revertData);
 
 event Upgraded(address indexed implementation);
@@ -39,6 +40,9 @@ abstract contract ProxyBase {
   function _upgradeTo(address newImplementation, bytes memory data) internal {
     if (newImplementation == implementationState().implementation)
       revert IdempotentUpgrade();
+
+    if (newImplementation.code.length == 0)
+      revert InvalidImplementation();
 
     implementationState().implementation = newImplementation;
 
