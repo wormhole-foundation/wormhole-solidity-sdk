@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.4;
 
 import { WORD_SIZE, SCRATCH_SPACE_PTR } from "./constants/Common.sol";
 
@@ -13,7 +13,8 @@ function fromUniversalAddress(bytes32 universalAddr) pure returns (address addr)
   if (bytes12(universalAddr) != 0)
     revert NotAnEvmAddress(universalAddr);
 
-  assembly ("memory-safe") {
+  /// @solidity memory-safe-assembly
+  assembly {
     addr := universalAddr
   }
 }
@@ -23,21 +24,24 @@ function fromUniversalAddress(bytes32 universalAddr) pure returns (address addr)
  * Meant to be used to easily bubble up errors from low level calls when they fail.
  */
 function reRevert(bytes memory err) pure {
-  assembly ("memory-safe") {
+  /// @solidity memory-safe-assembly
+  assembly {
     revert(add(err, 32), mload(err))
   }
 }
 
 //see Optimization.md for rationale on avoiding short-circuiting
 function eagerAnd(bool lhs, bool rhs) pure returns (bool ret) {
-  assembly ("memory-safe") {
+  /// @solidity memory-safe-assembly
+  assembly {
     ret := and(lhs, rhs)
   }
 }
 
 //see Optimization.md for rationale on avoiding short-circuiting
 function eagerOr(bool lhs, bool rhs) pure returns (bool ret) {
-  assembly ("memory-safe") {
+  /// @solidity memory-safe-assembly
+  assembly {
     ret := or(lhs, rhs)
  }
 }
@@ -47,5 +51,18 @@ function keccak256Word(bytes32 word) pure returns (bytes32 hash) {
   assembly {
     mstore(SCRATCH_SPACE_PTR, word)
     hash := keccak256(SCRATCH_SPACE_PTR, WORD_SIZE)
+  }
+}
+
+function keccak256SliceUnchecked(
+  bytes memory encoded,
+  uint offset,
+  uint length
+) pure returns (bytes32 hash) {
+  /// @solidity memory-safe-assembly
+  assembly {
+    // The length of the bytes type `length` field is that of a word in memory
+    let ptr := add(add(encoded, offset), WORD_SIZE)
+    hash := keccak256(ptr, length)
   }
 }

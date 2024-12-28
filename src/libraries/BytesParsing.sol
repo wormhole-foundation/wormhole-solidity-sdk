@@ -123,42 +123,6 @@ library BytesParsing {
     }
   }
 
-  /**
-   * Hashes subarray of the buffer.
-   * The user of this function is responsible for ensuring the subarray is within bounds of the buffer.
-   * @param encoded Buffer that contains the subarray to be hashed.
-   * @param offset Starting offset of the subarray to be hashed.
-   * @param length Size in bytes of the subarray to be hashed.
-   */
-  function keccak256SubarrayUnchecked(
-    bytes memory encoded,
-    uint offset,
-    uint length
-  ) internal pure returns (bytes32 hash) {
-    /// @solidity memory-safe-assembly
-    assembly {
-      // The length of the bytes type `length` field is that of a word in memory
-      let data := add(add(encoded, offset), WORD_SIZE)
-      hash := keccak256(data, length)
-    }
-  }
-
-  /**
-   * Hashes subarray of the buffer.
-   * @param encoded Buffer that contains the subarray to be hashed.
-   * @param offset Starting offset of the subarray to be hashed.
-   * @param length Size in bytes of the subarray to be hashed.
-   */
-  function keccak256Subarray(
-    bytes memory encoded,
-    uint offset,
-    uint length
-  ) internal pure returns (bytes32 hash) {
-    uint pastTheEndOffset = offset + length;
-    checkBound(pastTheEndOffset, encoded.length);
-    hash = keccak256SubarrayUnchecked(encoded, offset, length);
-  }
-
 /* -------------------------------------------------------------------------------------------------
 Remaining library code below was auto-generated via the following js/node code:
 
