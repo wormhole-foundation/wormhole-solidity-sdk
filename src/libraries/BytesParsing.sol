@@ -24,6 +24,11 @@ library BytesParsing {
       revert LengthMismatch(encodedLength, expectedLength);
   }
 
+  function checkLength(uint encodedLength, uint expectedLength) internal pure {
+    if (encodedLength != expectedLength)
+      revert LengthMismatch(encodedLength, expectedLength);
+  }
+
   //Summary of all remaining functions:
   //
   //Each function has 2*2=4 versions:

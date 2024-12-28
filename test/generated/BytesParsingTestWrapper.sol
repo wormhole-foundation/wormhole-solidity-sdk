@@ -14,6 +14,10 @@ contract BytesParsingTestWrapper {
     BytesParsing.checkLength(encodedLength, expectedLength);
   }
 
+  function checkLength(uint encodedLength, uint expectedLength) external pure {
+    BytesParsing.checkLength(encodedLength, expectedLength);
+  }
+
   function sliceCdUnchecked(
     bytes calldata encoded,
     uint offset,
