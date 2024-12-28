@@ -11,6 +11,7 @@ uint8 constant PAYLOAD_ID_DELIVERY_INSTRUCTION = 1;
 uint8 constant PAYLOAD_ID_REDELIVERY_INSTRUCTION = 2;
 
 using BytesParsing for bytes;
+using {BytesParsing.checkLength} for uint;
 
 struct DeliveryInstruction {
   uint16 targetChain;
@@ -84,7 +85,7 @@ function decodeDeliveryInstruction(
   (strct.senderAddress,          offset) = encoded.asBytes32Unchecked(offset);
   (strct.messageKeys,            offset) = decodeMessageKeyArray(encoded, offset);
 
-  encoded.checkLength(offset);
+  encoded.length.checkLength(offset);
 }
 
 function encode(RedeliveryInstruction memory strct)
@@ -116,7 +117,7 @@ function decodeRedeliveryInstruction(
   (strct.newSourceDeliveryProvider, offset) = encoded.asBytes32Unchecked(offset);
   (strct.newSenderAddress,          offset) = encoded.asBytes32Unchecked(offset);
 
-  encoded.checkLength(offset);
+  encoded.length.checkLength(offset);
 }
 
 function vaaKeyArrayToMessageKeyArray(
@@ -250,5 +251,5 @@ function decodeDeliveryOverride(
   (strct.newExecutionInfo, offset) = decodeBytes(encoded, offset);
   (strct.redeliveryHash,   offset) = encoded.asBytes32Unchecked(offset);
 
-  encoded.checkLength(offset);
+  encoded.length.checkLength(offset);
 }
