@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.4;
 
-import { WORD_SIZE, SCRATCH_SPACE_PTR } from "./constants/Common.sol";
+import { WORD_SIZE, SCRATCH_SPACE_PTR, FREE_MEMORY_PTR } from "./constants/Common.sol";
 
 error NotAnEvmAddress(bytes32);
 
@@ -64,5 +64,21 @@ function keccak256SliceUnchecked(
     // The length of the bytes type `length` field is that of a word in memory
     let ptr := add(add(encoded, offset), WORD_SIZE)
     hash := keccak256(ptr, length)
+  }
+}
+
+function keccak256SliceCdUnchecked(
+  bytes calldata encoded,
+  uint offset,
+  uint length
+) pure returns (bytes32 hash) {
+  /// @solidity memory-safe-assembly
+  assembly {
+    let freeMemory := mload(FREE_MEMORY_PTR)
+
+    let sliceStart := add(encoded.offset, offset)
+    calldatacopy(freeMemory, sliceStart, length)
+
+    hash := keccak256(freeMemory, length)
   }
 }
