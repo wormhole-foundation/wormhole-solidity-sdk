@@ -11,6 +11,7 @@ import {toUniversalAddress} from "wormhole-sdk/Utils.sol";
 library WormholeCctpMessages {
   using { toUniversalAddress } for address;
   using BytesParsing for bytes;
+  using {BytesParsing.checkLength} for uint;
 
   // Payload IDs.
   //
@@ -141,6 +142,6 @@ library WormholeCctpMessages {
       offset
     ) = asDepositUnchecked(encoded, offset);
 
-    encoded.checkLength(offset);
+    encoded.length.checkLength(offset);
   }
 }
