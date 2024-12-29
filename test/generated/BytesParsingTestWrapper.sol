@@ -10,11 +10,15 @@ contract BytesParsingTestWrapper {
     BytesParsing.checkBound(pastTheEndOffset, length);
   }
 
+  function checkLength(uint encodedLength, uint expectedLength) external pure {
+    BytesParsing.checkLength(encodedLength, expectedLength);
+  }
+
   function sliceCdUnchecked(
     bytes calldata encoded,
     uint offset,
     uint length
-  ) external pure returns (bytes memory ret, uint nextOffset) {
+  ) external pure returns (bytes calldata ret, uint nextOffset) {
     return BytesParsing.sliceCdUnchecked(encoded, offset, length);
   }
 
@@ -26,20 +30,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.sliceUnchecked(encoded, offset, length);
   }
 
-  function checkLengthCd(bytes calldata encoded, uint256 expected) external pure {
-    BytesParsing.checkLengthCd(encoded, expected);
-  }
-
   function sliceCd(
     bytes calldata encoded,
     uint offset,
     uint length
-  ) external pure returns (bytes memory ret, uint nextOffset) {
+  ) external pure returns (bytes calldata ret, uint nextOffset) {
     return BytesParsing.sliceCd(encoded, offset, length);
-  }
-
-  function checkLength(bytes calldata encoded, uint256 expected) external pure {
-    BytesParsing.checkLength(encoded, expected);
   }
 
   function slice(
@@ -50,11 +46,11 @@ contract BytesParsingTestWrapper {
     return BytesParsing.slice(encoded, offset, length);
   }
 
-  function sliceUint8PrefixedCdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes memory ret, uint nextOffset) {
+  function sliceUint8PrefixedCdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes calldata ret, uint nextOffset) {
     return BytesParsing.sliceUint8PrefixedCdUnchecked(encoded, offset);
   }
 
-  function sliceUint8PrefixedCd(bytes calldata encoded, uint offset) external pure returns (bytes memory ret, uint nextOffset) {
+  function sliceUint8PrefixedCd(bytes calldata encoded, uint offset) external pure returns (bytes calldata ret, uint nextOffset) {
     return BytesParsing.sliceUint8PrefixedCd(encoded, offset);
   }
 
@@ -66,11 +62,11 @@ contract BytesParsingTestWrapper {
     return BytesParsing.sliceUint8Prefixed(encoded, offset);
   }
 
-  function sliceUint16PrefixedCdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes memory ret, uint nextOffset) {
+  function sliceUint16PrefixedCdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes calldata ret, uint nextOffset) {
     return BytesParsing.sliceUint16PrefixedCdUnchecked(encoded, offset);
   }
 
-  function sliceUint16PrefixedCd(bytes calldata encoded, uint offset) external pure returns (bytes memory ret, uint nextOffset) {
+  function sliceUint16PrefixedCd(bytes calldata encoded, uint offset) external pure returns (bytes calldata ret, uint nextOffset) {
     return BytesParsing.sliceUint16PrefixedCd(encoded, offset);
   }
 
@@ -82,11 +78,11 @@ contract BytesParsingTestWrapper {
     return BytesParsing.sliceUint16Prefixed(encoded, offset);
   }
 
-  function sliceUint32PrefixedCdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes memory ret, uint nextOffset) {
+  function sliceUint32PrefixedCdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes calldata ret, uint nextOffset) {
     return BytesParsing.sliceUint32PrefixedCdUnchecked(encoded, offset);
   }
 
-  function sliceUint32PrefixedCd(bytes calldata encoded, uint offset) external pure returns (bytes memory ret, uint nextOffset) {
+  function sliceUint32PrefixedCd(bytes calldata encoded, uint offset) external pure returns (bytes calldata ret, uint nextOffset) {
     return BytesParsing.sliceUint32PrefixedCd(encoded, offset);
   }
 

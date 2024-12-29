@@ -19,6 +19,11 @@ library BytesParsing {
       revert OutOfBounds(pastTheEndOffset, length);
   }
 
+  function checkLength(uint encodedLength, uint expectedLength) internal pure {
+    if (encodedLength != expectedLength)
+      revert LengthMismatch(encodedLength, expectedLength);
+  }
+
   //Summary of all remaining functions:
   //
   //Each function has 2*2=4 versions:
@@ -42,7 +47,6 @@ library BytesParsing {
   //    as input and return the parsed value and the next offset (i.e. the offset pointing to the
   //    next, unparsed byte).
   //
-  // * checkLength(encoded, expected) - no return, reverts if encoded.length != expected
   // * slice(encoded, offset, length)
   // * sliceUint<n>Prefixed - n in {8, 16, 32} - parses n bytes of length prefix followed by data
   // * asAddress
@@ -54,22 +58,12 @@ library BytesParsing {
     bytes calldata encoded,
     uint offset,
     uint length
-  ) internal pure returns (bytes memory ret, uint nextOffset) {
+  ) internal pure returns (bytes calldata ret, uint nextOffset) {
     /// @solidity memory-safe-assembly
     assembly {
+      ret.offset := add(encoded.offset, offset)
+      ret.length := length
       nextOffset := add(offset, length)
-      ret := mload(FREE_MEMORY_PTR)
-
-      mstore(ret, length)
-      let retStart := add(ret, WORD_SIZE)
-      let sliceStart := add(encoded.offset, offset)
-      calldatacopy(retStart, sliceStart, length)
-      //When compiling with --via-ir then normally allocated memory (i.e. via new) will have 32 byte
-      //  memory alignment and so we enforce the same memory alignment here.
-      mstore(
-        FREE_MEMORY_PTR,
-        and(add(add(retStart, length), WORD_SIZE_MINUS_ONE), not(WORD_SIZE_MINUS_ONE))
-      )
     }
   }
 
@@ -126,21 +120,11 @@ library BytesParsing {
 /* -------------------------------------------------------------------------------------------------
 Remaining library code below was auto-generated via the following js/node code:
 
-for (const cd of ["Cd", ""])
-  console.log(
-`function checkLength${cd}(
-  bytes ${cd ? "calldata" : "memory"} encoded,
-  uint256 expected
-) internal pure {
-  if (encoded.length != expected)
-    revert LengthMismatch(encoded.length, expected);
-}
-
 function slice${cd}(
   bytes ${cd ? "calldata" : "memory"} encoded,
   uint offset,
   uint length
-) internal pure returns (bytes memory ret, uint nextOffset) {
+) internal pure returns (bytes ${cd ? "calldata" : "memory"} ret, uint nextOffset) {
   (ret, nextOffset) = slice${cd}Unchecked(encoded, offset, length);
   checkBound(nextOffset, encoded.length);
 }
@@ -154,7 +138,7 @@ const funcs = [
       `(len, nextOffset) = asUint${n}${cd}Unchecked(encoded, offset);`,
       `(ret, nextOffset) = slice${cd}Unchecked(encoded, nextOffset, uint(len));`
     ],
-    `bytes memory`,
+    cd => `bytes ${cd ? "calldata" : "memory"}`,
   ]), [
     `asAddress`,
     cd => [
@@ -162,7 +146,7 @@ const funcs = [
       `(tmp, nextOffset) = asUint160${cd}Unchecked(encoded, offset);`,
       `ret = address(tmp);`
     ],
-    `address`
+    _ => `address`
   ], [
     `asBool`,
     cd => [
@@ -175,7 +159,7 @@ const funcs = [
       `/// @solidity memory-safe-assembly`,
       `assembly { ret := cleanedVal }`
     ],
-    `bool`
+    _ => `bool`
   ],
   ...Array.from({length: 32}, (_, i) => [
     `asUint${(i+1)*8}`,
@@ -187,7 +171,7 @@ const funcs = [
          : `  ret := mload(add(encoded, nextOffset))`,
       `}`
     ],
-    `uint${(i+1)*8}`
+    _ => `uint${(i+1)*8}`
   ]),
   ...Array.from({length: 32}, (_, i) => [
     `asBytes${i+1}`,
@@ -198,7 +182,7 @@ const funcs = [
       `  nextOffset := add(offset, ${i+1})`,
       `}`
     ],
-    `bytes${i+1}`
+    _ => `bytes${i+1}`
   ]),
 ];
 
@@ -208,14 +192,14 @@ for (const [name, code, ret] of funcs) {
 `function ${name}${cd}Unchecked(
   bytes ${cd ? "calldata" : "memory"} encoded,
   uint offset
-) internal pure returns (${ret} ret, uint nextOffset) {
+) internal pure returns (${ret(cd)} ret, uint nextOffset) {
   ${code(cd).join("\n  ")}
 }
 
 function ${name}${cd}(
   bytes ${cd ? "calldata" : "memory"} encoded,
   uint offset
-) internal pure returns (${ret} ret, uint nextOffset) {
+) internal pure returns (${ret(cd)} ret, uint nextOffset) {
   (ret, nextOffset) = ${name}${cd}Unchecked(encoded, offset);
   checkBound(nextOffset, encoded.length);
 }
@@ -223,29 +207,13 @@ function ${name}${cd}(
 }
 ------------------------------------------------------------------------------------------------- */
 
-  function checkLengthCd(
-    bytes calldata encoded,
-    uint256 expected
-  ) internal pure {
-    if (encoded.length != expected)
-      revert LengthMismatch(encoded.length, expected);
-  }
-
   function sliceCd(
     bytes calldata encoded,
     uint offset,
     uint length
-  ) internal pure returns (bytes memory ret, uint nextOffset) {
+  ) internal pure returns (bytes calldata ret, uint nextOffset) {
     (ret, nextOffset) = sliceCdUnchecked(encoded, offset, length);
     checkBound(nextOffset, encoded.length);
-  }
-
-  function checkLength(
-    bytes memory encoded,
-    uint256 expected
-  ) internal pure {
-    if (encoded.length != expected)
-      revert LengthMismatch(encoded.length, expected);
   }
 
   function slice(
@@ -260,7 +228,7 @@ function ${name}${cd}(
   function sliceUint8PrefixedCdUnchecked(
     bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes memory ret, uint nextOffset) {
+  ) internal pure returns (bytes calldata ret, uint nextOffset) {
     uint8 len;
     (len, nextOffset) = asUint8CdUnchecked(encoded, offset);
     (ret, nextOffset) = sliceCdUnchecked(encoded, nextOffset, uint(len));
@@ -269,7 +237,7 @@ function ${name}${cd}(
   function sliceUint8PrefixedCd(
     bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes memory ret, uint nextOffset) {
+  ) internal pure returns (bytes calldata ret, uint nextOffset) {
     (ret, nextOffset) = sliceUint8PrefixedCdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
@@ -294,7 +262,7 @@ function ${name}${cd}(
   function sliceUint16PrefixedCdUnchecked(
     bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes memory ret, uint nextOffset) {
+  ) internal pure returns (bytes calldata ret, uint nextOffset) {
     uint16 len;
     (len, nextOffset) = asUint16CdUnchecked(encoded, offset);
     (ret, nextOffset) = sliceCdUnchecked(encoded, nextOffset, uint(len));
@@ -303,7 +271,7 @@ function ${name}${cd}(
   function sliceUint16PrefixedCd(
     bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes memory ret, uint nextOffset) {
+  ) internal pure returns (bytes calldata ret, uint nextOffset) {
     (ret, nextOffset) = sliceUint16PrefixedCdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
@@ -328,7 +296,7 @@ function ${name}${cd}(
   function sliceUint32PrefixedCdUnchecked(
     bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes memory ret, uint nextOffset) {
+  ) internal pure returns (bytes calldata ret, uint nextOffset) {
     uint32 len;
     (len, nextOffset) = asUint32CdUnchecked(encoded, offset);
     (ret, nextOffset) = sliceCdUnchecked(encoded, nextOffset, uint(len));
@@ -337,7 +305,7 @@ function ${name}${cd}(
   function sliceUint32PrefixedCd(
     bytes calldata encoded,
     uint offset
-  ) internal pure returns (bytes memory ret, uint nextOffset) {
+  ) internal pure returns (bytes calldata ret, uint nextOffset) {
     (ret, nextOffset) = sliceUint32PrefixedCdUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }

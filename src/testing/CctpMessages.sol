@@ -50,6 +50,7 @@ struct CctpTokenBurnMessage {
 
 library CctpMessages {
   using BytesParsing for bytes;
+  using {BytesParsing.checkLength} for uint;
 
   uint private constant _CCTP_HEADER_SIZE = 3*4 + 8 + 3*32;
   uint private constant _CCTP_TOKEN_BURN_MESSAGE_SIZE = _CCTP_HEADER_SIZE + 4 + 4*32;
@@ -115,7 +116,7 @@ library CctpMessages {
     (ret.sender,            offset) = encoded.asBytes32Unchecked(offset);
     (ret.recipient,         offset) = encoded.asBytes32Unchecked(offset);
     (ret.destinationCaller, offset) = encoded.asBytes32Unchecked(offset);
-    encoded.checkLength(offset);
+    encoded.length.checkLength(offset);
   }
 
   function decodeCctpMessage(
@@ -139,7 +140,7 @@ library CctpMessages {
     (ret.mintRecipient, offset) = encoded.asBytes32Unchecked(offset);
     (ret.amount,        offset) = encoded.asUint256Unchecked(offset);
     (ret.messageSender, offset) = encoded.asBytes32Unchecked(offset);
-    encoded.checkLength(offset);
+    encoded.length.checkLength(offset);
     return ret;
   }
 }
