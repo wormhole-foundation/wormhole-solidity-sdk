@@ -67,17 +67,15 @@ function keccak256SliceUnchecked(
   }
 }
 
-function keccak256SliceCdUnchecked(
-  bytes calldata encoded,
-  uint offset,
-  uint length
+function keccak256Cd(
+  bytes calldata encoded
 ) pure returns (bytes32 hash) {
   /// @solidity memory-safe-assembly
   assembly {
     let freeMemory := mload(FREE_MEMORY_PTR)
 
-    let sliceStart := add(encoded.offset, offset)
-    calldatacopy(freeMemory, sliceStart, length)
+    let length := encoded.length
+    calldatacopy(freeMemory, encoded.offset, length)
 
     hash := keccak256(freeMemory, length)
   }
