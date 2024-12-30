@@ -73,10 +73,7 @@ function keccak256Cd(
   /// @solidity memory-safe-assembly
   assembly {
     let freeMemory := mload(FREE_MEMORY_PTR)
-
-    let length := encoded.length
-    calldatacopy(freeMemory, encoded.offset, length)
-
-    hash := keccak256(freeMemory, length)
+    calldatacopy(freeMemory, encoded.offset, encoded.length)
+    hash := keccak256(freeMemory, encoded.length)
   }
 }
