@@ -9,9 +9,14 @@ library BytesParsing {
   error LengthMismatch(uint256 encodedLength, uint256 expectedLength);
   error InvalidBoolVal(uint8 val);
 
-  function checkBound(uint offset, uint length) internal pure {
-    if (offset > length)
-      revert OutOfBounds(offset, length);
+  /**
+   * Implements runtime check of logic that accesses memory.
+   * @param pastTheEndOffset The offset past the end relative to the accessed memory fragment.
+   * @param length The length of the memory fragment accessed.
+   */
+  function checkBound(uint pastTheEndOffset, uint length) internal pure {
+    if (pastTheEndOffset > length)
+      revert OutOfBounds(pastTheEndOffset, length);
   }
 
   function checkLength(uint encodedLength, uint expectedLength) internal pure {
