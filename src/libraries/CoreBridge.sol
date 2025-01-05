@@ -25,47 +25,46 @@ library CoreBridgeLib {
     uint8   consistencyLevel,
     bytes calldata payload
   ) { unchecked {
-    //The following implementation looks better on the surface, but due to the extra external
-    //  function calls and having to drag the large guardian set around, it is actually more
-    //  expensive than using the suboptimal verifyVM call directly.
-    //
-    // IWormhole iwormhole = IWormhole(wormhole);
-    // ( uint32 guardianSetIndex,
-    //   GuardianSignature[] memory guardianSignatures,
-    //   uint envelopeOffset
-    // ) = encodedVaa.decodeVaaHeaderCdUnchecked();
+    IWormhole iwormhole = IWormhole(wormhole);
 
-    // IWormhole.Signature[] memory legacySigs = VaaLib.asIWormholeSignatures(guardianSignatures);
-    // IWormhole.GuardianSet memory guardianSet = iwormhole.getGuardianSet(guardianSetIndex);
-    // uint expirationTime = guardianSet.expirationTime;
-    // if (eagerAnd(expirationTime != 0, expirationTime < block.timestamp))
-    //   //if the specified guardian set is expired, we try using the current guardian set as an adhoc
-    //   //  repair attempt (there's almost certainly never more than 2 valid guardian sets at a time)
-    //   guardianSet = iwormhole.getGuardianSet(iwormhole.getCurrentGuardianSetIndex());
+    uint offset = VaaLib.checkVaaVersionCd(encodedVaa);
+    uint32 guardianSetIndex;
+    (guardianSetIndex, offset) = encodedVaa.asUint32CdUnchecked(offset);
 
-    // bytes32 vaaHash = encodedVaa.calcVaaDoubleHashCd(envelopeOffset);
-    // //see https://github.com/wormhole-foundation/wormhole/blob/1dbe8459b96e182932d0dd5ae4b6bbce6f48cb09/ethereum/contracts/Messages.sol#L111
-    // (bool valid, ) = iwormhole.verifySignatures(vaaHash, legacySigs, guardianSet);
+    IWormhole.GuardianSet memory guardianSet = iwormhole.getGuardianSet(guardianSetIndex);
+    uint expirationTime = guardianSet.expirationTime;
+    if (eagerAnd(expirationTime != 0, expirationTime < block.timestamp))
+      //if the specified guardian set is expired, we try using the current guardian set as an adhoc
+      //  repair attempt (there's almost certainly never more than 2 valid guardian sets at a time)
+      guardianSet = iwormhole.getGuardianSet(iwormhole.getCurrentGuardianSetIndex());
 
-    // if (eagerOr(legacySigs.length < minSigsForQuorum(guardianSet.keys.length), !valid))
-    //   revert VerificationFailed();
-
-    // return encodedVaa.decodeVaaBodyCd(envelopeOffset);
-
-    IWormhole.VM memory vm = encodedVaa.decodeVmStructCd();
-    (bool valid, ) = IWormhole(wormhole).verifyVM(vm);
-
-    if (!valid)
+    uint signatureCount;
+    (signatureCount, offset) = encodedVaa.asUint8CdUnchecked(offset);
+    //this check will also handle empty guardian sets, because minSigsForQuorum(0) is 1 and so
+    //  subsequent signature verification will fail
+    if (signatureCount < minSigsForQuorum(guardianSet.keys.length))
       revert VerificationFailed();
 
-    timestamp = vm.timestamp;
-    nonce = vm.nonce;
-    emitterChainId = vm.emitterChainId;
-    emitterAddress = vm.emitterAddress;
-    sequence = vm.sequence;
-    consistencyLevel = vm.consistencyLevel;
-    uint payloadOffset = encodedVaa.skipVaaHeaderCd() + VaaLib.ENVELOPE_SIZE;
-    (payload, ) = encodedVaa.sliceCdUnchecked(payloadOffset, encodedVaa.length - payloadOffset);
+    uint envelopeOffset = offset + signatureCount * VaaLib.GUARDIAN_SIGNATURE_SIZE;
+    bytes32 vaaHash = encodedVaa.calcVaaDoubleHashCd(envelopeOffset);
+    uint prevGuardianIndex = 0;
+    uint guardianCount = guardianSet.keys.length;
+    for (uint i = 0; i < signatureCount; ++i) {
+      uint guardianIndex; bytes32 r; bytes32 s; uint8 v;
+      (guardianIndex, r, s, v, offset) = encodedVaa.decodedGuardianSignatureCdUnchecked(offset);
+      address signatory = ecrecover(vaaHash, v, r, s);
+      if (eagerOr(
+            eagerOr(
+              !eagerOr(i == 0, guardianIndex > prevGuardianIndex),
+              guardianIndex >= guardianCount
+            ),
+          signatory != guardianSet.keys[guardianIndex]
+        ))
+        revert VerificationFailed();
+      prevGuardianIndex = guardianIndex;
+    }
+
+    return encodedVaa.decodeVaaBodyCd(envelopeOffset);
   }}
 
   function verifyHashIsGuardianSigned(

@@ -209,8 +209,23 @@ library VaaLib {
   uint internal constant HEADER_SIGNATURE_ARRAY_OFFSET =
     HEADER_SIGNATURE_COUNT_OFFSET + HEADER_SIGNATURE_COUNT_SIZE;
 
-  uint internal constant HEADER_GUARDIAN_SIGNATURE_SIZE =
-    1 /*guardianSetIndex*/ + 65 /*signaturesize*/;
+  uint internal constant GUARDIAN_SIGNATURE_GUARDIAN_INDEX_OFFSET = 0;
+  uint internal constant GUARDIAN_SIGNATURE_GUARDIAN_INDEX_SIZE = 1;
+
+  uint internal constant GUARDIAN_SIGNATURE_R_OFFSET =
+    GUARDIAN_SIGNATURE_GUARDIAN_INDEX_OFFSET + GUARDIAN_SIGNATURE_GUARDIAN_INDEX_SIZE;
+  uint internal constant GUARDIAN_SIGNATURE_R_SIZE = 32;
+
+  uint internal constant GUARDIAN_SIGNATURE_S_OFFSET =
+    GUARDIAN_SIGNATURE_R_OFFSET + GUARDIAN_SIGNATURE_R_SIZE;
+  uint internal constant GUARDIAN_SIGNATURE_S_SIZE = 32;
+
+  uint internal constant GUARDIAN_SIGNATURE_V_OFFSET =
+    GUARDIAN_SIGNATURE_S_OFFSET + GUARDIAN_SIGNATURE_S_SIZE;
+  uint internal constant GUARDIAN_SIGNATURE_V_SIZE = 1;
+
+  uint internal constant GUARDIAN_SIGNATURE_SIZE =
+    GUARDIAN_SIGNATURE_V_OFFSET + GUARDIAN_SIGNATURE_V_SIZE;
 
   uint internal constant ENVELOPE_TIMESTAMP_OFFSET = 0;
   uint internal constant ENVELOPE_TIMESTAMP_SIZE = 4;
@@ -450,7 +465,7 @@ library VaaLib {
     bytes calldata encodedVaa
   ) internal pure returns (uint envelopeOffset) { unchecked {
     (uint sigCount, uint offset) = encodedVaa.asUint8CdUnchecked(HEADER_SIGNATURE_COUNT_OFFSET);
-    envelopeOffset = offset + sigCount * HEADER_GUARDIAN_SIGNATURE_SIZE;
+    envelopeOffset = offset + sigCount * GUARDIAN_SIGNATURE_SIZE;
   }}
 
   function skipVaaHeaderMemUnchecked(
@@ -460,7 +475,7 @@ library VaaLib {
     uint offset = headerOffset + HEADER_SIGNATURE_COUNT_OFFSET;
     uint sigCount;
     (sigCount, offset) = encoded.asUint8MemUnchecked(offset);
-    envelopeOffset = offset + sigCount * HEADER_GUARDIAN_SIGNATURE_SIZE;
+    envelopeOffset = offset + sigCount * GUARDIAN_SIGNATURE_SIZE;
   }}
 
   //see WARNING box at the top
@@ -696,13 +711,9 @@ library VaaLib {
     (signersLen, offset) = encodedVaa.asUint8CdUnchecked(offset);
 
     signatures = new GuardianSignature[](signersLen);
-    for (uint i = 0; i < signersLen; ++i) {
-      (signatures[i].guardianIndex, offset) = encodedVaa.asUint8CdUnchecked(offset);
-      (signatures[i].r,             offset) = encodedVaa.asBytes32CdUnchecked(offset);
-      (signatures[i].s,             offset) = encodedVaa.asBytes32CdUnchecked(offset);
-      (signatures[i].v,             offset) = encodedVaa.asUint8CdUnchecked(offset);
-      signatures[i].v += SIGNATURE_RECOVERY_MAGIC;
-    }
+    for (uint i = 0; i < signersLen; ++i)
+      (signatures[i], offset) = decodedGuardianSignatureStructCdUnchecked(encodedVaa, offset);
+
     envelopeOffset = offset;
   }}
 
@@ -730,13 +741,9 @@ library VaaLib {
     (signersLen, offset) = encoded.asUint8MemUnchecked(offset);
 
     signatures = new GuardianSignature[](signersLen);
-    for (uint i = 0; i < signersLen; ++i) {
-      (signatures[i].guardianIndex, offset) = encoded.asUint8MemUnchecked(offset);
-      (signatures[i].r,             offset) = encoded.asBytes32MemUnchecked(offset);
-      (signatures[i].s,             offset) = encoded.asBytes32MemUnchecked(offset);
-      (signatures[i].v,             offset) = encoded.asUint8MemUnchecked(offset);
-      signatures[i].v += SIGNATURE_RECOVERY_MAGIC;
-    }
+    for (uint i = 0; i < signersLen; ++i)
+      (signatures[i], offset) = decodedGuardianSignatureStructMemUnchecked(encoded, offset);
+
     envelopeOffset = offset;
   }}
 
@@ -748,6 +755,58 @@ library VaaLib {
       header.signatures,
       envelopeOffset
     ) = decodeVaaHeaderMemUnchecked(encoded, offset);
+  }
+
+  function decodedGuardianSignatureCdUnchecked(
+    bytes calldata encodedVaa,
+    uint offset
+  ) internal pure returns (
+    uint8 guardianIndex,
+    bytes32 r,
+    bytes32 s,
+    uint8 v,
+    uint newOffset
+  ) { unchecked {
+    (guardianIndex, offset) = encodedVaa.asUint8CdUnchecked(offset);
+    (r,             offset) = encodedVaa.asBytes32CdUnchecked(offset);
+    (s,             offset) = encodedVaa.asBytes32CdUnchecked(offset);
+    (v,             offset) = encodedVaa.asUint8CdUnchecked(offset);
+    v += SIGNATURE_RECOVERY_MAGIC;
+    newOffset = offset;
+  }}
+
+  function decodedGuardianSignatureStructCdUnchecked(
+    bytes calldata encodedVaa,
+    uint offset
+  ) internal pure returns (GuardianSignature memory ret, uint newOffset) {
+    (ret.guardianIndex, ret.r, ret.s, ret.v, newOffset) =
+      decodedGuardianSignatureCdUnchecked(encodedVaa, offset);
+  }
+
+  function decodedGuardianSignatureMemUnchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (
+    uint8 guardianIndex,
+    bytes32 r,
+    bytes32 s,
+    uint8 v,
+    uint newOffset
+  ) { unchecked {
+    (guardianIndex, offset) = encoded.asUint8MemUnchecked(offset);
+    (r,             offset) = encoded.asBytes32MemUnchecked(offset);
+    (s,             offset) = encoded.asBytes32MemUnchecked(offset);
+    (v,             offset) = encoded.asUint8MemUnchecked(offset);
+    v += SIGNATURE_RECOVERY_MAGIC;
+    newOffset = offset;
+  }}
+
+  function decodedGuardianSignatureStructMemUnchecked(
+    bytes memory encoded,
+    uint offset
+  ) internal pure returns (GuardianSignature memory ret, uint newOffset) {
+    (ret.guardianIndex, ret.r, ret.s, ret.v, newOffset) =
+      decodedGuardianSignatureMemUnchecked(encoded, offset);
   }
 
   function decodeVaaPayloadCd(
