@@ -31,25 +31,25 @@ contract QueryResponseLibTestWrapper {
   function parseAndVerifyQueryResponse(
     address wormhole,
     bytes calldata response,
-    IWormhole.Signature[] calldata signatures
+    GuardianSignature[] calldata guardianSignatures
   ) external view returns (QueryResponse memory ret) {
-    return QueryResponseLib.parseAndVerifyQueryResponse(wormhole, response, signatures);
+    return QueryResponseLib.parseAndVerifyQueryResponse(wormhole, response, guardianSignatures);
   }
 
   function verifyQueryResponse(
     address wormhole,
     bytes calldata response,
-    IWormhole.Signature[] calldata signatures
+    GuardianSignature[] calldata guardianSignatures
   ) external view {
-    QueryResponseLib.verifyQueryResponse(wormhole, response, signatures);
+    QueryResponseLib.verifyQueryResponse(wormhole, response, guardianSignatures);
   }
 
   function verifyQueryResponse(
     address wormhole,
     bytes32 prefixedResponseHash,
-    IWormhole.Signature[] calldata signatures
+    GuardianSignature[] calldata guardianSignatures
   ) external view {
-    QueryResponseLib.verifyQueryResponse(wormhole, prefixedResponseHash, signatures);
+    QueryResponseLib.verifyQueryResponse(wormhole, prefixedResponseHash, guardianSignatures);
   }
 
   function parseQueryResponse(bytes calldata response) external pure returns (QueryResponse memory ret) {

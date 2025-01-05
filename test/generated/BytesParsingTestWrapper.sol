@@ -14,10 +14,6 @@ contract BytesParsingTestWrapper {
     BytesParsing.checkLength(encodedLength, expectedLength);
   }
 
-  function checkLength(uint encodedLength, uint expectedLength) external pure {
-    BytesParsing.checkLength(encodedLength, expectedLength);
-  }
-
   function sliceCdUnchecked(
     bytes calldata encoded,
     uint offset,
@@ -26,12 +22,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.sliceCdUnchecked(encoded, offset, length);
   }
 
-  function sliceUnchecked(
+  function sliceMemUnchecked(
     bytes calldata encoded,
     uint offset,
     uint length
   ) external pure returns (bytes memory ret, uint nextOffset) {
-    return BytesParsing.sliceUnchecked(encoded, offset, length);
+    return BytesParsing.sliceMemUnchecked(encoded, offset, length);
   }
 
   function sliceCd(
@@ -42,12 +38,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.sliceCd(encoded, offset, length);
   }
 
-  function slice(
+  function sliceMem(
     bytes calldata encoded,
     uint offset,
     uint length
   ) external pure returns (bytes memory ret, uint nextOffset) {
-    return BytesParsing.slice(encoded, offset, length);
+    return BytesParsing.sliceMem(encoded, offset, length);
   }
 
   function sliceUint8PrefixedCdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes calldata ret, uint nextOffset) {
@@ -58,12 +54,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.sliceUint8PrefixedCd(encoded, offset);
   }
 
-  function sliceUint8PrefixedUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes memory ret, uint nextOffset) {
-    return BytesParsing.sliceUint8PrefixedUnchecked(encoded, offset);
+  function sliceUint8PrefixedMemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes memory ret, uint nextOffset) {
+    return BytesParsing.sliceUint8PrefixedMemUnchecked(encoded, offset);
   }
 
-  function sliceUint8Prefixed(bytes calldata encoded, uint offset) external pure returns (bytes memory ret, uint nextOffset) {
-    return BytesParsing.sliceUint8Prefixed(encoded, offset);
+  function sliceUint8PrefixedMem(bytes calldata encoded, uint offset) external pure returns (bytes memory ret, uint nextOffset) {
+    return BytesParsing.sliceUint8PrefixedMem(encoded, offset);
   }
 
   function sliceUint16PrefixedCdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes calldata ret, uint nextOffset) {
@@ -74,12 +70,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.sliceUint16PrefixedCd(encoded, offset);
   }
 
-  function sliceUint16PrefixedUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes memory ret, uint nextOffset) {
-    return BytesParsing.sliceUint16PrefixedUnchecked(encoded, offset);
+  function sliceUint16PrefixedMemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes memory ret, uint nextOffset) {
+    return BytesParsing.sliceUint16PrefixedMemUnchecked(encoded, offset);
   }
 
-  function sliceUint16Prefixed(bytes calldata encoded, uint offset) external pure returns (bytes memory ret, uint nextOffset) {
-    return BytesParsing.sliceUint16Prefixed(encoded, offset);
+  function sliceUint16PrefixedMem(bytes calldata encoded, uint offset) external pure returns (bytes memory ret, uint nextOffset) {
+    return BytesParsing.sliceUint16PrefixedMem(encoded, offset);
   }
 
   function sliceUint32PrefixedCdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes calldata ret, uint nextOffset) {
@@ -90,12 +86,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.sliceUint32PrefixedCd(encoded, offset);
   }
 
-  function sliceUint32PrefixedUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes memory ret, uint nextOffset) {
-    return BytesParsing.sliceUint32PrefixedUnchecked(encoded, offset);
+  function sliceUint32PrefixedMemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes memory ret, uint nextOffset) {
+    return BytesParsing.sliceUint32PrefixedMemUnchecked(encoded, offset);
   }
 
-  function sliceUint32Prefixed(bytes calldata encoded, uint offset) external pure returns (bytes memory ret, uint nextOffset) {
-    return BytesParsing.sliceUint32Prefixed(encoded, offset);
+  function sliceUint32PrefixedMem(bytes calldata encoded, uint offset) external pure returns (bytes memory ret, uint nextOffset) {
+    return BytesParsing.sliceUint32PrefixedMem(encoded, offset);
   }
 
   function asAddressCdUnchecked(bytes calldata encoded, uint offset) external pure returns (address ret, uint nextOffset) {
@@ -106,12 +102,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asAddressCd(encoded, offset);
   }
 
-  function asAddressUnchecked(bytes calldata encoded, uint offset) external pure returns (address ret, uint nextOffset) {
-    return BytesParsing.asAddressUnchecked(encoded, offset);
+  function asAddressMemUnchecked(bytes calldata encoded, uint offset) external pure returns (address ret, uint nextOffset) {
+    return BytesParsing.asAddressMemUnchecked(encoded, offset);
   }
 
-  function asAddress(bytes calldata encoded, uint offset) external pure returns (address ret, uint nextOffset) {
-    return BytesParsing.asAddress(encoded, offset);
+  function asAddressMem(bytes calldata encoded, uint offset) external pure returns (address ret, uint nextOffset) {
+    return BytesParsing.asAddressMem(encoded, offset);
   }
 
   function asBoolCdUnchecked(bytes calldata encoded, uint offset) external pure returns (bool ret, uint nextOffset) {
@@ -122,12 +118,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBoolCd(encoded, offset);
   }
 
-  function asBoolUnchecked(bytes calldata encoded, uint offset) external pure returns (bool ret, uint nextOffset) {
-    return BytesParsing.asBoolUnchecked(encoded, offset);
+  function asBoolMemUnchecked(bytes calldata encoded, uint offset) external pure returns (bool ret, uint nextOffset) {
+    return BytesParsing.asBoolMemUnchecked(encoded, offset);
   }
 
-  function asBool(bytes calldata encoded, uint offset) external pure returns (bool ret, uint nextOffset) {
-    return BytesParsing.asBool(encoded, offset);
+  function asBoolMem(bytes calldata encoded, uint offset) external pure returns (bool ret, uint nextOffset) {
+    return BytesParsing.asBoolMem(encoded, offset);
   }
 
   function asUint8CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint8 ret, uint nextOffset) {
@@ -138,12 +134,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint8Cd(encoded, offset);
   }
 
-  function asUint8Unchecked(bytes calldata encoded, uint offset) external pure returns (uint8 ret, uint nextOffset) {
-    return BytesParsing.asUint8Unchecked(encoded, offset);
+  function asUint8MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint8 ret, uint nextOffset) {
+    return BytesParsing.asUint8MemUnchecked(encoded, offset);
   }
 
-  function asUint8(bytes calldata encoded, uint offset) external pure returns (uint8 ret, uint nextOffset) {
-    return BytesParsing.asUint8(encoded, offset);
+  function asUint8Mem(bytes calldata encoded, uint offset) external pure returns (uint8 ret, uint nextOffset) {
+    return BytesParsing.asUint8Mem(encoded, offset);
   }
 
   function asUint16CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint16 ret, uint nextOffset) {
@@ -154,12 +150,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint16Cd(encoded, offset);
   }
 
-  function asUint16Unchecked(bytes calldata encoded, uint offset) external pure returns (uint16 ret, uint nextOffset) {
-    return BytesParsing.asUint16Unchecked(encoded, offset);
+  function asUint16MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint16 ret, uint nextOffset) {
+    return BytesParsing.asUint16MemUnchecked(encoded, offset);
   }
 
-  function asUint16(bytes calldata encoded, uint offset) external pure returns (uint16 ret, uint nextOffset) {
-    return BytesParsing.asUint16(encoded, offset);
+  function asUint16Mem(bytes calldata encoded, uint offset) external pure returns (uint16 ret, uint nextOffset) {
+    return BytesParsing.asUint16Mem(encoded, offset);
   }
 
   function asUint24CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint24 ret, uint nextOffset) {
@@ -170,12 +166,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint24Cd(encoded, offset);
   }
 
-  function asUint24Unchecked(bytes calldata encoded, uint offset) external pure returns (uint24 ret, uint nextOffset) {
-    return BytesParsing.asUint24Unchecked(encoded, offset);
+  function asUint24MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint24 ret, uint nextOffset) {
+    return BytesParsing.asUint24MemUnchecked(encoded, offset);
   }
 
-  function asUint24(bytes calldata encoded, uint offset) external pure returns (uint24 ret, uint nextOffset) {
-    return BytesParsing.asUint24(encoded, offset);
+  function asUint24Mem(bytes calldata encoded, uint offset) external pure returns (uint24 ret, uint nextOffset) {
+    return BytesParsing.asUint24Mem(encoded, offset);
   }
 
   function asUint32CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint32 ret, uint nextOffset) {
@@ -186,12 +182,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint32Cd(encoded, offset);
   }
 
-  function asUint32Unchecked(bytes calldata encoded, uint offset) external pure returns (uint32 ret, uint nextOffset) {
-    return BytesParsing.asUint32Unchecked(encoded, offset);
+  function asUint32MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint32 ret, uint nextOffset) {
+    return BytesParsing.asUint32MemUnchecked(encoded, offset);
   }
 
-  function asUint32(bytes calldata encoded, uint offset) external pure returns (uint32 ret, uint nextOffset) {
-    return BytesParsing.asUint32(encoded, offset);
+  function asUint32Mem(bytes calldata encoded, uint offset) external pure returns (uint32 ret, uint nextOffset) {
+    return BytesParsing.asUint32Mem(encoded, offset);
   }
 
   function asUint40CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint40 ret, uint nextOffset) {
@@ -202,12 +198,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint40Cd(encoded, offset);
   }
 
-  function asUint40Unchecked(bytes calldata encoded, uint offset) external pure returns (uint40 ret, uint nextOffset) {
-    return BytesParsing.asUint40Unchecked(encoded, offset);
+  function asUint40MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint40 ret, uint nextOffset) {
+    return BytesParsing.asUint40MemUnchecked(encoded, offset);
   }
 
-  function asUint40(bytes calldata encoded, uint offset) external pure returns (uint40 ret, uint nextOffset) {
-    return BytesParsing.asUint40(encoded, offset);
+  function asUint40Mem(bytes calldata encoded, uint offset) external pure returns (uint40 ret, uint nextOffset) {
+    return BytesParsing.asUint40Mem(encoded, offset);
   }
 
   function asUint48CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint48 ret, uint nextOffset) {
@@ -218,12 +214,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint48Cd(encoded, offset);
   }
 
-  function asUint48Unchecked(bytes calldata encoded, uint offset) external pure returns (uint48 ret, uint nextOffset) {
-    return BytesParsing.asUint48Unchecked(encoded, offset);
+  function asUint48MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint48 ret, uint nextOffset) {
+    return BytesParsing.asUint48MemUnchecked(encoded, offset);
   }
 
-  function asUint48(bytes calldata encoded, uint offset) external pure returns (uint48 ret, uint nextOffset) {
-    return BytesParsing.asUint48(encoded, offset);
+  function asUint48Mem(bytes calldata encoded, uint offset) external pure returns (uint48 ret, uint nextOffset) {
+    return BytesParsing.asUint48Mem(encoded, offset);
   }
 
   function asUint56CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint56 ret, uint nextOffset) {
@@ -234,12 +230,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint56Cd(encoded, offset);
   }
 
-  function asUint56Unchecked(bytes calldata encoded, uint offset) external pure returns (uint56 ret, uint nextOffset) {
-    return BytesParsing.asUint56Unchecked(encoded, offset);
+  function asUint56MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint56 ret, uint nextOffset) {
+    return BytesParsing.asUint56MemUnchecked(encoded, offset);
   }
 
-  function asUint56(bytes calldata encoded, uint offset) external pure returns (uint56 ret, uint nextOffset) {
-    return BytesParsing.asUint56(encoded, offset);
+  function asUint56Mem(bytes calldata encoded, uint offset) external pure returns (uint56 ret, uint nextOffset) {
+    return BytesParsing.asUint56Mem(encoded, offset);
   }
 
   function asUint64CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint64 ret, uint nextOffset) {
@@ -250,12 +246,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint64Cd(encoded, offset);
   }
 
-  function asUint64Unchecked(bytes calldata encoded, uint offset) external pure returns (uint64 ret, uint nextOffset) {
-    return BytesParsing.asUint64Unchecked(encoded, offset);
+  function asUint64MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint64 ret, uint nextOffset) {
+    return BytesParsing.asUint64MemUnchecked(encoded, offset);
   }
 
-  function asUint64(bytes calldata encoded, uint offset) external pure returns (uint64 ret, uint nextOffset) {
-    return BytesParsing.asUint64(encoded, offset);
+  function asUint64Mem(bytes calldata encoded, uint offset) external pure returns (uint64 ret, uint nextOffset) {
+    return BytesParsing.asUint64Mem(encoded, offset);
   }
 
   function asUint72CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint72 ret, uint nextOffset) {
@@ -266,12 +262,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint72Cd(encoded, offset);
   }
 
-  function asUint72Unchecked(bytes calldata encoded, uint offset) external pure returns (uint72 ret, uint nextOffset) {
-    return BytesParsing.asUint72Unchecked(encoded, offset);
+  function asUint72MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint72 ret, uint nextOffset) {
+    return BytesParsing.asUint72MemUnchecked(encoded, offset);
   }
 
-  function asUint72(bytes calldata encoded, uint offset) external pure returns (uint72 ret, uint nextOffset) {
-    return BytesParsing.asUint72(encoded, offset);
+  function asUint72Mem(bytes calldata encoded, uint offset) external pure returns (uint72 ret, uint nextOffset) {
+    return BytesParsing.asUint72Mem(encoded, offset);
   }
 
   function asUint80CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint80 ret, uint nextOffset) {
@@ -282,12 +278,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint80Cd(encoded, offset);
   }
 
-  function asUint80Unchecked(bytes calldata encoded, uint offset) external pure returns (uint80 ret, uint nextOffset) {
-    return BytesParsing.asUint80Unchecked(encoded, offset);
+  function asUint80MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint80 ret, uint nextOffset) {
+    return BytesParsing.asUint80MemUnchecked(encoded, offset);
   }
 
-  function asUint80(bytes calldata encoded, uint offset) external pure returns (uint80 ret, uint nextOffset) {
-    return BytesParsing.asUint80(encoded, offset);
+  function asUint80Mem(bytes calldata encoded, uint offset) external pure returns (uint80 ret, uint nextOffset) {
+    return BytesParsing.asUint80Mem(encoded, offset);
   }
 
   function asUint88CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint88 ret, uint nextOffset) {
@@ -298,12 +294,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint88Cd(encoded, offset);
   }
 
-  function asUint88Unchecked(bytes calldata encoded, uint offset) external pure returns (uint88 ret, uint nextOffset) {
-    return BytesParsing.asUint88Unchecked(encoded, offset);
+  function asUint88MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint88 ret, uint nextOffset) {
+    return BytesParsing.asUint88MemUnchecked(encoded, offset);
   }
 
-  function asUint88(bytes calldata encoded, uint offset) external pure returns (uint88 ret, uint nextOffset) {
-    return BytesParsing.asUint88(encoded, offset);
+  function asUint88Mem(bytes calldata encoded, uint offset) external pure returns (uint88 ret, uint nextOffset) {
+    return BytesParsing.asUint88Mem(encoded, offset);
   }
 
   function asUint96CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint96 ret, uint nextOffset) {
@@ -314,12 +310,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint96Cd(encoded, offset);
   }
 
-  function asUint96Unchecked(bytes calldata encoded, uint offset) external pure returns (uint96 ret, uint nextOffset) {
-    return BytesParsing.asUint96Unchecked(encoded, offset);
+  function asUint96MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint96 ret, uint nextOffset) {
+    return BytesParsing.asUint96MemUnchecked(encoded, offset);
   }
 
-  function asUint96(bytes calldata encoded, uint offset) external pure returns (uint96 ret, uint nextOffset) {
-    return BytesParsing.asUint96(encoded, offset);
+  function asUint96Mem(bytes calldata encoded, uint offset) external pure returns (uint96 ret, uint nextOffset) {
+    return BytesParsing.asUint96Mem(encoded, offset);
   }
 
   function asUint104CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint104 ret, uint nextOffset) {
@@ -330,12 +326,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint104Cd(encoded, offset);
   }
 
-  function asUint104Unchecked(bytes calldata encoded, uint offset) external pure returns (uint104 ret, uint nextOffset) {
-    return BytesParsing.asUint104Unchecked(encoded, offset);
+  function asUint104MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint104 ret, uint nextOffset) {
+    return BytesParsing.asUint104MemUnchecked(encoded, offset);
   }
 
-  function asUint104(bytes calldata encoded, uint offset) external pure returns (uint104 ret, uint nextOffset) {
-    return BytesParsing.asUint104(encoded, offset);
+  function asUint104Mem(bytes calldata encoded, uint offset) external pure returns (uint104 ret, uint nextOffset) {
+    return BytesParsing.asUint104Mem(encoded, offset);
   }
 
   function asUint112CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint112 ret, uint nextOffset) {
@@ -346,12 +342,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint112Cd(encoded, offset);
   }
 
-  function asUint112Unchecked(bytes calldata encoded, uint offset) external pure returns (uint112 ret, uint nextOffset) {
-    return BytesParsing.asUint112Unchecked(encoded, offset);
+  function asUint112MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint112 ret, uint nextOffset) {
+    return BytesParsing.asUint112MemUnchecked(encoded, offset);
   }
 
-  function asUint112(bytes calldata encoded, uint offset) external pure returns (uint112 ret, uint nextOffset) {
-    return BytesParsing.asUint112(encoded, offset);
+  function asUint112Mem(bytes calldata encoded, uint offset) external pure returns (uint112 ret, uint nextOffset) {
+    return BytesParsing.asUint112Mem(encoded, offset);
   }
 
   function asUint120CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint120 ret, uint nextOffset) {
@@ -362,12 +358,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint120Cd(encoded, offset);
   }
 
-  function asUint120Unchecked(bytes calldata encoded, uint offset) external pure returns (uint120 ret, uint nextOffset) {
-    return BytesParsing.asUint120Unchecked(encoded, offset);
+  function asUint120MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint120 ret, uint nextOffset) {
+    return BytesParsing.asUint120MemUnchecked(encoded, offset);
   }
 
-  function asUint120(bytes calldata encoded, uint offset) external pure returns (uint120 ret, uint nextOffset) {
-    return BytesParsing.asUint120(encoded, offset);
+  function asUint120Mem(bytes calldata encoded, uint offset) external pure returns (uint120 ret, uint nextOffset) {
+    return BytesParsing.asUint120Mem(encoded, offset);
   }
 
   function asUint128CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint128 ret, uint nextOffset) {
@@ -378,12 +374,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint128Cd(encoded, offset);
   }
 
-  function asUint128Unchecked(bytes calldata encoded, uint offset) external pure returns (uint128 ret, uint nextOffset) {
-    return BytesParsing.asUint128Unchecked(encoded, offset);
+  function asUint128MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint128 ret, uint nextOffset) {
+    return BytesParsing.asUint128MemUnchecked(encoded, offset);
   }
 
-  function asUint128(bytes calldata encoded, uint offset) external pure returns (uint128 ret, uint nextOffset) {
-    return BytesParsing.asUint128(encoded, offset);
+  function asUint128Mem(bytes calldata encoded, uint offset) external pure returns (uint128 ret, uint nextOffset) {
+    return BytesParsing.asUint128Mem(encoded, offset);
   }
 
   function asUint136CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint136 ret, uint nextOffset) {
@@ -394,12 +390,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint136Cd(encoded, offset);
   }
 
-  function asUint136Unchecked(bytes calldata encoded, uint offset) external pure returns (uint136 ret, uint nextOffset) {
-    return BytesParsing.asUint136Unchecked(encoded, offset);
+  function asUint136MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint136 ret, uint nextOffset) {
+    return BytesParsing.asUint136MemUnchecked(encoded, offset);
   }
 
-  function asUint136(bytes calldata encoded, uint offset) external pure returns (uint136 ret, uint nextOffset) {
-    return BytesParsing.asUint136(encoded, offset);
+  function asUint136Mem(bytes calldata encoded, uint offset) external pure returns (uint136 ret, uint nextOffset) {
+    return BytesParsing.asUint136Mem(encoded, offset);
   }
 
   function asUint144CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint144 ret, uint nextOffset) {
@@ -410,12 +406,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint144Cd(encoded, offset);
   }
 
-  function asUint144Unchecked(bytes calldata encoded, uint offset) external pure returns (uint144 ret, uint nextOffset) {
-    return BytesParsing.asUint144Unchecked(encoded, offset);
+  function asUint144MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint144 ret, uint nextOffset) {
+    return BytesParsing.asUint144MemUnchecked(encoded, offset);
   }
 
-  function asUint144(bytes calldata encoded, uint offset) external pure returns (uint144 ret, uint nextOffset) {
-    return BytesParsing.asUint144(encoded, offset);
+  function asUint144Mem(bytes calldata encoded, uint offset) external pure returns (uint144 ret, uint nextOffset) {
+    return BytesParsing.asUint144Mem(encoded, offset);
   }
 
   function asUint152CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint152 ret, uint nextOffset) {
@@ -426,12 +422,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint152Cd(encoded, offset);
   }
 
-  function asUint152Unchecked(bytes calldata encoded, uint offset) external pure returns (uint152 ret, uint nextOffset) {
-    return BytesParsing.asUint152Unchecked(encoded, offset);
+  function asUint152MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint152 ret, uint nextOffset) {
+    return BytesParsing.asUint152MemUnchecked(encoded, offset);
   }
 
-  function asUint152(bytes calldata encoded, uint offset) external pure returns (uint152 ret, uint nextOffset) {
-    return BytesParsing.asUint152(encoded, offset);
+  function asUint152Mem(bytes calldata encoded, uint offset) external pure returns (uint152 ret, uint nextOffset) {
+    return BytesParsing.asUint152Mem(encoded, offset);
   }
 
   function asUint160CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint160 ret, uint nextOffset) {
@@ -442,12 +438,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint160Cd(encoded, offset);
   }
 
-  function asUint160Unchecked(bytes calldata encoded, uint offset) external pure returns (uint160 ret, uint nextOffset) {
-    return BytesParsing.asUint160Unchecked(encoded, offset);
+  function asUint160MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint160 ret, uint nextOffset) {
+    return BytesParsing.asUint160MemUnchecked(encoded, offset);
   }
 
-  function asUint160(bytes calldata encoded, uint offset) external pure returns (uint160 ret, uint nextOffset) {
-    return BytesParsing.asUint160(encoded, offset);
+  function asUint160Mem(bytes calldata encoded, uint offset) external pure returns (uint160 ret, uint nextOffset) {
+    return BytesParsing.asUint160Mem(encoded, offset);
   }
 
   function asUint168CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint168 ret, uint nextOffset) {
@@ -458,12 +454,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint168Cd(encoded, offset);
   }
 
-  function asUint168Unchecked(bytes calldata encoded, uint offset) external pure returns (uint168 ret, uint nextOffset) {
-    return BytesParsing.asUint168Unchecked(encoded, offset);
+  function asUint168MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint168 ret, uint nextOffset) {
+    return BytesParsing.asUint168MemUnchecked(encoded, offset);
   }
 
-  function asUint168(bytes calldata encoded, uint offset) external pure returns (uint168 ret, uint nextOffset) {
-    return BytesParsing.asUint168(encoded, offset);
+  function asUint168Mem(bytes calldata encoded, uint offset) external pure returns (uint168 ret, uint nextOffset) {
+    return BytesParsing.asUint168Mem(encoded, offset);
   }
 
   function asUint176CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint176 ret, uint nextOffset) {
@@ -474,12 +470,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint176Cd(encoded, offset);
   }
 
-  function asUint176Unchecked(bytes calldata encoded, uint offset) external pure returns (uint176 ret, uint nextOffset) {
-    return BytesParsing.asUint176Unchecked(encoded, offset);
+  function asUint176MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint176 ret, uint nextOffset) {
+    return BytesParsing.asUint176MemUnchecked(encoded, offset);
   }
 
-  function asUint176(bytes calldata encoded, uint offset) external pure returns (uint176 ret, uint nextOffset) {
-    return BytesParsing.asUint176(encoded, offset);
+  function asUint176Mem(bytes calldata encoded, uint offset) external pure returns (uint176 ret, uint nextOffset) {
+    return BytesParsing.asUint176Mem(encoded, offset);
   }
 
   function asUint184CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint184 ret, uint nextOffset) {
@@ -490,12 +486,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint184Cd(encoded, offset);
   }
 
-  function asUint184Unchecked(bytes calldata encoded, uint offset) external pure returns (uint184 ret, uint nextOffset) {
-    return BytesParsing.asUint184Unchecked(encoded, offset);
+  function asUint184MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint184 ret, uint nextOffset) {
+    return BytesParsing.asUint184MemUnchecked(encoded, offset);
   }
 
-  function asUint184(bytes calldata encoded, uint offset) external pure returns (uint184 ret, uint nextOffset) {
-    return BytesParsing.asUint184(encoded, offset);
+  function asUint184Mem(bytes calldata encoded, uint offset) external pure returns (uint184 ret, uint nextOffset) {
+    return BytesParsing.asUint184Mem(encoded, offset);
   }
 
   function asUint192CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint192 ret, uint nextOffset) {
@@ -506,12 +502,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint192Cd(encoded, offset);
   }
 
-  function asUint192Unchecked(bytes calldata encoded, uint offset) external pure returns (uint192 ret, uint nextOffset) {
-    return BytesParsing.asUint192Unchecked(encoded, offset);
+  function asUint192MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint192 ret, uint nextOffset) {
+    return BytesParsing.asUint192MemUnchecked(encoded, offset);
   }
 
-  function asUint192(bytes calldata encoded, uint offset) external pure returns (uint192 ret, uint nextOffset) {
-    return BytesParsing.asUint192(encoded, offset);
+  function asUint192Mem(bytes calldata encoded, uint offset) external pure returns (uint192 ret, uint nextOffset) {
+    return BytesParsing.asUint192Mem(encoded, offset);
   }
 
   function asUint200CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint200 ret, uint nextOffset) {
@@ -522,12 +518,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint200Cd(encoded, offset);
   }
 
-  function asUint200Unchecked(bytes calldata encoded, uint offset) external pure returns (uint200 ret, uint nextOffset) {
-    return BytesParsing.asUint200Unchecked(encoded, offset);
+  function asUint200MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint200 ret, uint nextOffset) {
+    return BytesParsing.asUint200MemUnchecked(encoded, offset);
   }
 
-  function asUint200(bytes calldata encoded, uint offset) external pure returns (uint200 ret, uint nextOffset) {
-    return BytesParsing.asUint200(encoded, offset);
+  function asUint200Mem(bytes calldata encoded, uint offset) external pure returns (uint200 ret, uint nextOffset) {
+    return BytesParsing.asUint200Mem(encoded, offset);
   }
 
   function asUint208CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint208 ret, uint nextOffset) {
@@ -538,12 +534,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint208Cd(encoded, offset);
   }
 
-  function asUint208Unchecked(bytes calldata encoded, uint offset) external pure returns (uint208 ret, uint nextOffset) {
-    return BytesParsing.asUint208Unchecked(encoded, offset);
+  function asUint208MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint208 ret, uint nextOffset) {
+    return BytesParsing.asUint208MemUnchecked(encoded, offset);
   }
 
-  function asUint208(bytes calldata encoded, uint offset) external pure returns (uint208 ret, uint nextOffset) {
-    return BytesParsing.asUint208(encoded, offset);
+  function asUint208Mem(bytes calldata encoded, uint offset) external pure returns (uint208 ret, uint nextOffset) {
+    return BytesParsing.asUint208Mem(encoded, offset);
   }
 
   function asUint216CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint216 ret, uint nextOffset) {
@@ -554,12 +550,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint216Cd(encoded, offset);
   }
 
-  function asUint216Unchecked(bytes calldata encoded, uint offset) external pure returns (uint216 ret, uint nextOffset) {
-    return BytesParsing.asUint216Unchecked(encoded, offset);
+  function asUint216MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint216 ret, uint nextOffset) {
+    return BytesParsing.asUint216MemUnchecked(encoded, offset);
   }
 
-  function asUint216(bytes calldata encoded, uint offset) external pure returns (uint216 ret, uint nextOffset) {
-    return BytesParsing.asUint216(encoded, offset);
+  function asUint216Mem(bytes calldata encoded, uint offset) external pure returns (uint216 ret, uint nextOffset) {
+    return BytesParsing.asUint216Mem(encoded, offset);
   }
 
   function asUint224CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint224 ret, uint nextOffset) {
@@ -570,12 +566,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint224Cd(encoded, offset);
   }
 
-  function asUint224Unchecked(bytes calldata encoded, uint offset) external pure returns (uint224 ret, uint nextOffset) {
-    return BytesParsing.asUint224Unchecked(encoded, offset);
+  function asUint224MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint224 ret, uint nextOffset) {
+    return BytesParsing.asUint224MemUnchecked(encoded, offset);
   }
 
-  function asUint224(bytes calldata encoded, uint offset) external pure returns (uint224 ret, uint nextOffset) {
-    return BytesParsing.asUint224(encoded, offset);
+  function asUint224Mem(bytes calldata encoded, uint offset) external pure returns (uint224 ret, uint nextOffset) {
+    return BytesParsing.asUint224Mem(encoded, offset);
   }
 
   function asUint232CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint232 ret, uint nextOffset) {
@@ -586,12 +582,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint232Cd(encoded, offset);
   }
 
-  function asUint232Unchecked(bytes calldata encoded, uint offset) external pure returns (uint232 ret, uint nextOffset) {
-    return BytesParsing.asUint232Unchecked(encoded, offset);
+  function asUint232MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint232 ret, uint nextOffset) {
+    return BytesParsing.asUint232MemUnchecked(encoded, offset);
   }
 
-  function asUint232(bytes calldata encoded, uint offset) external pure returns (uint232 ret, uint nextOffset) {
-    return BytesParsing.asUint232(encoded, offset);
+  function asUint232Mem(bytes calldata encoded, uint offset) external pure returns (uint232 ret, uint nextOffset) {
+    return BytesParsing.asUint232Mem(encoded, offset);
   }
 
   function asUint240CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint240 ret, uint nextOffset) {
@@ -602,12 +598,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint240Cd(encoded, offset);
   }
 
-  function asUint240Unchecked(bytes calldata encoded, uint offset) external pure returns (uint240 ret, uint nextOffset) {
-    return BytesParsing.asUint240Unchecked(encoded, offset);
+  function asUint240MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint240 ret, uint nextOffset) {
+    return BytesParsing.asUint240MemUnchecked(encoded, offset);
   }
 
-  function asUint240(bytes calldata encoded, uint offset) external pure returns (uint240 ret, uint nextOffset) {
-    return BytesParsing.asUint240(encoded, offset);
+  function asUint240Mem(bytes calldata encoded, uint offset) external pure returns (uint240 ret, uint nextOffset) {
+    return BytesParsing.asUint240Mem(encoded, offset);
   }
 
   function asUint248CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint248 ret, uint nextOffset) {
@@ -618,12 +614,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint248Cd(encoded, offset);
   }
 
-  function asUint248Unchecked(bytes calldata encoded, uint offset) external pure returns (uint248 ret, uint nextOffset) {
-    return BytesParsing.asUint248Unchecked(encoded, offset);
+  function asUint248MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint248 ret, uint nextOffset) {
+    return BytesParsing.asUint248MemUnchecked(encoded, offset);
   }
 
-  function asUint248(bytes calldata encoded, uint offset) external pure returns (uint248 ret, uint nextOffset) {
-    return BytesParsing.asUint248(encoded, offset);
+  function asUint248Mem(bytes calldata encoded, uint offset) external pure returns (uint248 ret, uint nextOffset) {
+    return BytesParsing.asUint248Mem(encoded, offset);
   }
 
   function asUint256CdUnchecked(bytes calldata encoded, uint offset) external pure returns (uint256 ret, uint nextOffset) {
@@ -634,12 +630,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asUint256Cd(encoded, offset);
   }
 
-  function asUint256Unchecked(bytes calldata encoded, uint offset) external pure returns (uint256 ret, uint nextOffset) {
-    return BytesParsing.asUint256Unchecked(encoded, offset);
+  function asUint256MemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint256 ret, uint nextOffset) {
+    return BytesParsing.asUint256MemUnchecked(encoded, offset);
   }
 
-  function asUint256(bytes calldata encoded, uint offset) external pure returns (uint256 ret, uint nextOffset) {
-    return BytesParsing.asUint256(encoded, offset);
+  function asUint256Mem(bytes calldata encoded, uint offset) external pure returns (uint256 ret, uint nextOffset) {
+    return BytesParsing.asUint256Mem(encoded, offset);
   }
 
   function asBytes1CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes1 ret, uint nextOffset) {
@@ -650,12 +646,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes1Cd(encoded, offset);
   }
 
-  function asBytes1Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes1 ret, uint nextOffset) {
-    return BytesParsing.asBytes1Unchecked(encoded, offset);
+  function asBytes1MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes1 ret, uint nextOffset) {
+    return BytesParsing.asBytes1MemUnchecked(encoded, offset);
   }
 
-  function asBytes1(bytes calldata encoded, uint offset) external pure returns (bytes1 ret, uint nextOffset) {
-    return BytesParsing.asBytes1(encoded, offset);
+  function asBytes1Mem(bytes calldata encoded, uint offset) external pure returns (bytes1 ret, uint nextOffset) {
+    return BytesParsing.asBytes1Mem(encoded, offset);
   }
 
   function asBytes2CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes2 ret, uint nextOffset) {
@@ -666,12 +662,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes2Cd(encoded, offset);
   }
 
-  function asBytes2Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes2 ret, uint nextOffset) {
-    return BytesParsing.asBytes2Unchecked(encoded, offset);
+  function asBytes2MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes2 ret, uint nextOffset) {
+    return BytesParsing.asBytes2MemUnchecked(encoded, offset);
   }
 
-  function asBytes2(bytes calldata encoded, uint offset) external pure returns (bytes2 ret, uint nextOffset) {
-    return BytesParsing.asBytes2(encoded, offset);
+  function asBytes2Mem(bytes calldata encoded, uint offset) external pure returns (bytes2 ret, uint nextOffset) {
+    return BytesParsing.asBytes2Mem(encoded, offset);
   }
 
   function asBytes3CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes3 ret, uint nextOffset) {
@@ -682,12 +678,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes3Cd(encoded, offset);
   }
 
-  function asBytes3Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes3 ret, uint nextOffset) {
-    return BytesParsing.asBytes3Unchecked(encoded, offset);
+  function asBytes3MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes3 ret, uint nextOffset) {
+    return BytesParsing.asBytes3MemUnchecked(encoded, offset);
   }
 
-  function asBytes3(bytes calldata encoded, uint offset) external pure returns (bytes3 ret, uint nextOffset) {
-    return BytesParsing.asBytes3(encoded, offset);
+  function asBytes3Mem(bytes calldata encoded, uint offset) external pure returns (bytes3 ret, uint nextOffset) {
+    return BytesParsing.asBytes3Mem(encoded, offset);
   }
 
   function asBytes4CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes4 ret, uint nextOffset) {
@@ -698,12 +694,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes4Cd(encoded, offset);
   }
 
-  function asBytes4Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes4 ret, uint nextOffset) {
-    return BytesParsing.asBytes4Unchecked(encoded, offset);
+  function asBytes4MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes4 ret, uint nextOffset) {
+    return BytesParsing.asBytes4MemUnchecked(encoded, offset);
   }
 
-  function asBytes4(bytes calldata encoded, uint offset) external pure returns (bytes4 ret, uint nextOffset) {
-    return BytesParsing.asBytes4(encoded, offset);
+  function asBytes4Mem(bytes calldata encoded, uint offset) external pure returns (bytes4 ret, uint nextOffset) {
+    return BytesParsing.asBytes4Mem(encoded, offset);
   }
 
   function asBytes5CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes5 ret, uint nextOffset) {
@@ -714,12 +710,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes5Cd(encoded, offset);
   }
 
-  function asBytes5Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes5 ret, uint nextOffset) {
-    return BytesParsing.asBytes5Unchecked(encoded, offset);
+  function asBytes5MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes5 ret, uint nextOffset) {
+    return BytesParsing.asBytes5MemUnchecked(encoded, offset);
   }
 
-  function asBytes5(bytes calldata encoded, uint offset) external pure returns (bytes5 ret, uint nextOffset) {
-    return BytesParsing.asBytes5(encoded, offset);
+  function asBytes5Mem(bytes calldata encoded, uint offset) external pure returns (bytes5 ret, uint nextOffset) {
+    return BytesParsing.asBytes5Mem(encoded, offset);
   }
 
   function asBytes6CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes6 ret, uint nextOffset) {
@@ -730,12 +726,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes6Cd(encoded, offset);
   }
 
-  function asBytes6Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes6 ret, uint nextOffset) {
-    return BytesParsing.asBytes6Unchecked(encoded, offset);
+  function asBytes6MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes6 ret, uint nextOffset) {
+    return BytesParsing.asBytes6MemUnchecked(encoded, offset);
   }
 
-  function asBytes6(bytes calldata encoded, uint offset) external pure returns (bytes6 ret, uint nextOffset) {
-    return BytesParsing.asBytes6(encoded, offset);
+  function asBytes6Mem(bytes calldata encoded, uint offset) external pure returns (bytes6 ret, uint nextOffset) {
+    return BytesParsing.asBytes6Mem(encoded, offset);
   }
 
   function asBytes7CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes7 ret, uint nextOffset) {
@@ -746,12 +742,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes7Cd(encoded, offset);
   }
 
-  function asBytes7Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes7 ret, uint nextOffset) {
-    return BytesParsing.asBytes7Unchecked(encoded, offset);
+  function asBytes7MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes7 ret, uint nextOffset) {
+    return BytesParsing.asBytes7MemUnchecked(encoded, offset);
   }
 
-  function asBytes7(bytes calldata encoded, uint offset) external pure returns (bytes7 ret, uint nextOffset) {
-    return BytesParsing.asBytes7(encoded, offset);
+  function asBytes7Mem(bytes calldata encoded, uint offset) external pure returns (bytes7 ret, uint nextOffset) {
+    return BytesParsing.asBytes7Mem(encoded, offset);
   }
 
   function asBytes8CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes8 ret, uint nextOffset) {
@@ -762,12 +758,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes8Cd(encoded, offset);
   }
 
-  function asBytes8Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes8 ret, uint nextOffset) {
-    return BytesParsing.asBytes8Unchecked(encoded, offset);
+  function asBytes8MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes8 ret, uint nextOffset) {
+    return BytesParsing.asBytes8MemUnchecked(encoded, offset);
   }
 
-  function asBytes8(bytes calldata encoded, uint offset) external pure returns (bytes8 ret, uint nextOffset) {
-    return BytesParsing.asBytes8(encoded, offset);
+  function asBytes8Mem(bytes calldata encoded, uint offset) external pure returns (bytes8 ret, uint nextOffset) {
+    return BytesParsing.asBytes8Mem(encoded, offset);
   }
 
   function asBytes9CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes9 ret, uint nextOffset) {
@@ -778,12 +774,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes9Cd(encoded, offset);
   }
 
-  function asBytes9Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes9 ret, uint nextOffset) {
-    return BytesParsing.asBytes9Unchecked(encoded, offset);
+  function asBytes9MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes9 ret, uint nextOffset) {
+    return BytesParsing.asBytes9MemUnchecked(encoded, offset);
   }
 
-  function asBytes9(bytes calldata encoded, uint offset) external pure returns (bytes9 ret, uint nextOffset) {
-    return BytesParsing.asBytes9(encoded, offset);
+  function asBytes9Mem(bytes calldata encoded, uint offset) external pure returns (bytes9 ret, uint nextOffset) {
+    return BytesParsing.asBytes9Mem(encoded, offset);
   }
 
   function asBytes10CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes10 ret, uint nextOffset) {
@@ -794,12 +790,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes10Cd(encoded, offset);
   }
 
-  function asBytes10Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes10 ret, uint nextOffset) {
-    return BytesParsing.asBytes10Unchecked(encoded, offset);
+  function asBytes10MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes10 ret, uint nextOffset) {
+    return BytesParsing.asBytes10MemUnchecked(encoded, offset);
   }
 
-  function asBytes10(bytes calldata encoded, uint offset) external pure returns (bytes10 ret, uint nextOffset) {
-    return BytesParsing.asBytes10(encoded, offset);
+  function asBytes10Mem(bytes calldata encoded, uint offset) external pure returns (bytes10 ret, uint nextOffset) {
+    return BytesParsing.asBytes10Mem(encoded, offset);
   }
 
   function asBytes11CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes11 ret, uint nextOffset) {
@@ -810,12 +806,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes11Cd(encoded, offset);
   }
 
-  function asBytes11Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes11 ret, uint nextOffset) {
-    return BytesParsing.asBytes11Unchecked(encoded, offset);
+  function asBytes11MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes11 ret, uint nextOffset) {
+    return BytesParsing.asBytes11MemUnchecked(encoded, offset);
   }
 
-  function asBytes11(bytes calldata encoded, uint offset) external pure returns (bytes11 ret, uint nextOffset) {
-    return BytesParsing.asBytes11(encoded, offset);
+  function asBytes11Mem(bytes calldata encoded, uint offset) external pure returns (bytes11 ret, uint nextOffset) {
+    return BytesParsing.asBytes11Mem(encoded, offset);
   }
 
   function asBytes12CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes12 ret, uint nextOffset) {
@@ -826,12 +822,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes12Cd(encoded, offset);
   }
 
-  function asBytes12Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes12 ret, uint nextOffset) {
-    return BytesParsing.asBytes12Unchecked(encoded, offset);
+  function asBytes12MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes12 ret, uint nextOffset) {
+    return BytesParsing.asBytes12MemUnchecked(encoded, offset);
   }
 
-  function asBytes12(bytes calldata encoded, uint offset) external pure returns (bytes12 ret, uint nextOffset) {
-    return BytesParsing.asBytes12(encoded, offset);
+  function asBytes12Mem(bytes calldata encoded, uint offset) external pure returns (bytes12 ret, uint nextOffset) {
+    return BytesParsing.asBytes12Mem(encoded, offset);
   }
 
   function asBytes13CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes13 ret, uint nextOffset) {
@@ -842,12 +838,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes13Cd(encoded, offset);
   }
 
-  function asBytes13Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes13 ret, uint nextOffset) {
-    return BytesParsing.asBytes13Unchecked(encoded, offset);
+  function asBytes13MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes13 ret, uint nextOffset) {
+    return BytesParsing.asBytes13MemUnchecked(encoded, offset);
   }
 
-  function asBytes13(bytes calldata encoded, uint offset) external pure returns (bytes13 ret, uint nextOffset) {
-    return BytesParsing.asBytes13(encoded, offset);
+  function asBytes13Mem(bytes calldata encoded, uint offset) external pure returns (bytes13 ret, uint nextOffset) {
+    return BytesParsing.asBytes13Mem(encoded, offset);
   }
 
   function asBytes14CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes14 ret, uint nextOffset) {
@@ -858,12 +854,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes14Cd(encoded, offset);
   }
 
-  function asBytes14Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes14 ret, uint nextOffset) {
-    return BytesParsing.asBytes14Unchecked(encoded, offset);
+  function asBytes14MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes14 ret, uint nextOffset) {
+    return BytesParsing.asBytes14MemUnchecked(encoded, offset);
   }
 
-  function asBytes14(bytes calldata encoded, uint offset) external pure returns (bytes14 ret, uint nextOffset) {
-    return BytesParsing.asBytes14(encoded, offset);
+  function asBytes14Mem(bytes calldata encoded, uint offset) external pure returns (bytes14 ret, uint nextOffset) {
+    return BytesParsing.asBytes14Mem(encoded, offset);
   }
 
   function asBytes15CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes15 ret, uint nextOffset) {
@@ -874,12 +870,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes15Cd(encoded, offset);
   }
 
-  function asBytes15Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes15 ret, uint nextOffset) {
-    return BytesParsing.asBytes15Unchecked(encoded, offset);
+  function asBytes15MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes15 ret, uint nextOffset) {
+    return BytesParsing.asBytes15MemUnchecked(encoded, offset);
   }
 
-  function asBytes15(bytes calldata encoded, uint offset) external pure returns (bytes15 ret, uint nextOffset) {
-    return BytesParsing.asBytes15(encoded, offset);
+  function asBytes15Mem(bytes calldata encoded, uint offset) external pure returns (bytes15 ret, uint nextOffset) {
+    return BytesParsing.asBytes15Mem(encoded, offset);
   }
 
   function asBytes16CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes16 ret, uint nextOffset) {
@@ -890,12 +886,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes16Cd(encoded, offset);
   }
 
-  function asBytes16Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes16 ret, uint nextOffset) {
-    return BytesParsing.asBytes16Unchecked(encoded, offset);
+  function asBytes16MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes16 ret, uint nextOffset) {
+    return BytesParsing.asBytes16MemUnchecked(encoded, offset);
   }
 
-  function asBytes16(bytes calldata encoded, uint offset) external pure returns (bytes16 ret, uint nextOffset) {
-    return BytesParsing.asBytes16(encoded, offset);
+  function asBytes16Mem(bytes calldata encoded, uint offset) external pure returns (bytes16 ret, uint nextOffset) {
+    return BytesParsing.asBytes16Mem(encoded, offset);
   }
 
   function asBytes17CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes17 ret, uint nextOffset) {
@@ -906,12 +902,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes17Cd(encoded, offset);
   }
 
-  function asBytes17Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes17 ret, uint nextOffset) {
-    return BytesParsing.asBytes17Unchecked(encoded, offset);
+  function asBytes17MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes17 ret, uint nextOffset) {
+    return BytesParsing.asBytes17MemUnchecked(encoded, offset);
   }
 
-  function asBytes17(bytes calldata encoded, uint offset) external pure returns (bytes17 ret, uint nextOffset) {
-    return BytesParsing.asBytes17(encoded, offset);
+  function asBytes17Mem(bytes calldata encoded, uint offset) external pure returns (bytes17 ret, uint nextOffset) {
+    return BytesParsing.asBytes17Mem(encoded, offset);
   }
 
   function asBytes18CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes18 ret, uint nextOffset) {
@@ -922,12 +918,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes18Cd(encoded, offset);
   }
 
-  function asBytes18Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes18 ret, uint nextOffset) {
-    return BytesParsing.asBytes18Unchecked(encoded, offset);
+  function asBytes18MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes18 ret, uint nextOffset) {
+    return BytesParsing.asBytes18MemUnchecked(encoded, offset);
   }
 
-  function asBytes18(bytes calldata encoded, uint offset) external pure returns (bytes18 ret, uint nextOffset) {
-    return BytesParsing.asBytes18(encoded, offset);
+  function asBytes18Mem(bytes calldata encoded, uint offset) external pure returns (bytes18 ret, uint nextOffset) {
+    return BytesParsing.asBytes18Mem(encoded, offset);
   }
 
   function asBytes19CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes19 ret, uint nextOffset) {
@@ -938,12 +934,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes19Cd(encoded, offset);
   }
 
-  function asBytes19Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes19 ret, uint nextOffset) {
-    return BytesParsing.asBytes19Unchecked(encoded, offset);
+  function asBytes19MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes19 ret, uint nextOffset) {
+    return BytesParsing.asBytes19MemUnchecked(encoded, offset);
   }
 
-  function asBytes19(bytes calldata encoded, uint offset) external pure returns (bytes19 ret, uint nextOffset) {
-    return BytesParsing.asBytes19(encoded, offset);
+  function asBytes19Mem(bytes calldata encoded, uint offset) external pure returns (bytes19 ret, uint nextOffset) {
+    return BytesParsing.asBytes19Mem(encoded, offset);
   }
 
   function asBytes20CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes20 ret, uint nextOffset) {
@@ -954,12 +950,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes20Cd(encoded, offset);
   }
 
-  function asBytes20Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes20 ret, uint nextOffset) {
-    return BytesParsing.asBytes20Unchecked(encoded, offset);
+  function asBytes20MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes20 ret, uint nextOffset) {
+    return BytesParsing.asBytes20MemUnchecked(encoded, offset);
   }
 
-  function asBytes20(bytes calldata encoded, uint offset) external pure returns (bytes20 ret, uint nextOffset) {
-    return BytesParsing.asBytes20(encoded, offset);
+  function asBytes20Mem(bytes calldata encoded, uint offset) external pure returns (bytes20 ret, uint nextOffset) {
+    return BytesParsing.asBytes20Mem(encoded, offset);
   }
 
   function asBytes21CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes21 ret, uint nextOffset) {
@@ -970,12 +966,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes21Cd(encoded, offset);
   }
 
-  function asBytes21Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes21 ret, uint nextOffset) {
-    return BytesParsing.asBytes21Unchecked(encoded, offset);
+  function asBytes21MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes21 ret, uint nextOffset) {
+    return BytesParsing.asBytes21MemUnchecked(encoded, offset);
   }
 
-  function asBytes21(bytes calldata encoded, uint offset) external pure returns (bytes21 ret, uint nextOffset) {
-    return BytesParsing.asBytes21(encoded, offset);
+  function asBytes21Mem(bytes calldata encoded, uint offset) external pure returns (bytes21 ret, uint nextOffset) {
+    return BytesParsing.asBytes21Mem(encoded, offset);
   }
 
   function asBytes22CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes22 ret, uint nextOffset) {
@@ -986,12 +982,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes22Cd(encoded, offset);
   }
 
-  function asBytes22Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes22 ret, uint nextOffset) {
-    return BytesParsing.asBytes22Unchecked(encoded, offset);
+  function asBytes22MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes22 ret, uint nextOffset) {
+    return BytesParsing.asBytes22MemUnchecked(encoded, offset);
   }
 
-  function asBytes22(bytes calldata encoded, uint offset) external pure returns (bytes22 ret, uint nextOffset) {
-    return BytesParsing.asBytes22(encoded, offset);
+  function asBytes22Mem(bytes calldata encoded, uint offset) external pure returns (bytes22 ret, uint nextOffset) {
+    return BytesParsing.asBytes22Mem(encoded, offset);
   }
 
   function asBytes23CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes23 ret, uint nextOffset) {
@@ -1002,12 +998,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes23Cd(encoded, offset);
   }
 
-  function asBytes23Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes23 ret, uint nextOffset) {
-    return BytesParsing.asBytes23Unchecked(encoded, offset);
+  function asBytes23MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes23 ret, uint nextOffset) {
+    return BytesParsing.asBytes23MemUnchecked(encoded, offset);
   }
 
-  function asBytes23(bytes calldata encoded, uint offset) external pure returns (bytes23 ret, uint nextOffset) {
-    return BytesParsing.asBytes23(encoded, offset);
+  function asBytes23Mem(bytes calldata encoded, uint offset) external pure returns (bytes23 ret, uint nextOffset) {
+    return BytesParsing.asBytes23Mem(encoded, offset);
   }
 
   function asBytes24CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes24 ret, uint nextOffset) {
@@ -1018,12 +1014,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes24Cd(encoded, offset);
   }
 
-  function asBytes24Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes24 ret, uint nextOffset) {
-    return BytesParsing.asBytes24Unchecked(encoded, offset);
+  function asBytes24MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes24 ret, uint nextOffset) {
+    return BytesParsing.asBytes24MemUnchecked(encoded, offset);
   }
 
-  function asBytes24(bytes calldata encoded, uint offset) external pure returns (bytes24 ret, uint nextOffset) {
-    return BytesParsing.asBytes24(encoded, offset);
+  function asBytes24Mem(bytes calldata encoded, uint offset) external pure returns (bytes24 ret, uint nextOffset) {
+    return BytesParsing.asBytes24Mem(encoded, offset);
   }
 
   function asBytes25CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes25 ret, uint nextOffset) {
@@ -1034,12 +1030,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes25Cd(encoded, offset);
   }
 
-  function asBytes25Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes25 ret, uint nextOffset) {
-    return BytesParsing.asBytes25Unchecked(encoded, offset);
+  function asBytes25MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes25 ret, uint nextOffset) {
+    return BytesParsing.asBytes25MemUnchecked(encoded, offset);
   }
 
-  function asBytes25(bytes calldata encoded, uint offset) external pure returns (bytes25 ret, uint nextOffset) {
-    return BytesParsing.asBytes25(encoded, offset);
+  function asBytes25Mem(bytes calldata encoded, uint offset) external pure returns (bytes25 ret, uint nextOffset) {
+    return BytesParsing.asBytes25Mem(encoded, offset);
   }
 
   function asBytes26CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes26 ret, uint nextOffset) {
@@ -1050,12 +1046,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes26Cd(encoded, offset);
   }
 
-  function asBytes26Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes26 ret, uint nextOffset) {
-    return BytesParsing.asBytes26Unchecked(encoded, offset);
+  function asBytes26MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes26 ret, uint nextOffset) {
+    return BytesParsing.asBytes26MemUnchecked(encoded, offset);
   }
 
-  function asBytes26(bytes calldata encoded, uint offset) external pure returns (bytes26 ret, uint nextOffset) {
-    return BytesParsing.asBytes26(encoded, offset);
+  function asBytes26Mem(bytes calldata encoded, uint offset) external pure returns (bytes26 ret, uint nextOffset) {
+    return BytesParsing.asBytes26Mem(encoded, offset);
   }
 
   function asBytes27CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes27 ret, uint nextOffset) {
@@ -1066,12 +1062,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes27Cd(encoded, offset);
   }
 
-  function asBytes27Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes27 ret, uint nextOffset) {
-    return BytesParsing.asBytes27Unchecked(encoded, offset);
+  function asBytes27MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes27 ret, uint nextOffset) {
+    return BytesParsing.asBytes27MemUnchecked(encoded, offset);
   }
 
-  function asBytes27(bytes calldata encoded, uint offset) external pure returns (bytes27 ret, uint nextOffset) {
-    return BytesParsing.asBytes27(encoded, offset);
+  function asBytes27Mem(bytes calldata encoded, uint offset) external pure returns (bytes27 ret, uint nextOffset) {
+    return BytesParsing.asBytes27Mem(encoded, offset);
   }
 
   function asBytes28CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes28 ret, uint nextOffset) {
@@ -1082,12 +1078,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes28Cd(encoded, offset);
   }
 
-  function asBytes28Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes28 ret, uint nextOffset) {
-    return BytesParsing.asBytes28Unchecked(encoded, offset);
+  function asBytes28MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes28 ret, uint nextOffset) {
+    return BytesParsing.asBytes28MemUnchecked(encoded, offset);
   }
 
-  function asBytes28(bytes calldata encoded, uint offset) external pure returns (bytes28 ret, uint nextOffset) {
-    return BytesParsing.asBytes28(encoded, offset);
+  function asBytes28Mem(bytes calldata encoded, uint offset) external pure returns (bytes28 ret, uint nextOffset) {
+    return BytesParsing.asBytes28Mem(encoded, offset);
   }
 
   function asBytes29CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes29 ret, uint nextOffset) {
@@ -1098,12 +1094,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes29Cd(encoded, offset);
   }
 
-  function asBytes29Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes29 ret, uint nextOffset) {
-    return BytesParsing.asBytes29Unchecked(encoded, offset);
+  function asBytes29MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes29 ret, uint nextOffset) {
+    return BytesParsing.asBytes29MemUnchecked(encoded, offset);
   }
 
-  function asBytes29(bytes calldata encoded, uint offset) external pure returns (bytes29 ret, uint nextOffset) {
-    return BytesParsing.asBytes29(encoded, offset);
+  function asBytes29Mem(bytes calldata encoded, uint offset) external pure returns (bytes29 ret, uint nextOffset) {
+    return BytesParsing.asBytes29Mem(encoded, offset);
   }
 
   function asBytes30CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes30 ret, uint nextOffset) {
@@ -1114,12 +1110,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes30Cd(encoded, offset);
   }
 
-  function asBytes30Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes30 ret, uint nextOffset) {
-    return BytesParsing.asBytes30Unchecked(encoded, offset);
+  function asBytes30MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes30 ret, uint nextOffset) {
+    return BytesParsing.asBytes30MemUnchecked(encoded, offset);
   }
 
-  function asBytes30(bytes calldata encoded, uint offset) external pure returns (bytes30 ret, uint nextOffset) {
-    return BytesParsing.asBytes30(encoded, offset);
+  function asBytes30Mem(bytes calldata encoded, uint offset) external pure returns (bytes30 ret, uint nextOffset) {
+    return BytesParsing.asBytes30Mem(encoded, offset);
   }
 
   function asBytes31CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes31 ret, uint nextOffset) {
@@ -1130,12 +1126,12 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes31Cd(encoded, offset);
   }
 
-  function asBytes31Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes31 ret, uint nextOffset) {
-    return BytesParsing.asBytes31Unchecked(encoded, offset);
+  function asBytes31MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes31 ret, uint nextOffset) {
+    return BytesParsing.asBytes31MemUnchecked(encoded, offset);
   }
 
-  function asBytes31(bytes calldata encoded, uint offset) external pure returns (bytes31 ret, uint nextOffset) {
-    return BytesParsing.asBytes31(encoded, offset);
+  function asBytes31Mem(bytes calldata encoded, uint offset) external pure returns (bytes31 ret, uint nextOffset) {
+    return BytesParsing.asBytes31Mem(encoded, offset);
   }
 
   function asBytes32CdUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes32 ret, uint nextOffset) {
@@ -1146,11 +1142,11 @@ contract BytesParsingTestWrapper {
     return BytesParsing.asBytes32Cd(encoded, offset);
   }
 
-  function asBytes32Unchecked(bytes calldata encoded, uint offset) external pure returns (bytes32 ret, uint nextOffset) {
-    return BytesParsing.asBytes32Unchecked(encoded, offset);
+  function asBytes32MemUnchecked(bytes calldata encoded, uint offset) external pure returns (bytes32 ret, uint nextOffset) {
+    return BytesParsing.asBytes32MemUnchecked(encoded, offset);
   }
 
-  function asBytes32(bytes calldata encoded, uint offset) external pure returns (bytes32 ret, uint nextOffset) {
-    return BytesParsing.asBytes32(encoded, offset);
+  function asBytes32Mem(bytes calldata encoded, uint offset) external pure returns (bytes32 ret, uint nextOffset) {
+    return BytesParsing.asBytes32Mem(encoded, offset);
   }
 }

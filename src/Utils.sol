@@ -19,6 +19,10 @@ function fromUniversalAddress(bytes32 universalAddr) pure returns (address addr)
   }
 }
 
+function minSigsForQuorum(uint numGuardians) pure returns (uint) { unchecked {
+  return numGuardians * 2 / 3 + 1;
+}}
+
 /**
  * Reverts with a given buffer data.
  * Meant to be used to easily bubble up errors from low level calls when they fail.

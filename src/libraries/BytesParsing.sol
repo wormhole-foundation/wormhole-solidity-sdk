@@ -24,25 +24,20 @@ library BytesParsing {
       revert LengthMismatch(encodedLength, expectedLength);
   }
 
-  function checkLength(uint encodedLength, uint expectedLength) internal pure {
-    if (encodedLength != expectedLength)
-      revert LengthMismatch(encodedLength, expectedLength);
-  }
-
   //Summary of all remaining functions:
   //
   //Each function has 2*2=4 versions:
   //  1. unchecked - no bounds checking (uses suffix `Unchecked`)
   //  2. checked (no suffix)
-  //and
-  //  1. calldata input (uses suffix `Cd` (can't overload based on storage location))
-  //  2. memory input (no suffix)
+  //and (since Solidity does not allow overloading based on data location)
+  //  1. calldata input (uses tag `Cd` )
+  //  2. memory input (uses tag `Mem`)
   //
-  //The canoncial/recommended way of parsing data to be maximally gas efficient is to use the
-  //  unchecked versions and do a manual check at the end using `checkLength` to ensure that
-  //  encoded data was consumed exactly (neither too short nor too long).
+  //The canoncial/recommended way of parsing data to be maximally gas efficient is to prefer the
+  //  calldata variants over the memory variants and to use the unchecked variants with a manual
+  //  length check at the end using `checkLength` to ensure that encoded data was consumed exactly.
   //
-  //WARNING: Neither version uses safe math! It is up to the dev to ensure that offset and length
+  //WARNING: Neither variant uses safe math! It is up to the dev to ensure that offset and length
   //  values are sensible. In other words, verify user inputs before passing them on. Preferably,
   //  the format that's being parsed does not allow for such overflows in the first place by e.g.
   //  encoding lengths using at most 4 bytes, etc.
@@ -72,7 +67,7 @@ library BytesParsing {
     }
   }
 
-  function sliceUnchecked(
+  function sliceMemUnchecked(
     bytes memory encoded,
     uint offset,
     uint length
@@ -125,38 +120,31 @@ library BytesParsing {
 /* -------------------------------------------------------------------------------------------------
 Remaining library code below was auto-generated via the following js/node code:
 
-function slice${cd}(
-  bytes ${cd ? "calldata" : "memory"} encoded,
-  uint offset,
-  uint length
-) internal pure returns (bytes ${cd ? "calldata" : "memory"} ret, uint nextOffset) {
-  (ret, nextOffset) = slice${cd}Unchecked(encoded, offset, length);
-  checkBound(nextOffset, encoded.length);
-}
-`);
+const dlTag = dl => dl ? "Cd" : "Mem";
+const dlType = dl =>dl ? "calldata" : "memory";
 
 const funcs = [
   ...[8,16,32].map(n => [
     `sliceUint${n}Prefixed`,
-    cd => [
+    dl => [
       `uint${n} len;`,
-      `(len, nextOffset) = asUint${n}${cd}Unchecked(encoded, offset);`,
-      `(ret, nextOffset) = slice${cd}Unchecked(encoded, nextOffset, uint(len));`
+      `(len, nextOffset) = asUint${n}${dlTag(dl)}Unchecked(encoded, offset);`,
+      `(ret, nextOffset) = slice${dlTag(dl)}Unchecked(encoded, nextOffset, uint(len));`
     ],
-    cd => `bytes ${cd ? "calldata" : "memory"}`,
+    dl => `bytes ${dlType(dl)}`,
   ]), [
     `asAddress`,
-    cd => [
+    dl => [
       `uint160 tmp;`,
-      `(tmp, nextOffset) = asUint160${cd}Unchecked(encoded, offset);`,
+      `(tmp, nextOffset) = asUint160${dlTag(dl)}Unchecked(encoded, offset);`,
       `ret = address(tmp);`
     ],
     _ => `address`
   ], [
     `asBool`,
-    cd => [
+    dl => [
       `uint8 val;`,
-      `(val, nextOffset) = asUint8${cd}Unchecked(encoded, offset);`,
+      `(val, nextOffset) = asUint8${dlTag(dl)}Unchecked(encoded, offset);`,
       `if (val & 0xfe != 0)`,
       `  revert InvalidBoolVal(val);`,
       `uint cleanedVal = uint(val);`,
@@ -168,11 +156,11 @@ const funcs = [
   ],
   ...Array.from({length: 32}, (_, i) => [
     `asUint${(i+1)*8}`,
-    cd => [
+    dl => [
       `/// @solidity memory-safe-assembly`,
       `assembly {`,
       `  nextOffset := add(offset, ${i+1})`,
-      cd ? `  ret := shr(${256-(i+1)*8}, calldataload(add(encoded.offset, offset)))`
+      dl ? `  ret := shr(${256-(i+1)*8}, calldataload(add(encoded.offset, offset)))`
          : `  ret := mload(add(encoded, nextOffset))`,
       `}`
     ],
@@ -180,10 +168,10 @@ const funcs = [
   ]),
   ...Array.from({length: 32}, (_, i) => [
     `asBytes${i+1}`,
-    cd => [
+    dl => [
       `/// @solidity memory-safe-assembly`,
       `assembly {`,
-      `  ret := ${cd ? "calldataload" : "mload"}(add(encoded${cd ? ".offset" :""}, ${cd ? "offset" : "add(offset, WORD_SIZE)"}))`,
+      `  ret := ${dl ? "calldataload" : "mload"}(add(encoded${dl ? ".offset" :""}, ${dl ? "offset" : "add(offset, WORD_SIZE)"}))`,
       `  nextOffset := add(offset, ${i+1})`,
       `}`
     ],
@@ -191,21 +179,33 @@ const funcs = [
   ]),
 ];
 
+for (const dl of [true, false])
+  console.log(
+`function slice${dlTag(dl)}(
+  bytes ${dlType(dl)} encoded,
+  uint offset,
+  uint length
+) internal pure returns (bytes ${dlType(dl)} ret, uint nextOffset) {
+  (ret, nextOffset) = slice${dlTag(dl)}Unchecked(encoded, offset, length);
+  checkBound(nextOffset, encoded.length);
+}
+`);
+
 for (const [name, code, ret] of funcs) {
-  for (const cd of ["Cd", ""])
+  for (const dl of [true, false])
     console.log(
-`function ${name}${cd}Unchecked(
-  bytes ${cd ? "calldata" : "memory"} encoded,
+`function ${name}${dlTag(dl)}Unchecked(
+  bytes ${dlType(dl)} encoded,
   uint offset
-) internal pure returns (${ret(cd)} ret, uint nextOffset) {
-  ${code(cd).join("\n  ")}
+) internal pure returns (${ret(dl)} ret, uint nextOffset) {
+  ${code(dl).join("\n  ")}
 }
 
-function ${name}${cd}(
-  bytes ${cd ? "calldata" : "memory"} encoded,
+function ${name}${dlTag(dl)}(
+  bytes ${dlType(dl)} encoded,
   uint offset
-) internal pure returns (${ret(cd)} ret, uint nextOffset) {
-  (ret, nextOffset) = ${name}${cd}Unchecked(encoded, offset);
+) internal pure returns (${ret(dl)} ret, uint nextOffset) {
+  (ret, nextOffset) = ${name}${dlTag(dl)}Unchecked(encoded, offset);
   checkBound(nextOffset, encoded.length);
 }
 `);
@@ -221,12 +221,12 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function slice(
+  function sliceMem(
     bytes memory encoded,
     uint offset,
     uint length
   ) internal pure returns (bytes memory ret, uint nextOffset) {
-    (ret, nextOffset) = sliceUnchecked(encoded, offset, length);
+    (ret, nextOffset) = sliceMemUnchecked(encoded, offset, length);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -247,20 +247,20 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function sliceUint8PrefixedUnchecked(
+  function sliceUint8PrefixedMemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes memory ret, uint nextOffset) {
     uint8 len;
-    (len, nextOffset) = asUint8Unchecked(encoded, offset);
-    (ret, nextOffset) = sliceUnchecked(encoded, nextOffset, uint(len));
+    (len, nextOffset) = asUint8MemUnchecked(encoded, offset);
+    (ret, nextOffset) = sliceMemUnchecked(encoded, nextOffset, uint(len));
   }
 
-  function sliceUint8Prefixed(
+  function sliceUint8PrefixedMem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes memory ret, uint nextOffset) {
-    (ret, nextOffset) = sliceUint8PrefixedUnchecked(encoded, offset);
+    (ret, nextOffset) = sliceUint8PrefixedMemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -281,20 +281,20 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function sliceUint16PrefixedUnchecked(
+  function sliceUint16PrefixedMemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes memory ret, uint nextOffset) {
     uint16 len;
-    (len, nextOffset) = asUint16Unchecked(encoded, offset);
-    (ret, nextOffset) = sliceUnchecked(encoded, nextOffset, uint(len));
+    (len, nextOffset) = asUint16MemUnchecked(encoded, offset);
+    (ret, nextOffset) = sliceMemUnchecked(encoded, nextOffset, uint(len));
   }
 
-  function sliceUint16Prefixed(
+  function sliceUint16PrefixedMem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes memory ret, uint nextOffset) {
-    (ret, nextOffset) = sliceUint16PrefixedUnchecked(encoded, offset);
+    (ret, nextOffset) = sliceUint16PrefixedMemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -315,20 +315,20 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function sliceUint32PrefixedUnchecked(
+  function sliceUint32PrefixedMemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes memory ret, uint nextOffset) {
     uint32 len;
-    (len, nextOffset) = asUint32Unchecked(encoded, offset);
-    (ret, nextOffset) = sliceUnchecked(encoded, nextOffset, uint(len));
+    (len, nextOffset) = asUint32MemUnchecked(encoded, offset);
+    (ret, nextOffset) = sliceMemUnchecked(encoded, nextOffset, uint(len));
   }
 
-  function sliceUint32Prefixed(
+  function sliceUint32PrefixedMem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes memory ret, uint nextOffset) {
-    (ret, nextOffset) = sliceUint32PrefixedUnchecked(encoded, offset);
+    (ret, nextOffset) = sliceUint32PrefixedMemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -349,20 +349,20 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asAddressUnchecked(
+  function asAddressMemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (address ret, uint nextOffset) {
     uint160 tmp;
-    (tmp, nextOffset) = asUint160Unchecked(encoded, offset);
+    (tmp, nextOffset) = asUint160MemUnchecked(encoded, offset);
     ret = address(tmp);
   }
 
-  function asAddress(
+  function asAddressMem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (address ret, uint nextOffset) {
-    (ret, nextOffset) = asAddressUnchecked(encoded, offset);
+    (ret, nextOffset) = asAddressMemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -388,12 +388,12 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBoolUnchecked(
+  function asBoolMemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bool ret, uint nextOffset) {
     uint8 val;
-    (val, nextOffset) = asUint8Unchecked(encoded, offset);
+    (val, nextOffset) = asUint8MemUnchecked(encoded, offset);
     if (val & 0xfe != 0)
       revert InvalidBoolVal(val);
     uint cleanedVal = uint(val);
@@ -402,11 +402,11 @@ function ${name}${cd}(
     assembly { ret := cleanedVal }
   }
 
-  function asBool(
+  function asBoolMem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bool ret, uint nextOffset) {
-    (ret, nextOffset) = asBoolUnchecked(encoded, offset);
+    (ret, nextOffset) = asBoolMemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -429,7 +429,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint8Unchecked(
+  function asUint8MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint8 ret, uint nextOffset) {
@@ -440,11 +440,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint8(
+  function asUint8Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint8 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint8Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint8MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -467,7 +467,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint16Unchecked(
+  function asUint16MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint16 ret, uint nextOffset) {
@@ -478,11 +478,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint16(
+  function asUint16Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint16 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint16Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint16MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -505,7 +505,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint24Unchecked(
+  function asUint24MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint24 ret, uint nextOffset) {
@@ -516,11 +516,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint24(
+  function asUint24Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint24 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint24Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint24MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -543,7 +543,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint32Unchecked(
+  function asUint32MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint32 ret, uint nextOffset) {
@@ -554,11 +554,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint32(
+  function asUint32Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint32 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint32Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint32MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -581,7 +581,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint40Unchecked(
+  function asUint40MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint40 ret, uint nextOffset) {
@@ -592,11 +592,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint40(
+  function asUint40Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint40 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint40Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint40MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -619,7 +619,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint48Unchecked(
+  function asUint48MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint48 ret, uint nextOffset) {
@@ -630,11 +630,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint48(
+  function asUint48Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint48 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint48Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint48MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -657,7 +657,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint56Unchecked(
+  function asUint56MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint56 ret, uint nextOffset) {
@@ -668,11 +668,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint56(
+  function asUint56Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint56 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint56Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint56MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -695,7 +695,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint64Unchecked(
+  function asUint64MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint64 ret, uint nextOffset) {
@@ -706,11 +706,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint64(
+  function asUint64Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint64 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint64Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint64MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -733,7 +733,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint72Unchecked(
+  function asUint72MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint72 ret, uint nextOffset) {
@@ -744,11 +744,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint72(
+  function asUint72Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint72 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint72Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint72MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -771,7 +771,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint80Unchecked(
+  function asUint80MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint80 ret, uint nextOffset) {
@@ -782,11 +782,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint80(
+  function asUint80Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint80 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint80Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint80MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -809,7 +809,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint88Unchecked(
+  function asUint88MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint88 ret, uint nextOffset) {
@@ -820,11 +820,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint88(
+  function asUint88Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint88 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint88Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint88MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -847,7 +847,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint96Unchecked(
+  function asUint96MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint96 ret, uint nextOffset) {
@@ -858,11 +858,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint96(
+  function asUint96Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint96 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint96Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint96MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -885,7 +885,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint104Unchecked(
+  function asUint104MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint104 ret, uint nextOffset) {
@@ -896,11 +896,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint104(
+  function asUint104Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint104 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint104Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint104MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -923,7 +923,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint112Unchecked(
+  function asUint112MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint112 ret, uint nextOffset) {
@@ -934,11 +934,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint112(
+  function asUint112Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint112 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint112Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint112MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -961,7 +961,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint120Unchecked(
+  function asUint120MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint120 ret, uint nextOffset) {
@@ -972,11 +972,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint120(
+  function asUint120Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint120 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint120Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint120MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -999,7 +999,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint128Unchecked(
+  function asUint128MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint128 ret, uint nextOffset) {
@@ -1010,11 +1010,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint128(
+  function asUint128Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint128 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint128Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint128MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1037,7 +1037,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint136Unchecked(
+  function asUint136MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint136 ret, uint nextOffset) {
@@ -1048,11 +1048,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint136(
+  function asUint136Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint136 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint136Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint136MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1075,7 +1075,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint144Unchecked(
+  function asUint144MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint144 ret, uint nextOffset) {
@@ -1086,11 +1086,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint144(
+  function asUint144Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint144 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint144Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint144MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1113,7 +1113,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint152Unchecked(
+  function asUint152MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint152 ret, uint nextOffset) {
@@ -1124,11 +1124,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint152(
+  function asUint152Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint152 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint152Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint152MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1151,7 +1151,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint160Unchecked(
+  function asUint160MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint160 ret, uint nextOffset) {
@@ -1162,11 +1162,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint160(
+  function asUint160Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint160 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint160Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint160MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1189,7 +1189,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint168Unchecked(
+  function asUint168MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint168 ret, uint nextOffset) {
@@ -1200,11 +1200,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint168(
+  function asUint168Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint168 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint168Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint168MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1227,7 +1227,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint176Unchecked(
+  function asUint176MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint176 ret, uint nextOffset) {
@@ -1238,11 +1238,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint176(
+  function asUint176Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint176 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint176Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint176MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1265,7 +1265,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint184Unchecked(
+  function asUint184MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint184 ret, uint nextOffset) {
@@ -1276,11 +1276,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint184(
+  function asUint184Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint184 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint184Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint184MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1303,7 +1303,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint192Unchecked(
+  function asUint192MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint192 ret, uint nextOffset) {
@@ -1314,11 +1314,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint192(
+  function asUint192Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint192 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint192Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint192MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1341,7 +1341,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint200Unchecked(
+  function asUint200MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint200 ret, uint nextOffset) {
@@ -1352,11 +1352,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint200(
+  function asUint200Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint200 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint200Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint200MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1379,7 +1379,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint208Unchecked(
+  function asUint208MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint208 ret, uint nextOffset) {
@@ -1390,11 +1390,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint208(
+  function asUint208Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint208 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint208Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint208MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1417,7 +1417,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint216Unchecked(
+  function asUint216MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint216 ret, uint nextOffset) {
@@ -1428,11 +1428,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint216(
+  function asUint216Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint216 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint216Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint216MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1455,7 +1455,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint224Unchecked(
+  function asUint224MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint224 ret, uint nextOffset) {
@@ -1466,11 +1466,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint224(
+  function asUint224Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint224 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint224Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint224MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1493,7 +1493,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint232Unchecked(
+  function asUint232MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint232 ret, uint nextOffset) {
@@ -1504,11 +1504,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint232(
+  function asUint232Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint232 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint232Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint232MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1531,7 +1531,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint240Unchecked(
+  function asUint240MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint240 ret, uint nextOffset) {
@@ -1542,11 +1542,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint240(
+  function asUint240Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint240 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint240Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint240MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1569,7 +1569,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint248Unchecked(
+  function asUint248MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint248 ret, uint nextOffset) {
@@ -1580,11 +1580,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint248(
+  function asUint248Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint248 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint248Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint248MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1607,7 +1607,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asUint256Unchecked(
+  function asUint256MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint256 ret, uint nextOffset) {
@@ -1618,11 +1618,11 @@ function ${name}${cd}(
     }
   }
 
-  function asUint256(
+  function asUint256Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (uint256 ret, uint nextOffset) {
-    (ret, nextOffset) = asUint256Unchecked(encoded, offset);
+    (ret, nextOffset) = asUint256MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1645,7 +1645,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes1Unchecked(
+  function asBytes1MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes1 ret, uint nextOffset) {
@@ -1656,11 +1656,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes1(
+  function asBytes1Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes1 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes1Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes1MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1683,7 +1683,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes2Unchecked(
+  function asBytes2MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes2 ret, uint nextOffset) {
@@ -1694,11 +1694,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes2(
+  function asBytes2Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes2 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes2Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes2MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1721,7 +1721,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes3Unchecked(
+  function asBytes3MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes3 ret, uint nextOffset) {
@@ -1732,11 +1732,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes3(
+  function asBytes3Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes3 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes3Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes3MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1759,7 +1759,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes4Unchecked(
+  function asBytes4MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes4 ret, uint nextOffset) {
@@ -1770,11 +1770,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes4(
+  function asBytes4Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes4 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes4Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes4MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1797,7 +1797,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes5Unchecked(
+  function asBytes5MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes5 ret, uint nextOffset) {
@@ -1808,11 +1808,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes5(
+  function asBytes5Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes5 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes5Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes5MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1835,7 +1835,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes6Unchecked(
+  function asBytes6MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes6 ret, uint nextOffset) {
@@ -1846,11 +1846,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes6(
+  function asBytes6Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes6 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes6Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes6MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1873,7 +1873,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes7Unchecked(
+  function asBytes7MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes7 ret, uint nextOffset) {
@@ -1884,11 +1884,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes7(
+  function asBytes7Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes7 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes7Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes7MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1911,7 +1911,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes8Unchecked(
+  function asBytes8MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes8 ret, uint nextOffset) {
@@ -1922,11 +1922,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes8(
+  function asBytes8Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes8 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes8Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes8MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1949,7 +1949,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes9Unchecked(
+  function asBytes9MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes9 ret, uint nextOffset) {
@@ -1960,11 +1960,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes9(
+  function asBytes9Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes9 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes9Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes9MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -1987,7 +1987,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes10Unchecked(
+  function asBytes10MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes10 ret, uint nextOffset) {
@@ -1998,11 +1998,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes10(
+  function asBytes10Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes10 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes10Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes10MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2025,7 +2025,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes11Unchecked(
+  function asBytes11MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes11 ret, uint nextOffset) {
@@ -2036,11 +2036,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes11(
+  function asBytes11Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes11 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes11Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes11MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2063,7 +2063,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes12Unchecked(
+  function asBytes12MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes12 ret, uint nextOffset) {
@@ -2074,11 +2074,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes12(
+  function asBytes12Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes12 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes12Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes12MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2101,7 +2101,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes13Unchecked(
+  function asBytes13MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes13 ret, uint nextOffset) {
@@ -2112,11 +2112,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes13(
+  function asBytes13Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes13 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes13Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes13MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2139,7 +2139,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes14Unchecked(
+  function asBytes14MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes14 ret, uint nextOffset) {
@@ -2150,11 +2150,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes14(
+  function asBytes14Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes14 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes14Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes14MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2177,7 +2177,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes15Unchecked(
+  function asBytes15MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes15 ret, uint nextOffset) {
@@ -2188,11 +2188,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes15(
+  function asBytes15Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes15 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes15Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes15MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2215,7 +2215,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes16Unchecked(
+  function asBytes16MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes16 ret, uint nextOffset) {
@@ -2226,11 +2226,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes16(
+  function asBytes16Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes16 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes16Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes16MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2253,7 +2253,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes17Unchecked(
+  function asBytes17MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes17 ret, uint nextOffset) {
@@ -2264,11 +2264,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes17(
+  function asBytes17Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes17 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes17Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes17MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2291,7 +2291,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes18Unchecked(
+  function asBytes18MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes18 ret, uint nextOffset) {
@@ -2302,11 +2302,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes18(
+  function asBytes18Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes18 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes18Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes18MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2329,7 +2329,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes19Unchecked(
+  function asBytes19MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes19 ret, uint nextOffset) {
@@ -2340,11 +2340,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes19(
+  function asBytes19Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes19 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes19Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes19MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2367,7 +2367,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes20Unchecked(
+  function asBytes20MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes20 ret, uint nextOffset) {
@@ -2378,11 +2378,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes20(
+  function asBytes20Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes20 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes20Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes20MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2405,7 +2405,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes21Unchecked(
+  function asBytes21MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes21 ret, uint nextOffset) {
@@ -2416,11 +2416,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes21(
+  function asBytes21Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes21 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes21Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes21MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2443,7 +2443,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes22Unchecked(
+  function asBytes22MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes22 ret, uint nextOffset) {
@@ -2454,11 +2454,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes22(
+  function asBytes22Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes22 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes22Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes22MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2481,7 +2481,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes23Unchecked(
+  function asBytes23MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes23 ret, uint nextOffset) {
@@ -2492,11 +2492,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes23(
+  function asBytes23Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes23 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes23Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes23MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2519,7 +2519,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes24Unchecked(
+  function asBytes24MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes24 ret, uint nextOffset) {
@@ -2530,11 +2530,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes24(
+  function asBytes24Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes24 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes24Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes24MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2557,7 +2557,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes25Unchecked(
+  function asBytes25MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes25 ret, uint nextOffset) {
@@ -2568,11 +2568,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes25(
+  function asBytes25Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes25 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes25Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes25MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2595,7 +2595,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes26Unchecked(
+  function asBytes26MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes26 ret, uint nextOffset) {
@@ -2606,11 +2606,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes26(
+  function asBytes26Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes26 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes26Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes26MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2633,7 +2633,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes27Unchecked(
+  function asBytes27MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes27 ret, uint nextOffset) {
@@ -2644,11 +2644,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes27(
+  function asBytes27Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes27 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes27Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes27MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2671,7 +2671,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes28Unchecked(
+  function asBytes28MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes28 ret, uint nextOffset) {
@@ -2682,11 +2682,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes28(
+  function asBytes28Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes28 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes28Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes28MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2709,7 +2709,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes29Unchecked(
+  function asBytes29MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes29 ret, uint nextOffset) {
@@ -2720,11 +2720,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes29(
+  function asBytes29Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes29 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes29Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes29MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2747,7 +2747,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes30Unchecked(
+  function asBytes30MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes30 ret, uint nextOffset) {
@@ -2758,11 +2758,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes30(
+  function asBytes30Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes30 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes30Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes30MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2785,7 +2785,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes31Unchecked(
+  function asBytes31MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes31 ret, uint nextOffset) {
@@ -2796,11 +2796,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes31(
+  function asBytes31Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes31 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes31Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes31MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 
@@ -2823,7 +2823,7 @@ function ${name}${cd}(
     checkBound(nextOffset, encoded.length);
   }
 
-  function asBytes32Unchecked(
+  function asBytes32MemUnchecked(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes32 ret, uint nextOffset) {
@@ -2834,11 +2834,11 @@ function ${name}${cd}(
     }
   }
 
-  function asBytes32(
+  function asBytes32Mem(
     bytes memory encoded,
     uint offset
   ) internal pure returns (bytes32 ret, uint nextOffset) {
-    (ret, nextOffset) = asBytes32Unchecked(encoded, offset);
+    (ret, nextOffset) = asBytes32MemUnchecked(encoded, offset);
     checkBound(nextOffset, encoded.length);
   }
 }

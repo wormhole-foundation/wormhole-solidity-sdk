@@ -10,6 +10,7 @@ import "wormhole-sdk/interfaces/cctp/IMessageTransmitter.sol";
 import "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol";
 import "wormhole-sdk/constants/Chains.sol";
 import "wormhole-sdk/Utils.sol";
+import "wormhole-sdk/libraries/VaaLib.sol";
 
 import "./UsdcDealer.sol";
 import "./WormholeOverride.sol";
@@ -49,7 +50,7 @@ abstract contract WormholeRelayerTest is Test {
   using WormholeOverride for IWormhole;
   using CctpOverride for IMessageTransmitter;
   using UsdcDealer for IUSDC;
-  using VaaEncoding for IWormhole.VM;
+  using VaaLib for IWormhole.VM;
 
   /**
    * @dev required override to initialize active forks before each test

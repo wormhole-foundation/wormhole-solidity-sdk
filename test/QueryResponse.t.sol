@@ -61,7 +61,7 @@ contract QueryResponseTest is Test {
 
   function sign(
     bytes memory response
-  ) internal view returns (IWormhole.Signature[] memory signatures) {
+  ) internal view returns (GuardianSignature[] memory signatures) {
     return IWormhole(wormhole).sign(QueryResponseLib.calcPrefixedResponseHash(response));
   }
 
@@ -153,7 +153,7 @@ contract QueryResponseTest is Test {
       response: hex"0000000002a61ac4c1adff9f6e180309e7d0d94c063338ddc61c1c4474cd6957c960efe659534d040005ff312e4f90c002000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d57726170706564204d6174696300000000000000000000000000000000000000000000200000000000000000000000000000000000000000007ae5649beabeddf889364a"
     });
 
-    vm.expectRevert(abi.encodeWithSelector(WrongQueryType.selector, 2, QueryType.ETH_CALL));
+    vm.expectRevert(abi.encodeWithSelector(QueryResponseLib.WrongQueryType.selector, 2, QueryType.ETH_CALL));
     wrapper.parseEthCallQueryResponse(r);
   }
 
@@ -222,7 +222,7 @@ contract QueryResponseTest is Test {
       response: hex"0000000000004271ec70d2f70cf1933770ae760050a75334ce650aa091665ee43a6ed488cd154b0800000003f4810cc000000000000042720b1608c2cddfd9d7fb4ec94f79ec1389e2410e611a2c2bbde94e9ad37519ebbb00000003f4904f0002000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d5772617070656420457468657200000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000"
     });
 
-    vm.expectRevert(abi.encodeWithSelector(WrongQueryType.selector, 1, QueryType.ETH_CALL_BY_TIMESTAMP));
+    vm.expectRevert(abi.encodeWithSelector(QueryResponseLib.WrongQueryType.selector, 1, QueryType.ETH_CALL_BY_TIMESTAMP));
     wrapper.parseEthCallByTimestampQueryResponse(r);
   }
 
@@ -261,7 +261,11 @@ contract QueryResponseTest is Test {
       response: hex"00000000000060299eb9c56ffdae81214867ed217f5ab37e295c196b4f04b23a795d3e4aea6ff3d700000005bb1bd58002000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d5772617070656420457468657200000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000"
     });
 
-    vm.expectRevert(abi.encodeWithSelector(WrongQueryType.selector, 1, QueryType.ETH_CALL_WITH_FINALITY));
+    vm.expectRevert(abi.encodeWithSelector(
+      QueryResponseLib.WrongQueryType.selector,
+      1,
+      QueryType.ETH_CALL_WITH_FINALITY
+    ));
     wrapper.parseEthCallWithFinalityQueryResponse(r);
   }
 
@@ -317,7 +321,11 @@ contract QueryResponseTest is Test {
       response: solanaAccountPerChainResponsesInner
     });
 
-    vm.expectRevert(abi.encodeWithSelector(WrongQueryType.selector, 1, QueryType.SOLANA_ACCOUNT));
+    vm.expectRevert(abi.encodeWithSelector(
+      QueryResponseLib.WrongQueryType.selector,
+      1,
+      QueryType.SOLANA_ACCOUNT
+    ));
     wrapper.parseSolanaAccountQueryResponse(r);
   }
 
@@ -331,7 +339,7 @@ contract QueryResponseTest is Test {
       response: solanaAccountPerChainResponsesInner
     });
 
-    vm.expectRevert(UnexpectedNumberOfResults.selector);
+    vm.expectRevert(QueryResponseLib.UnexpectedNumberOfResults.selector);
     wrapper.parseSolanaAccountQueryResponse(r);
   }
 
@@ -345,7 +353,11 @@ contract QueryResponseTest is Test {
       response: solanaAccountPerChainResponsesInner
     });
 
-    vm.expectRevert(abi.encodeWithSelector(InvalidPayloadLength.selector, 106, 102));
+    vm.expectRevert(abi.encodeWithSelector(
+      QueryResponseLib.InvalidPayloadLength.selector,
+      106,
+      102
+    ));
     wrapper.parseSolanaAccountQueryResponse(r);
   }
 
@@ -359,7 +371,11 @@ contract QueryResponseTest is Test {
       response: responseWithExtraBytes
     });
 
-    vm.expectRevert(abi.encodeWithSelector(InvalidPayloadLength.selector, 323, 319));
+    vm.expectRevert(abi.encodeWithSelector(
+      QueryResponseLib.InvalidPayloadLength.selector,
+      323,
+      319
+    ));
     wrapper.parseSolanaAccountQueryResponse(r);
   }
 
@@ -406,7 +422,11 @@ contract QueryResponseTest is Test {
       response: solanaPdaPerChainResponsesInner
     });
 
-    vm.expectRevert(abi.encodeWithSelector(WrongQueryType.selector, 1, QueryType.SOLANA_PDA));
+    vm.expectRevert(abi.encodeWithSelector(
+      QueryResponseLib.WrongQueryType.selector,
+      1,
+      QueryType.SOLANA_PDA
+    ));
     wrapper.parseSolanaPdaQueryResponse(r);
   }
 
@@ -420,7 +440,7 @@ contract QueryResponseTest is Test {
       response: solanaPdaPerChainResponsesInner
     });
 
-    vm.expectRevert(UnexpectedNumberOfResults.selector);
+    vm.expectRevert(QueryResponseLib.UnexpectedNumberOfResults.selector);
     wrapper.parseSolanaPdaQueryResponse(r);
   }
 
@@ -434,7 +454,11 @@ contract QueryResponseTest is Test {
       response: solanaPdaPerChainResponsesInner
     });
 
-    vm.expectRevert(abi.encodeWithSelector(InvalidPayloadLength.selector, 98, 94));
+    vm.expectRevert(abi.encodeWithSelector(
+      QueryResponseLib.InvalidPayloadLength.selector,
+      98,
+      94
+    ));
     wrapper.parseSolanaPdaQueryResponse(r);
   }
 
@@ -448,7 +472,11 @@ contract QueryResponseTest is Test {
       response: responseWithExtraBytes
     });
 
-    vm.expectRevert(abi.encodeWithSelector(InvalidPayloadLength.selector, 159, 155));
+    vm.expectRevert(abi.encodeWithSelector(
+      QueryResponseLib.InvalidPayloadLength.selector,
+      159,
+      155
+    ));
     wrapper.parseSolanaPdaQueryResponse(r);
   }
 
@@ -462,7 +490,7 @@ contract QueryResponseTest is Test {
     vm.assume(_version != 1);
 
     bytes memory resp = concatenateQueryResponseBytesOffChain(_version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
-    vm.expectRevert(InvalidResponseVersion.selector);
+    vm.expectRevert(QueryResponseLib.InvalidResponseVersion.selector);
     wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
   }
 
@@ -554,7 +582,7 @@ contract QueryResponseTest is Test {
     bytes memory packedPerChainQueries = abi.encodePacked(_requestChainId, uint8(_requestQueryType), uint32(perChainQueriesInner.length), perChainQueriesInner);
     bytes memory packedPerChainResponses = abi.encodePacked(_responseChainId, uint8(_requestQueryType), uint32(perChainResponsesInner.length),  perChainResponsesInner);
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, packedPerChainQueries, numPerChainResponses, packedPerChainResponses);
-    vm.expectRevert(ChainIdMismatch.selector);
+    vm.expectRevert(QueryResponseLib.ChainIdMismatch.selector);
     wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
   }
 
@@ -569,7 +597,7 @@ contract QueryResponseTest is Test {
     bytes memory packedPerChainQueries = abi.encodePacked(uint16(0x0005), uint8(_requestQueryType), uint32(perChainQueriesInner.length), perChainQueriesInner);
     bytes memory packedPerChainResponses = abi.encodePacked(uint16(0x0005), uint8(_responseQueryType), uint32(perChainResponsesInner.length),  perChainResponsesInner);
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, packedPerChainQueries, numPerChainResponses, packedPerChainResponses);
-    vm.expectRevert(RequestTypeMismatch.selector);
+    vm.expectRevert(QueryResponseLib.RequestTypeMismatch.selector);
     wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
   }
 
@@ -581,7 +609,10 @@ contract QueryResponseTest is Test {
     bytes memory packedPerChainQueries = abi.encodePacked(uint16(0x0005), uint8(_requestQueryType), uint32(perChainQueriesInner.length), perChainQueriesInner);
     bytes memory packedPerChainResponses = abi.encodePacked(uint16(0x0005), uint8(_requestQueryType), uint32(perChainResponsesInner.length),  perChainResponsesInner);
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, packedPerChainQueries, numPerChainResponses, packedPerChainResponses);
-    vm.expectRevert(abi.encodeWithSelector(UnsupportedQueryType.selector, _requestQueryType));
+    vm.expectRevert(abi.encodeWithSelector(
+      QueryType.UnsupportedQueryType.selector,
+      _requestQueryType
+    ));
     wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
   }
 
@@ -609,10 +640,10 @@ contract QueryResponseTest is Test {
     bytes32 sigS,
     uint8 sigIndex
   ) public {
-    IWormhole.Signature[] memory signatures = sign(resp);
+    GuardianSignature[] memory signatures = sign(resp);
     uint sigI = bound(sigIndex, 0, signatures.length-1);
-    signatures[sigI] = IWormhole.Signature(sigR, sigS, sigV, signatures[sigI].guardianIndex);
-    vm.expectRevert(VerificationFailed.selector);
+    signatures[sigI] = GuardianSignature(sigR, sigS, sigV, signatures[sigI].guardianIndex);
+    vm.expectRevert(QueryResponseLib.VerificationFailed.selector);
     wrapper.verifyQueryResponse(wormhole, resp, signatures);
   }
 
@@ -622,8 +653,8 @@ contract QueryResponseTest is Test {
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
     bytes32 responseDigest = keccak256(abi.encodePacked(responsePrefix, keccak256(resp)));
 
-    IWormhole.Signature[] memory signatures = IWormhole(wormhole).sign(responseDigest);
-    vm.expectRevert(VerificationFailed.selector);
+    GuardianSignature[] memory signatures = IWormhole(wormhole).sign(responseDigest);
+    vm.expectRevert(QueryResponseLib.VerificationFailed.selector);
     wrapper.verifyQueryResponse(wormhole, resp, signatures);
   }
 
@@ -631,13 +662,13 @@ contract QueryResponseTest is Test {
     bytes calldata resp,
     uint8 sigCount
   ) public {
-    IWormhole.Signature[] memory signatures = sign(resp);
+    GuardianSignature[] memory signatures = sign(resp);
     uint sigC = bound(sigCount, 0, signatures.length-1);
-    IWormhole.Signature[] memory signaturesToUse = new IWormhole.Signature[](sigC);
+    GuardianSignature[] memory signaturesToUse = new GuardianSignature[](sigC);
     for (uint i = 0; i < sigC; ++i)
       signaturesToUse[i] = signatures[i];
 
-    vm.expectRevert(VerificationFailed.selector);
+    vm.expectRevert(QueryResponseLib.VerificationFailed.selector);
     wrapper.verifyQueryResponse(wormhole, resp, signaturesToUse);
   }
 
@@ -664,7 +695,7 @@ contract QueryResponseTest is Test {
     uint upperBound = _minBlockTime <= MAX_SECONDS ? _minBlockTime-1 : MAX_SECONDS;
     _blockTime = uint64(bound(_blockTime, 0, upperBound));
 
-    vm.expectRevert(StaleBlockTime.selector);
+    vm.expectRevert(QueryResponseLib.StaleBlockTime.selector);
     wrapper.validateBlockTime(_blockTime * MICROSECONDS_PER_SECOND, _minBlockTime);
   }
 
@@ -686,7 +717,7 @@ contract QueryResponseTest is Test {
     vm.assume(_minBlockNum > 0);
     _blockNum = uint64(bound(_blockNum, 0, _minBlockNum-1));
 
-    vm.expectRevert(StaleBlockNum.selector);
+    vm.expectRevert(QueryResponseLib.StaleBlockNum.selector);
     wrapper.validateBlockNum(uint64(_blockNum), _minBlockNum);
   }
 
@@ -707,7 +738,7 @@ contract QueryResponseTest is Test {
     for (uint16 i = 0; i < _validChainIds.length; ++i)
       vm.assume(_chainId != _validChainIds[i]);
 
-    vm.expectRevert(InvalidChainId.selector);
+    vm.expectRevert(QueryResponseLib.InvalidChainId.selector);
     wrapper.validateChainId(_chainId, _validChainIds);
   }
 
@@ -794,7 +825,7 @@ contract QueryResponseTest is Test {
       result: randomBytes
     });
 
-    vm.expectRevert(InvalidFunctionSignature.selector);
+    vm.expectRevert(QueryResponseLib.InvalidFunctionSignature.selector);
     wrapper.validateEthCallRecord(callData, _validContractAddresses, _validFunctionSignatures);
   }
 
@@ -818,7 +849,7 @@ contract QueryResponseTest is Test {
       result: randomBytes
     });
 
-    vm.expectRevert(InvalidContractAddress.selector);
+    vm.expectRevert(QueryResponseLib.InvalidContractAddress.selector);
     wrapper.validateEthCallRecord(callData, _validContractAddresses, _validFunctionSignatures);
   }
 

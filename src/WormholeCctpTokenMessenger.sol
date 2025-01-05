@@ -11,7 +11,7 @@ import {ITokenMinter}        from "wormhole-sdk/interfaces/cctp/ITokenMinter.sol
 import {toUniversalAddress,
         eagerAnd,
         eagerOr}                     from "wormhole-sdk/Utils.sol";
-import {WormholeCctpMessages}        from "wormhole-sdk/libraries/WormholeCctpMessages.sol";
+import {WormholeCctpMessageLib}      from "wormhole-sdk/libraries/WormholeCctpMessages.sol";
 import {CONSISTENCY_LEVEL_FINALIZED} from "wormhole-sdk/constants/ConsistencyLevel.sol";
 
 /**
@@ -106,7 +106,7 @@ abstract contract WormholeCctpTokenMessenger {
     // Publish deposit message via Wormhole Core Bridge.
     wormholeSequence = _wormhole.publishMessage{value: wormholeFee}(
       wormholeNonce,
-      WormholeCctpMessages.encodeDeposit(
+      WormholeCctpMessageLib.encodeDeposit(
         token.toUniversalAddress(),
         amount,
         _localCctpDomain, // sourceCctpDomain
@@ -140,7 +140,7 @@ abstract contract WormholeCctpTokenMessenger {
     bytes memory payload
   ) {
     // First parse and verify VAA.
-    vaa = _parseAndVerifyVaa( encodedVaa);
+    vaa = _parseAndVerifyVaa(encodedVaa);
 
     // Decode the deposit message so we can match the Wormhole message with the CCTP message.
     uint32 sourceCctpDomain;
@@ -155,7 +155,7 @@ abstract contract WormholeCctpTokenMessenger {
       burnSource,
       mintRecipient,
       payload
-    ) = WormholeCctpMessages.decodeDeposit(vaa.payload);
+    ) = WormholeCctpMessageLib.decodeDepositMem(vaa.payload);
 
     // Finally reconcile messages and mint tokens to the mint recipient.
     token = _matchMessagesAndMint(
@@ -204,7 +204,7 @@ abstract contract WormholeCctpTokenMessenger {
       burnSource,
       mintRecipient,
       payload
-    ) = WormholeCctpMessages.decodeDeposit(vaa.payload);
+    ) = WormholeCctpMessageLib.decodeDepositMem(vaa.payload);
 
     // Finally reconcile messages and mint tokens to the mint recipient.
     token = _matchMessagesAndMint(
@@ -283,12 +283,11 @@ abstract contract WormholeCctpTokenMessenger {
         nonce := shr(96, ptr)
       }
 
-      //avoid short circuiting (more gas and bytecode efficient)
-      if (eagerOr(eagerOr(
-        vaaSourceCctpDomain != sourceDomain,
-        vaaDestinationCctpDomain != destinationDomain,
+      //avoid short-circuiting (more gas and bytecode efficient)
+      if (eagerOr(
+        eagerOr(vaaSourceCctpDomain != sourceDomain, vaaDestinationCctpDomain != destinationDomain),
         vaaCctpNonce != nonce
-      )))
+      ))
         revert CctpVaaMismatch(sourceDomain, destinationDomain, nonce);
     }
 
