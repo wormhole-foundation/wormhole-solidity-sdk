@@ -24,7 +24,7 @@ library CoreBridgeLib {
     uint64  sequence,
     uint8   consistencyLevel,
     bytes calldata payload
-  ) {
+  ) { unchecked {
     //The following implementation looks better on the surface, but due to the extra external
     //  function calls and having to drag the large guardian set around, it is actually more
     //  expensive than using the suboptimal verifyVM call directly.
@@ -66,7 +66,7 @@ library CoreBridgeLib {
     consistencyLevel = vm.consistencyLevel;
     uint payloadOffset = encodedVaa.skipVaaHeaderCd() + VaaLib.ENVELOPE_SIZE;
     (payload, ) = encodedVaa.sliceCdUnchecked(payloadOffset, encodedVaa.length - payloadOffset);
-  }
+  }}
 
   function verifyHashIsGuardianSigned(
     address wormhole,
