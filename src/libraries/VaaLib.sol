@@ -1006,3 +1006,7 @@ using VaaLib for VaaHeader global;
 using VaaLib for VaaEnvelope global;
 using VaaLib for VaaBody global;
 using VaaLib for Vaa global;
+<<<<<<< HEAD
+=======
+
+>>>>>>> cb108db (improved, extended, and unified decoding, added CoreBridgeLib)
