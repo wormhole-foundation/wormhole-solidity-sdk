@@ -3,7 +3,7 @@
 pragma solidity ^0.8.4;
 
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
-import {tokenOrNativeTransfer} from "wormhole-sdk/utils/Transfer.sol";
+import {tokenOrNativeTransfer} from "wormhole-sdk/Utils.sol";
 import {senderAtLeastAdmin} from "wormhole-sdk/components/dispatcher/AccessControl.sol";
 import {SWEEP_TOKENS_ID} from "wormhole-sdk/components/dispatcher/Ids.sol";
 

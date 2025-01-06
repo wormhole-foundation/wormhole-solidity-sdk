@@ -5,8 +5,8 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 
 import "wormhole-sdk/constants/Common.sol";
-import { BytesParsing } from "wormhole-sdk/libraries/BytesParsing.sol";
-import { BytesParsingTestWrapper } from "./generated/BytesParsingTestWrapper.sol";
+import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
+import {BytesParsingTestWrapper} from "./generated/BytesParsingTestWrapper.sol";
 
 contract TestBytesParsing is Test {
   using BytesParsing for bytes;
@@ -47,7 +47,7 @@ contract TestBytesParsing is Test {
     bool checked,
     string memory second
   ) private pure returns (string memory) {
-    return string(abi.encodePacked(first, cd ? "Cd" : "", checked ? "" : "Unchecked", second));
+    return string(abi.encodePacked(first, cd ? "Cd" : "Mem", checked ? "" : "Unchecked", second));
   }
 
   function encodedOutOfBounds(
@@ -117,12 +117,12 @@ contract TestBytesParsing is Test {
     assertEq(data.length, 256*WORD_SIZE, "wrong size");
     word = bound(word, 0, WORD_SIZE_MINUS_ONE);
     shift = bound(word, 0, WORD_SIZE_MINUS_ONE);
-    (uint result, ) = data.asUint256Unchecked(word*WORD_SIZE + shift);
+    (uint result, ) = data.asUint256MemUnchecked(word*WORD_SIZE + shift);
     assertEq(result, (word*BASEWORD << 8*shift) + ((word+1)*BASEWORD >> 8*(WORD_SIZE-shift)));
   }
 
   /// forge-config: default.fuzz.runs = 1000
-  function testfuzzSlice(uint offset, uint size, bool cd, bool checked) public {
+  function testFuzzSlice(uint offset, uint size, bool cd, bool checked) public {
     bytes memory data = largeBytes();
     offset = bound(offset, 0, data.length);
     //we increase the upper bound of size by 25 % beyond what can be correctly read
@@ -143,8 +143,8 @@ contract TestBytesParsing is Test {
       if (upperValid > size)
         upperValid = size;
       for (uint i = 0; i < upperValid; ++i) {
-        (uint lhs, ) = data.asUint8Unchecked(offset+i);
-        (uint rhs, ) = slice.asUint8Unchecked(i);
+        (uint lhs, ) = data.asUint8MemUnchecked(offset+i);
+        (uint rhs, ) = slice.asUint8MemUnchecked(i);
         assertEq(lhs, rhs, "wrong slice byte");
         if (lhs != rhs)
           return;
@@ -194,8 +194,8 @@ contract TestBytesParsing is Test {
       if (upperValid > size)
         upperValid = size;
       for (uint i = 0; i < upperValid; ++i) {
-        (uint lhs, ) = data.asUint8Unchecked(offset+prefixSize+i);
-        (uint rhs, ) = slice.asUint8Unchecked(i);
+        (uint lhs, ) = data.asUint8MemUnchecked(offset+prefixSize+i);
+        (uint rhs, ) = slice.asUint8MemUnchecked(i);
         assertEq(lhs, rhs, "wrong slice byte");
         if (lhs != rhs)
           return;

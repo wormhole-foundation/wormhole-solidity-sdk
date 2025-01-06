@@ -72,17 +72,17 @@ function decodeDeliveryInstruction(
 ) pure returns (DeliveryInstruction memory strct) {
   uint256 offset = checkUint8(encoded, 0, PAYLOAD_ID_DELIVERY_INSTRUCTION);
 
-  (strct.targetChain,            offset) = encoded.asUint16Unchecked(offset);
-  (strct.targetAddress,          offset) = encoded.asBytes32Unchecked(offset);
+  (strct.targetChain,            offset) = encoded.asUint16MemUnchecked(offset);
+  (strct.targetAddress,          offset) = encoded.asBytes32MemUnchecked(offset);
   (strct.payload,                offset) = decodeBytes(encoded, offset);
-  (strct.requestedReceiverValue, offset) = encoded.asUint256Unchecked(offset);
-  (strct.extraReceiverValue,     offset) = encoded.asUint256Unchecked(offset);
+  (strct.requestedReceiverValue, offset) = encoded.asUint256MemUnchecked(offset);
+  (strct.extraReceiverValue,     offset) = encoded.asUint256MemUnchecked(offset);
   (strct.encodedExecutionInfo,   offset) = decodeBytes(encoded, offset);
-  (strct.refundChain,            offset) = encoded.asUint16Unchecked(offset);
-  (strct.refundAddress,          offset) = encoded.asBytes32Unchecked(offset);
-  (strct.refundDeliveryProvider, offset) = encoded.asBytes32Unchecked(offset);
-  (strct.sourceDeliveryProvider, offset) = encoded.asBytes32Unchecked(offset);
-  (strct.senderAddress,          offset) = encoded.asBytes32Unchecked(offset);
+  (strct.refundChain,            offset) = encoded.asUint16MemUnchecked(offset);
+  (strct.refundAddress,          offset) = encoded.asBytes32MemUnchecked(offset);
+  (strct.refundDeliveryProvider, offset) = encoded.asBytes32MemUnchecked(offset);
+  (strct.sourceDeliveryProvider, offset) = encoded.asBytes32MemUnchecked(offset);
+  (strct.senderAddress,          offset) = encoded.asBytes32MemUnchecked(offset);
   (strct.messageKeys,            offset) = decodeMessageKeyArray(encoded, offset);
 
   encoded.length.checkLength(offset);
@@ -111,11 +111,11 @@ function decodeRedeliveryInstruction(
   offset = checkUint8(encoded, offset, VAA_KEY_TYPE);
 
   (strct.deliveryVaaKey,            offset) = decodeVaaKey(encoded, offset);
-  (strct.targetChain,               offset) = encoded.asUint16Unchecked(offset);
-  (strct.newRequestedReceiverValue, offset) = encoded.asUint256Unchecked(offset);
+  (strct.targetChain,               offset) = encoded.asUint16MemUnchecked(offset);
+  (strct.newRequestedReceiverValue, offset) = encoded.asUint256MemUnchecked(offset);
   (strct.newEncodedExecutionInfo,   offset) = decodeBytes(encoded, offset);
-  (strct.newSourceDeliveryProvider, offset) = encoded.asBytes32Unchecked(offset);
-  (strct.newSenderAddress,          offset) = encoded.asBytes32Unchecked(offset);
+  (strct.newSourceDeliveryProvider, offset) = encoded.asBytes32MemUnchecked(offset);
+  (strct.newSenderAddress,          offset) = encoded.asBytes32MemUnchecked(offset);
 
   encoded.length.checkLength(offset);
 }
@@ -145,9 +145,9 @@ function decodeMessageKey(
   bytes memory encoded,
   uint256 startOffset
 ) pure returns (MessageKey memory msgKey, uint256 offset) {
-  (msgKey.keyType, offset) = encoded.asUint8Unchecked(startOffset);
+  (msgKey.keyType, offset) = encoded.asUint8MemUnchecked(startOffset);
   (msgKey.encodedKey, offset) = msgKey.keyType == VAA_KEY_TYPE
-    ? encoded.sliceUnchecked(offset, VAA_KEY_TYPE_LENGTH)
+    ? encoded.sliceMemUnchecked(offset, VAA_KEY_TYPE_LENGTH)
     : decodeBytes(encoded, offset);
 }
 
@@ -162,9 +162,9 @@ function decodeVaaKey(
   uint256 startOffset
 ) pure returns (VaaKey memory vaaKey, uint256 offset) {
   offset = startOffset;
-  (vaaKey.chainId,        offset) = encoded.asUint16Unchecked(offset);
-  (vaaKey.emitterAddress, offset) = encoded.asBytes32Unchecked(offset);
-  (vaaKey.sequence,       offset) = encoded.asUint64Unchecked(offset);
+  (vaaKey.chainId,        offset) = encoded.asUint16MemUnchecked(offset);
+  (vaaKey.emitterAddress, offset) = encoded.asBytes32MemUnchecked(offset);
+  (vaaKey.sequence,       offset) = encoded.asUint64MemUnchecked(offset);
 }
 
 function encodeMessageKeyArray(
@@ -186,7 +186,7 @@ function decodeMessageKeyArray(
   uint256 startOffset
 ) pure returns (MessageKey[] memory msgKeys, uint256 offset) {
   uint8 msgKeysLength;
-  (msgKeysLength, offset) = encoded.asUint8Unchecked(startOffset);
+  (msgKeysLength, offset) = encoded.asUint8MemUnchecked(startOffset);
   msgKeys = new MessageKey[](msgKeysLength);
   for (uint256 i = 0; i < msgKeysLength; ) {
     (msgKeys[i], offset) = decodeMessageKey(encoded, offset);
@@ -199,8 +199,8 @@ function decodeCCTPKey(
   uint256 startOffset
 ) pure returns (CCTPMessageLib.CCTPKey memory cctpKey, uint256 offset) {
   offset = startOffset;
-  (cctpKey.domain, offset) = encoded.asUint32Unchecked(offset);
-  (cctpKey.nonce,  offset) = encoded.asUint64Unchecked(offset);
+  (cctpKey.domain, offset) = encoded.asUint32MemUnchecked(offset);
+  (cctpKey.nonce,  offset) = encoded.asUint64MemUnchecked(offset);
 }
 
 // ------------------------------------------ private  --------------------------------------------
@@ -216,8 +216,8 @@ function decodeBytes(
   uint256 startOffset
 ) pure returns (bytes memory payload, uint256 offset) {
   uint32 payloadLength;
-  (payloadLength, offset) = encoded.asUint32Unchecked(startOffset);
-  (payload,       offset) = encoded.sliceUnchecked(offset, payloadLength);
+  (payloadLength, offset) = encoded.asUint32MemUnchecked(startOffset);
+  (payload,       offset) = encoded.sliceMemUnchecked(offset, payloadLength);
 }
 
 function checkUint8(
@@ -226,7 +226,7 @@ function checkUint8(
   uint8 expectedPayloadId
 ) pure returns (uint256 offset) {
   uint8 parsedPayloadId;
-  (parsedPayloadId, offset) = encoded.asUint8Unchecked(startOffset);
+  (parsedPayloadId, offset) = encoded.asUint8MemUnchecked(startOffset);
   if (parsedPayloadId != expectedPayloadId)
     revert InvalidPayloadId(parsedPayloadId, expectedPayloadId);
 }
@@ -247,9 +247,9 @@ function decodeDeliveryOverride(
 ) pure returns (DeliveryOverride memory strct) {
   uint256 offset = checkUint8(encoded, 0, VERSION_DELIVERY_OVERRIDE);
 
-  (strct.newReceiverValue, offset) = encoded.asUint256Unchecked(offset);
+  (strct.newReceiverValue, offset) = encoded.asUint256MemUnchecked(offset);
   (strct.newExecutionInfo, offset) = decodeBytes(encoded, offset);
-  (strct.redeliveryHash,   offset) = encoded.asBytes32Unchecked(offset);
+  (strct.redeliveryHash,   offset) = encoded.asBytes32MemUnchecked(offset);
 
   encoded.length.checkLength(offset);
 }

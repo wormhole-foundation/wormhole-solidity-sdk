@@ -4,14 +4,14 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 
-import { adminState } from "wormhole-sdk/proxy/Eip1967Admin.sol";
+import {adminState} from "wormhole-sdk/proxy/Eip1967Admin.sol";
 import {
   ProxyBase,
   UpgradeFailed,
   InvalidData,
   InvalidImplementation
 } from "wormhole-sdk/proxy/ProxyBase.sol";
-import { Proxy, ProxyConstructionFailed } from "wormhole-sdk/proxy/Proxy.sol";
+import {Proxy, ProxyConstructionFailed} from "wormhole-sdk/proxy/Proxy.sol";
 
 error NotAuthorized();
 error NoValueAllowed();
