@@ -85,8 +85,8 @@ contract AcessControlTest is DispatcherTestBase {
       PENDING_OWNER_ID
     );
     bytes memory getRes = invokeStaticDispatcher(queries);
-    (address owner_,        ) = getRes.asAddressUnchecked(0);
-    (address pendingOwner_, ) = getRes.asAddressUnchecked(20);
+    (address owner_,        ) = getRes.asAddressMemUnchecked(0);
+    (address pendingOwner_, ) = getRes.asAddressMemUnchecked(20);
 
     assertEq(owner_,        owner);
     assertEq(pendingOwner_, newOwner);
@@ -99,8 +99,8 @@ contract AcessControlTest is DispatcherTestBase {
     );
 
     getRes = invokeStaticDispatcher(queries);
-    (owner_,        ) = getRes.asAddressUnchecked(0);
-    (pendingOwner_, ) = getRes.asAddressUnchecked(20);
+    (owner_,        ) = getRes.asAddressMemUnchecked(0);
+    (pendingOwner_, ) = getRes.asAddressMemUnchecked(20);
 
     assertEq(owner_, newOwner);
     assertEq(pendingOwner_, address(0));
@@ -144,8 +144,8 @@ contract AcessControlTest is DispatcherTestBase {
         PENDING_OWNER_ID
       )
     );
-    (address owner_,        ) = getRes.asAddressUnchecked(0);
-    (address pendingOwner_, ) = getRes.asAddressUnchecked(20);
+    (address owner_,        ) = getRes.asAddressMemUnchecked(0);
+    (address pendingOwner_, ) = getRes.asAddressMemUnchecked(20);
 
     assertEq(owner_,        owner);
     assertEq(pendingOwner_, newOwner);
@@ -193,8 +193,8 @@ contract AcessControlTest is DispatcherTestBase {
         PENDING_OWNER_ID
       )
     );
-    (address owner_,        ) = getRes.asAddressUnchecked(0);
-    (address pendingOwner_, ) = getRes.asAddressUnchecked(20);
+    (address owner_,        ) = getRes.asAddressMemUnchecked(0);
+    (address pendingOwner_, ) = getRes.asAddressMemUnchecked(20);
 
     assertEq(owner_, newOwner);
     assertEq(pendingOwner_, address(0));
@@ -220,8 +220,8 @@ contract AcessControlTest is DispatcherTestBase {
         PENDING_OWNER_ID
       )
     );
-    (address owner_,        ) = getRes.asAddressUnchecked(0);
-    (address pendingOwner_, ) = getRes.asAddressUnchecked(20);
+    (address owner_,        ) = getRes.asAddressMemUnchecked(0);
+    (address pendingOwner_, ) = getRes.asAddressMemUnchecked(20);
 
     assertEq(owner_,        owner);
     assertEq(pendingOwner_, newOwner);
@@ -248,8 +248,8 @@ contract AcessControlTest is DispatcherTestBase {
         PENDING_OWNER_ID
       )
     );
-    (address owner_,        ) = getRes.asAddressUnchecked(0);
-    (address pendingOwner_, ) = getRes.asAddressUnchecked(20);
+    (address owner_,        ) = getRes.asAddressMemUnchecked(0);
+    (address pendingOwner_, ) = getRes.asAddressMemUnchecked(20);
 
     assertEq(owner_,        owner);
     assertEq(pendingOwner_, address(0));
@@ -295,8 +295,8 @@ contract AcessControlTest is DispatcherTestBase {
         PENDING_OWNER_ID
       )
     );
-    (address owner_,        ) = getRes.asAddressUnchecked(0);
-    (address pendingOwner_, ) = getRes.asAddressUnchecked(20);
+    (address owner_,        ) = getRes.asAddressMemUnchecked(0);
+    (address pendingOwner_, ) = getRes.asAddressMemUnchecked(20);
 
     assertEq(owner_,        owner);
     assertEq(pendingOwner_, address(0));
@@ -324,8 +324,8 @@ contract AcessControlTest is DispatcherTestBase {
         PENDING_OWNER_ID
       )
     );
-    (address owner_,        ) = getRes.asAddressUnchecked(0);
-    (address pendingOwner_, ) = getRes.asAddressUnchecked(20);
+    (address owner_,        ) = getRes.asAddressMemUnchecked(0);
+    (address pendingOwner_, ) = getRes.asAddressMemUnchecked(20);
 
     assertEq(owner_, newOwner);
     assertEq(pendingOwner_, address(0));
@@ -374,9 +374,9 @@ contract AcessControlTest is DispatcherTestBase {
     address owner_;
     address pendingOwner_;
     bool isAdmin;
-    (owner_,        offset) = getRes.asAddressUnchecked(offset);
-    (pendingOwner_, offset) = getRes.asAddressUnchecked(offset);
-    (isAdmin,       offset) = getRes.asBoolUnchecked(offset);
+    (owner_,        offset) = getRes.asAddressMemUnchecked(offset);
+    (pendingOwner_, offset) = getRes.asAddressMemUnchecked(offset);
+    (isAdmin,       offset) = getRes.asBoolMemUnchecked(offset);
 
     assertEq(owner_, newOwner);
     assertEq(pendingOwner_, address(0));
@@ -429,9 +429,9 @@ contract AcessControlTest is DispatcherTestBase {
       )
     );
     
-    (bool isAdmin, ) = res.asBoolUnchecked(0);
-    (uint8 adminsCount, ) = res.asUint8Unchecked(1);
-    (address newAdmin_, ) = res.asAddressUnchecked(res.length - 20);
+    (bool isAdmin, ) = res.asBoolMemUnchecked(0);
+    (uint8 adminsCount, ) = res.asUint8MemUnchecked(1);
+    (address newAdmin_, ) = res.asAddressMemUnchecked(res.length - 20);
 
     assertEq(isAdmin, true);
     assertEq(adminsCount, 2);
@@ -493,8 +493,8 @@ contract AcessControlTest is DispatcherTestBase {
       )
     );
     
-    (bool isAdmin, ) = res.asBoolUnchecked(0);
-    (uint8 adminsCount, ) = res.asUint8Unchecked(1);
+    (bool isAdmin, ) = res.asBoolMemUnchecked(0);
+    (uint8 adminsCount, ) = res.asUint8MemUnchecked(1);
 
     assertEq(isAdmin, false);
     assertEq(adminsCount, 1);
@@ -518,7 +518,7 @@ contract AcessControlTest is DispatcherTestBase {
         commandCount, 
         ADMINS_ID
       )
-    ).asUint8Unchecked(0);
+    ).asUint8MemUnchecked(0);
 
     // Add first batch of admins
     commandCount = addAdmins;
@@ -557,21 +557,21 @@ contract AcessControlTest is DispatcherTestBase {
 
     uint offset = 0;
     uint8 adminsCount;
-    (adminsCount, offset) = res.asUint8Unchecked(offset);
+    (adminsCount, offset) = res.asUint8MemUnchecked(offset);
     assertEq(adminsCount, addAdmins + initialAdmins);
 
     address admin_;
-    (admin_, offset) = res.asAddressUnchecked(offset);
+    (admin_, offset) = res.asAddressMemUnchecked(offset);
     assertEq(admin_, admin);
 
     for (uint i = 0; i < addAdmins; i++) {
-      (admin_, offset) = res.asAddressUnchecked(offset);
+      (admin_, offset) = res.asAddressMemUnchecked(offset);
       assertEq(admin_, randomAddresses[i]);
     }
 
     bool isAdmin;
     for (uint i = 0; i < addAdmins; i++) {
-      (isAdmin, offset) = res.asBoolUnchecked(offset);
+      (isAdmin, offset) = res.asBoolMemUnchecked(offset);
       assertEq(isAdmin, true);
     }
 
@@ -604,12 +604,12 @@ contract AcessControlTest is DispatcherTestBase {
     res = invokeStaticDispatcher(areAdminsAndGetAdmins);
 
     offset = 0;
-    (adminsCount, offset) = res.asUint8Unchecked(offset);
+    (adminsCount, offset) = res.asUint8MemUnchecked(offset);
     assertEq(adminsCount, addAdmins + initialAdmins - removeAdmins);
 
     address[] memory adminsArr = new address[](adminsCount);
     for (uint i = 0; i < adminsCount; i++) {
-      (adminsArr[i], offset) = res.asAddressUnchecked(offset);
+      (adminsArr[i], offset) = res.asAddressMemUnchecked(offset);
     }
     checkForDuplicates(adminsArr);
 
@@ -619,7 +619,7 @@ contract AcessControlTest is DispatcherTestBase {
     }
 
     for (uint i = 0; i < addAdmins; i++) {
-      (isAdmin, offset) = res.asBoolUnchecked(offset);
+      (isAdmin, offset) = res.asBoolMemUnchecked(offset);
       assertEq(isAdmin, i >= removeAdmins);
     }
 
@@ -658,12 +658,12 @@ contract AcessControlTest is DispatcherTestBase {
     res = invokeStaticDispatcher(areAdminsAndGetAdmins);
 
     offset = 0;
-    (adminsCount, offset) = res.asUint8Unchecked(offset);
+    (adminsCount, offset) = res.asUint8MemUnchecked(offset);
     assertEq(adminsCount, addAdmins + secondAddAdmins + initialAdmins - removeAdmins);
 
     adminsArr = new address[](adminsCount);
     for (uint i = 0; i < adminsCount; i++) {
-      (adminsArr[i], offset) = res.asAddressUnchecked(offset);
+      (adminsArr[i], offset) = res.asAddressMemUnchecked(offset);
     }
     checkForDuplicates(adminsArr);
 
@@ -676,7 +676,7 @@ contract AcessControlTest is DispatcherTestBase {
     }
 
     for (uint i = 0; i < secondAddAdmins; i++) {
-      (isAdmin, offset) = res.asBoolUnchecked(offset);
+      (isAdmin, offset) = res.asBoolMemUnchecked(offset);
       assertEq(isAdmin, true);
     }
   } 
@@ -698,10 +698,10 @@ contract AcessControlTest is DispatcherTestBase {
     uint offset = 0;
     uint8 adminsCount;
     address admin_;
-    (adminsCount, offset) = res.asUint8Unchecked(offset);
+    (adminsCount, offset) = res.asUint8MemUnchecked(offset);
     assertEq(adminsCount, 1);
 
-    (admin_, ) = res.asAddressUnchecked(offset);
+    (admin_, ) = res.asAddressMemUnchecked(offset);
     assertEq(admin_, admin);
 
     // Add first batch of admins
@@ -734,16 +734,16 @@ contract AcessControlTest is DispatcherTestBase {
 
     offset = 0;
     adminsCount;
-    (adminsCount, offset) = res.asUint8Unchecked(offset);
+    (adminsCount, offset) = res.asUint8MemUnchecked(offset);
     assertEq(adminsCount, 6);
 
     // Initial admin
-    (admin_, offset) = res.asAddressUnchecked(offset);
+    (admin_, offset) = res.asAddressMemUnchecked(offset);
     assertEq(admin_, admin);
     
     // New admins, randomAddresses[0] to randomAddresses[4]
     for (uint i = 0; i < addAdmins; i++) {
-      (admin_, offset) = res.asAddressUnchecked(offset);
+      (admin_, offset) = res.asAddressMemUnchecked(offset);
       assertEq(admin_, randomAddresses[i]);
     }
 
@@ -775,15 +775,15 @@ contract AcessControlTest is DispatcherTestBase {
     res = invokeStaticDispatcher(getAdmins);
 
     offset = 0;
-    (adminsCount, offset) = res.asUint8Unchecked(offset);
+    (adminsCount, offset) = res.asUint8MemUnchecked(offset);
     assertEq(adminsCount, 2);
 
     // Initial admin
-    (admin_, offset) = res.asAddressUnchecked(offset);
+    (admin_, offset) = res.asAddressMemUnchecked(offset);
     assertEq(admin_, admin);
     
     // Last admin added, randomAddresses[4]
-    (admin_, offset) = res.asAddressUnchecked(offset);
+    (admin_, offset) = res.asAddressMemUnchecked(offset);
     assertEq(admin_, randomAddresses[4]);
 
     // Add one more admin
@@ -809,19 +809,19 @@ contract AcessControlTest is DispatcherTestBase {
     res = invokeStaticDispatcher(getAdmins);
 
     offset = 0;
-    (adminsCount, offset) = res.asUint8Unchecked(offset);
+    (adminsCount, offset) = res.asUint8MemUnchecked(offset);
     assertEq(adminsCount, 3);
 
     // Initial admin
-    (admin_, offset) = res.asAddressUnchecked(offset);
+    (admin_, offset) = res.asAddressMemUnchecked(offset);
     assertEq(admin_, admin);
     
     // randomAddresses[4]
-    (admin_, offset) = res.asAddressUnchecked(offset);
+    (admin_, offset) = res.asAddressMemUnchecked(offset);
     assertEq(admin_, randomAddresses[4]);
 
     // randomAddresses2[0]
-    (admin_, offset) = res.asAddressUnchecked(offset);
+    (admin_, offset) = res.asAddressMemUnchecked(offset);
     assertEq(admin_, randomAddresses2[0]);
   }
 
@@ -849,7 +849,7 @@ contract AcessControlTest is DispatcherTestBase {
         IS_ADMIN_ID,
         admin
       )
-    ).asBoolUnchecked(0);
+    ).asBoolMemUnchecked(0);
 
     assertEq(isAdmin, false);
   }
@@ -911,8 +911,8 @@ contract AcessControlTest is DispatcherTestBase {
       )
     );
     
-    (address owner_, ) = res.asAddressUnchecked(0);
-    (address pendingOwner_, ) = res.asAddressUnchecked(20);
+    (address owner_, ) = res.asAddressMemUnchecked(0);
+    (address pendingOwner_, ) = res.asAddressMemUnchecked(20);
 
     assertEq(owner_, address(0)); 
     assertEq(pendingOwner_, address(0));

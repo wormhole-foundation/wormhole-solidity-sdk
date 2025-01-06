@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import {Vm} from "forge-std/Vm.sol";
 
 import "IERC20/IERC20.sol";
-import {VM_ADDRESS} from "./Constants.sol";
+import {VM_ADDRESS} from "wormhole-sdk/testing/Constants.sol";
 
 interface IUSDC is IERC20 {
   function masterMinter() external view returns (address);

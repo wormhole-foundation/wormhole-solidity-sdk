@@ -4,50 +4,50 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 
-import { BytesParsing } from "wormhole-sdk/libraries/BytesParsing.sol";
-import { PermitParsing } from "wormhole-sdk/libraries/PermitParsing.sol";
+import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
+import {PermitParsing} from "wormhole-sdk/libraries/PermitParsing.sol";
 
 contract PermitParsingTest is Test {
   using BytesParsing for bytes;
 
-  function parsePermit(
+  function decodePermit(
     bytes calldata params,
     uint offset
   ) external pure returns (uint256, uint256, bytes32, bytes32, uint8, uint) {
-    return PermitParsing.asPermitCdUnchecked(params, offset);
+    return PermitParsing.decodePermitCdUnchecked(params, offset);
   }
 
-  function parsePermit2Permit(
+  function decodePermit2Permit(
     bytes calldata params,
     uint offset
   ) external pure returns (uint160, uint48, uint48, uint256, bytes memory, uint) {
-    return PermitParsing.asPermit2PermitCdUnchecked(params, offset);
+    return PermitParsing.decodePermit2PermitCdUnchecked(params, offset);
   }
 
-  function parsePermit2Transfer(
+  function decodePermit2Transfer(
     bytes calldata params,
     uint offset
   ) external pure returns (uint256, uint256, uint256, bytes memory, uint) {
-    return PermitParsing.asPermit2TransferCdUnchecked(params, offset);
+    return PermitParsing.decodePermit2TransferCdUnchecked(params, offset);
   }
 
   function testParsePermit(
-    uint256 value, 
-    uint256 deadline, 
-    bytes32 r, 
-    bytes32 s, 
+    uint256 value,
+    uint256 deadline,
+    bytes32 r,
+    bytes32 s,
     uint8 v
   ) public {
     bytes memory params = abi.encodePacked(value, deadline, r, s, v);
 
     (
-      uint256 _value, 
-      uint256 _deadline, 
-      bytes32 _r, 
-      bytes32 _s, 
-      uint8 _v, 
+      uint256 _value,
+      uint256 _deadline,
+      bytes32 _r,
+      bytes32 _s,
+      uint8 _v,
       uint offset
-    ) = PermitParsing.asPermitUnchecked(params, 0);
+    ) = PermitParsing.decodePermitMemUnchecked(params, 0);
     assertEq(_value, value);
     assertEq(_deadline, deadline);
     assertEq(_r, r);
@@ -57,12 +57,12 @@ contract PermitParsingTest is Test {
 
     (
       _value,
-      _deadline, 
-      _r, 
+      _deadline,
+      _r,
       _s,
-      _v, 
+      _v,
       offset
-    ) = this.parsePermit(params, 0);
+    ) = this.decodePermit(params, 0);
     assertEq(_value, value);
     assertEq(_deadline, deadline);
     assertEq(_r, r);
@@ -72,23 +72,23 @@ contract PermitParsingTest is Test {
   }
 
   function testParsePermit2Permit(
-    uint160 amount, 
-    uint48 expiration, 
-    uint48 nonce, 
-    uint256 sigDeadline, 
+    uint160 amount,
+    uint48 expiration,
+    uint48 nonce,
+    uint256 sigDeadline,
     bytes memory signature
   ) public {
     vm.assume(signature.length == 65);
     bytes memory params = abi.encodePacked(amount, expiration, nonce, sigDeadline, signature);
 
     (
-      uint160 _amount, 
-      uint48 _expiration, 
-      uint48 _nonce, 
-      uint256 _sigDeadline, 
-      bytes memory _signature, 
+      uint160 _amount,
+      uint48 _expiration,
+      uint48 _nonce,
+      uint256 _sigDeadline,
+      bytes memory _signature,
       uint offset
-    ) = PermitParsing.asPermit2PermitUnchecked(params, 0);
+    ) = PermitParsing.decodePermit2PermitMemUnchecked(params, 0);
     assertEq(_amount, amount);
     assertEq(_expiration, expiration);
     assertEq(_nonce, nonce);
@@ -104,7 +104,7 @@ contract PermitParsingTest is Test {
       _sigDeadline,
       _signature,
       offset
-    ) = this.parsePermit2Permit(params, 0);
+    ) = this.decodePermit2Permit(params, 0);
     assertEq(_amount, amount);
     assertEq(_expiration, expiration);
     assertEq(_nonce, nonce);
@@ -114,21 +114,21 @@ contract PermitParsingTest is Test {
   }
 
   function testParsePermit2Transfer(
-    uint256 amount, 
-    uint256 nonce, 
-    uint256 sigDeadline, 
+    uint256 amount,
+    uint256 nonce,
+    uint256 sigDeadline,
     bytes memory signature
   ) public {
     vm.assume(signature.length == 65);
     bytes memory params = abi.encodePacked(amount, nonce, sigDeadline, signature);
 
     (
-      uint256 _amount, 
-      uint256 _nonce, 
-      uint256 _sigDeadline, 
-      bytes memory _signature, 
+      uint256 _amount,
+      uint256 _nonce,
+      uint256 _sigDeadline,
+      bytes memory _signature,
       uint offset
-    ) = PermitParsing.asPermit2TransferUnchecked(params, 0);
+    ) = PermitParsing.decodePermit2TransferMemUnchecked(params, 0);
     assertEq(_amount, amount);
     assertEq(_nonce, nonce);
     assertEq(_sigDeadline, sigDeadline);
@@ -141,7 +141,7 @@ contract PermitParsingTest is Test {
       _sigDeadline,
       _signature,
       offset
-    ) = this.parsePermit2Transfer(params, 0);
+    ) = this.decodePermit2Transfer(params, 0);
     assertEq(_amount, amount);
     assertEq(_nonce, nonce);
     assertEq(_sigDeadline, sigDeadline);

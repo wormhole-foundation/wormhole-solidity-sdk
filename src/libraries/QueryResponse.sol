@@ -2,12 +2,14 @@
 
 pragma solidity ^0.8.4;
 
-import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
-
-error UnsupportedQueryType(uint8 received);
+import {CoreBridgeLib} from "wormhole-sdk/libraries/CoreBridge.sol";
+import {GuardianSignature} from "wormhole-sdk/libraries/VaaLib.sol";
+import {eagerAnd, eagerOr, keccak256Cd} from "wormhole-sdk/Utils.sol";
 
 library QueryType {
+  error UnsupportedQueryType(uint8 received);
+
   //Solidity enums don't permit custom values (i.e. can't start from 1)
   //Also invalid enum conversions result in panics and manual range checking requires assembly
   //  to avoid superfluous double checking.
@@ -24,13 +26,14 @@ library QueryType {
 
   function checkValid(uint8 queryType) internal pure {
     //slightly more gas efficient than calling `isValid`
-    if (queryType == 0 || queryType > SOLANA_PDA)
+    if (eagerOr(queryType == 0, queryType > SOLANA_PDA))
       revert UnsupportedQueryType(queryType);
   }
 
   function isValid(uint8 queryType) internal pure returns (bool) {
-    //see docs/optimizations.md why `< CONST + 1` rather than `<= CONST`
-    return (queryType > 0 && queryType < SOLANA_PDA + 1);
+    //see docs/Optimization.md why `< CONST + 1` rather than `<= CONST`
+    //see docs/Optimization.md for rationale behind `eagerAnd`
+    return eagerAnd(queryType > 0, queryType < SOLANA_PDA + 1);
   }
 }
 
@@ -128,115 +131,126 @@ struct SolanaPdaResult {
   uint8 bump;
 }
 
-error WrongQueryType(uint8 received, uint8 expected);
-error InvalidResponseVersion();
-error VersionMismatch();
-error ZeroQueries();
-error NumberOfResponsesMismatch();
-error ChainIdMismatch();
-error RequestTypeMismatch();
-error UnexpectedNumberOfResults();
-error InvalidPayloadLength(uint256 received, uint256 expected);
-error InvalidContractAddress();
-error InvalidFunctionSignature();
-error InvalidChainId();
-error StaleBlockNum();
-error StaleBlockTime();
-error VerificationFailed();
-
-//QueryResponse is a library that implements the parsing and verification of
+//QueryResponse is a library that implements the decoding and verification of
 //  Cross Chain Query (CCQ) responses.
 //
 //For a detailed discussion of these query responses, please see the white paper:
 //  https://github.com/wormhole-foundation/wormhole/blob/main/whitepapers/0013_ccq.md
+//
+//We only implement Cd and Mem decoding variants for the QueryResponse struct itself because all
+//  further decoding will have to operate on the memory bytes anyway since there's no way in plain
+//  Solidity to have structs with mixed data location, i.e. a struct in memory that references bytes
+//  in calldata.
+//  This will at least help cut down the gas cost of decoding/slicing the outer most layer.
 library QueryResponseLib {
   using BytesParsing for bytes;
+
+  error WrongQueryType(uint8 received, uint8 expected);
+  error InvalidResponseVersion();
+  error VersionMismatch();
+  error ZeroQueries();
+  error NumberOfResponsesMismatch();
+  error ChainIdMismatch();
+  error RequestTypeMismatch();
+  error UnexpectedNumberOfResults();
+  error InvalidPayloadLength(uint256 received, uint256 expected);
+  error InvalidContractAddress();
+  error InvalidFunctionSignature();
+  error InvalidChainId();
+  error StaleBlockNum();
+  error StaleBlockTime();
+  error VerificationFailed();
 
   bytes internal constant RESPONSE_PREFIX = bytes("query_response_0000000000000000000|");
   uint8 internal constant VERSION = 1;
   uint64 internal constant MICROSECONDS_PER_SECOND = 1_000_000;
 
-  function calcPrefixedResponseHash(bytes memory response) internal pure returns (bytes32) {
-    return keccak256(abi.encodePacked(RESPONSE_PREFIX, keccak256(response)));
+  function calcPrefixedResponseHashCd(bytes calldata response) internal pure returns (bytes32) {
+    return calcPrefixedResponseHash(keccak256Cd(response));
   }
 
-  //TODO add calldata impl? (duplicated code but better gas efficiency)
-  function parseAndVerifyQueryResponse(
+  function calcPrefixedResponseHashMem(bytes memory response) internal pure returns (bytes32) {
+    return calcPrefixedResponseHash(keccak256(response));
+  }
+
+  function calcPrefixedResponseHash(bytes32 responseHash) internal pure returns (bytes32) {
+    return keccak256(abi.encodePacked(RESPONSE_PREFIX, responseHash));
+  }
+
+  //there isn't too much to gain from enforcing that the guardian signatures are also in calldata
+  function decodeAndVerifyQueryResponseCd(
     address wormhole,
-    bytes memory response,
-    IWormhole.Signature[] memory signatures
+    bytes calldata response,
+    GuardianSignature[] memory guardianSignatures
   ) internal view returns (QueryResponse memory ret) {
-    verifyQueryResponse(wormhole, response, signatures);
-    return parseQueryResponse(response);
+    verifyQueryResponseCd(wormhole, response, guardianSignatures);
+    return decodeQueryResponseCd(response);
   }
 
-  function verifyQueryResponse(
+  function decodeAndVerifyQueryResponseMem(
     address wormhole,
     bytes memory response,
-    IWormhole.Signature[] memory signatures
+    GuardianSignature[] memory guardianSignatures
+  ) internal view returns (QueryResponse memory ret) {
+    verifyQueryResponseMem(wormhole, response, guardianSignatures);
+    return decodeQueryResponseMem(response);
+  }
+
+  function verifyQueryResponseCd(
+    address wormhole,
+    bytes calldata response,
+    GuardianSignature[] memory guardianSignatures
   ) internal view {
-    verifyQueryResponse(wormhole, calcPrefixedResponseHash(response), signatures);
+    verifyQueryResponse(wormhole, calcPrefixedResponseHashCd(response), guardianSignatures);
+  }
+
+  function verifyQueryResponseMem(
+    address wormhole,
+    bytes memory response,
+    GuardianSignature[] memory guardianSignatures
+  ) internal view {
+    verifyQueryResponse(wormhole, calcPrefixedResponseHashMem(response), guardianSignatures);
   }
 
   function verifyQueryResponse(
     address wormhole,
     bytes32 prefixedResponseHash,
-    IWormhole.Signature[] memory signatures
-  ) internal view { unchecked {
-    IWormhole wormhole_ = IWormhole(wormhole);
-    uint32 guardianSetIndex = wormhole_.getCurrentGuardianSetIndex();
-    IWormhole.GuardianSet memory guardianSet = wormhole_.getGuardianSet(guardianSetIndex);
-    
-    while (true) {
-      uint quorum = guardianSet.keys.length * 2 / 3 + 1;
-      if (signatures.length >= quorum) {
-        (bool signaturesValid, ) =
-          wormhole_.verifySignatures(prefixedResponseHash, signatures, guardianSet);
-        if (signaturesValid)
-          return;
-      }
+    GuardianSignature[] memory guardianSignatures
+  ) internal view {
+    if (!CoreBridgeLib.isVerifiedByQuorum(wormhole, prefixedResponseHash, guardianSignatures))
+      revert VerificationFailed();
+  }
 
-      //check if the previous guardian set is still valid and if yes, try with that
-      if (guardianSetIndex > 0) {
-        guardianSet = wormhole_.getGuardianSet(--guardianSetIndex);
-        if (guardianSet.expirationTime < block.timestamp)
-          revert VerificationFailed();
-      }
-      else
-        revert VerificationFailed();
-    }
-  }}
-
-  function parseQueryResponse(
-    bytes memory response
+  function decodeQueryResponseCd(
+    bytes calldata response
   ) internal pure returns (QueryResponse memory ret) { unchecked {
     uint offset;
 
-    (ret.version, offset) = response.asUint8Unchecked(offset);
+    (ret.version, offset) = response.asUint8CdUnchecked(offset);
     if (ret.version != VERSION)
       revert InvalidResponseVersion();
 
-    (ret.senderChainId, offset) = response.asUint16Unchecked(offset);
+    (ret.senderChainId, offset) = response.asUint16CdUnchecked(offset);
 
     //for off-chain requests (chainID zero), the requestId is the 65 byte signature
     //for on-chain requests, it is the 32 byte VAA hash
-    (ret.requestId, offset) = response.sliceUnchecked(offset, ret.senderChainId == 0 ? 65 : 32);
+    (ret.requestId, offset) = response.sliceCdUnchecked(offset, ret.senderChainId == 0 ? 65 : 32);
 
     uint32 queryReqLen;
-    (queryReqLen, offset) = response.asUint32Unchecked(offset);
+    (queryReqLen, offset) = response.asUint32CdUnchecked(offset);
     uint reqOff = offset;
 
     {
       uint8 version;
-      (version, reqOff) = response.asUint8Unchecked(reqOff);
+      (version, reqOff) = response.asUint8CdUnchecked(reqOff);
       if (version != ret.version)
         revert VersionMismatch();
     }
 
-    (ret.nonce, reqOff) = response.asUint32Unchecked(reqOff);
+    (ret.nonce, reqOff) = response.asUint32CdUnchecked(reqOff);
 
     uint8 numPerChainQueries;
-    (numPerChainQueries, reqOff) = response.asUint8Unchecked(reqOff);
+    (numPerChainQueries, reqOff) = response.asUint8CdUnchecked(reqOff);
 
     //a valid query request must have at least one per-chain-query
     if (numPerChainQueries == 0)
@@ -247,7 +261,7 @@ library QueryResponseLib {
     uint startOfResponse = respOff;
 
     uint8 respNumPerChainQueries;
-    (respNumPerChainQueries, respOff) = response.asUint8Unchecked(respOff);
+    (respNumPerChainQueries, respOff) = response.asUint8CdUnchecked(respOff);
     if (respNumPerChainQueries != numPerChainQueries)
       revert NumberOfResponsesMismatch();
 
@@ -255,33 +269,107 @@ library QueryResponseLib {
 
     //walk through the requests and responses in lock step.
     for (uint i; i < numPerChainQueries; ++i) {
-      (ret.responses[i].chainId, reqOff) = response.asUint16Unchecked(reqOff);
+      (ret.responses[i].chainId, reqOff) = response.asUint16CdUnchecked(reqOff);
       uint16 respChainId;
-      (respChainId, respOff) = response.asUint16Unchecked(respOff);
+      (respChainId, respOff) = response.asUint16CdUnchecked(respOff);
       if (respChainId != ret.responses[i].chainId)
         revert ChainIdMismatch();
 
-      (ret.responses[i].queryType, reqOff) = response.asUint8Unchecked(reqOff);
+      (ret.responses[i].queryType, reqOff) = response.asUint8CdUnchecked(reqOff);
       QueryType.checkValid(ret.responses[i].queryType);
       uint8 respQueryType;
-      (respQueryType, respOff) = response.asUint8Unchecked(respOff);
+      (respQueryType, respOff) = response.asUint8CdUnchecked(respOff);
       if (respQueryType != ret.responses[i].queryType)
         revert RequestTypeMismatch();
 
-      (ret.responses[i].request, reqOff) = response.sliceUint32PrefixedUnchecked(reqOff);
+      (ret.responses[i].request, reqOff) = response.sliceUint32PrefixedCdUnchecked(reqOff);
 
-      (ret.responses[i].response, respOff) = response.sliceUint32PrefixedUnchecked(respOff);
+      (ret.responses[i].response, respOff) = response.sliceUint32PrefixedCdUnchecked(respOff);
     }
 
     //end of request body should align with start of response body
     if (startOfResponse != reqOff)
       revert InvalidPayloadLength(startOfResponse, reqOff);
 
-    _checkLength(response, respOff);
+    _checkLength(response.length, respOff);
     return ret;
   }}
 
-  function parseEthCallQueryResponse(
+  function decodeQueryResponseMem(
+    bytes memory response
+  ) internal pure returns (QueryResponse memory ret) { unchecked {
+    uint offset;
+
+    (ret.version, offset) = response.asUint8MemUnchecked(offset);
+    if (ret.version != VERSION)
+      revert InvalidResponseVersion();
+
+    (ret.senderChainId, offset) = response.asUint16MemUnchecked(offset);
+
+    //for off-chain requests (chainID zero), the requestId is the 65 byte signature
+    //for on-chain requests, it is the 32 byte VAA hash
+    (ret.requestId, offset) = response.sliceMemUnchecked(offset, ret.senderChainId == 0 ? 65 : 32);
+
+    uint32 queryReqLen;
+    (queryReqLen, offset) = response.asUint32MemUnchecked(offset);
+    uint reqOff = offset;
+
+    {
+      uint8 version;
+      (version, reqOff) = response.asUint8MemUnchecked(reqOff);
+      if (version != ret.version)
+        revert VersionMismatch();
+    }
+
+    (ret.nonce, reqOff) = response.asUint32MemUnchecked(reqOff);
+
+    uint8 numPerChainQueries;
+    (numPerChainQueries, reqOff) = response.asUint8MemUnchecked(reqOff);
+
+    //a valid query request must have at least one per-chain-query
+    if (numPerChainQueries == 0)
+      revert ZeroQueries();
+
+    //The response starts after the request.
+    uint respOff = offset + queryReqLen;
+    uint startOfResponse = respOff;
+
+    uint8 respNumPerChainQueries;
+    (respNumPerChainQueries, respOff) = response.asUint8MemUnchecked(respOff);
+    if (respNumPerChainQueries != numPerChainQueries)
+      revert NumberOfResponsesMismatch();
+
+    ret.responses = new PerChainQueryResponse[](numPerChainQueries);
+
+    //walk through the requests and responses in lock step.
+    for (uint i; i < numPerChainQueries; ++i) {
+      (ret.responses[i].chainId, reqOff) = response.asUint16MemUnchecked(reqOff);
+      uint16 respChainId;
+      (respChainId, respOff) = response.asUint16MemUnchecked(respOff);
+      if (respChainId != ret.responses[i].chainId)
+        revert ChainIdMismatch();
+
+      (ret.responses[i].queryType, reqOff) = response.asUint8MemUnchecked(reqOff);
+      QueryType.checkValid(ret.responses[i].queryType);
+      uint8 respQueryType;
+      (respQueryType, respOff) = response.asUint8MemUnchecked(respOff);
+      if (respQueryType != ret.responses[i].queryType)
+        revert RequestTypeMismatch();
+
+      (ret.responses[i].request, reqOff) = response.sliceUint32PrefixedMemUnchecked(reqOff);
+
+      (ret.responses[i].response, respOff) = response.sliceUint32PrefixedMemUnchecked(respOff);
+    }
+
+    //end of request body should align with start of response body
+    if (startOfResponse != reqOff)
+      revert InvalidPayloadLength(startOfResponse, reqOff);
+
+    _checkLength(response.length, respOff);
+    return ret;
+  }}
+
+  function decodeEthCallQueryResponse(
     PerChainQueryResponse memory pcr
   ) internal pure returns (EthCallQueryResponse memory ret) { unchecked {
     if (pcr.queryType != QueryType.ETH_CALL)
@@ -291,14 +379,14 @@ library QueryResponseLib {
     uint respOff;
 
     uint8 numBatchCallData;
-    (ret.requestBlockId, reqOff) = pcr.request.sliceUint32PrefixedUnchecked(reqOff);
-    (numBatchCallData,   reqOff) = pcr.request.asUint8Unchecked(reqOff);
+    (ret.requestBlockId, reqOff) = pcr.request.sliceUint32PrefixedMemUnchecked(reqOff);
+    (numBatchCallData,   reqOff) = pcr.request.asUint8MemUnchecked(reqOff);
 
     uint8 respNumResults;
-    (ret.blockNum,   respOff) = pcr.response.asUint64Unchecked(respOff);
-    (ret.blockHash,  respOff) = pcr.response.asBytes32Unchecked(respOff);
-    (ret.blockTime,  respOff) = pcr.response.asUint64Unchecked(respOff);
-    (respNumResults, respOff) = pcr.response.asUint8Unchecked(respOff);
+    (ret.blockNum,   respOff) = pcr.response.asUint64MemUnchecked(respOff);
+    (ret.blockHash,  respOff) = pcr.response.asBytes32MemUnchecked(respOff);
+    (ret.blockTime,  respOff) = pcr.response.asUint64MemUnchecked(respOff);
+    (respNumResults, respOff) = pcr.response.asUint8MemUnchecked(respOff);
 
     if (respNumResults != numBatchCallData)
       revert UnexpectedNumberOfResults();
@@ -307,18 +395,19 @@ library QueryResponseLib {
 
     //walk through the call inputs and outputs in lock step.
     for (uint i; i < numBatchCallData; ++i) {
-      (ret.results[i].contractAddress, reqOff) = pcr.request.asAddressUnchecked(reqOff);
-      (ret.results[i].callData,        reqOff) = pcr.request.sliceUint32PrefixedUnchecked(reqOff);
+      EthCallRecord memory ecr = ret.results[i];
+      (ecr.contractAddress, reqOff) = pcr.request.asAddressMemUnchecked(reqOff);
+      (ecr.callData,        reqOff) = pcr.request.sliceUint32PrefixedMemUnchecked(reqOff);
 
-      (ret.results[i].result, respOff) = pcr.response.sliceUint32PrefixedUnchecked(respOff);
+      (ecr.result, respOff) = pcr.response.sliceUint32PrefixedMemUnchecked(respOff);
     }
 
-    _checkLength(pcr.request, reqOff);
-    _checkLength(pcr.response, respOff);
+    _checkLength(pcr.request.length, reqOff);
+    _checkLength(pcr.response.length, respOff);
     return ret;
   }}
 
-  function parseEthCallByTimestampQueryResponse(
+  function decodeEthCallByTimestampQueryResponse(
     PerChainQueryResponse memory pcr
   ) internal pure returns (EthCallByTimestampQueryResponse memory ret) { unchecked {
     if (pcr.queryType != QueryType.ETH_CALL_BY_TIMESTAMP)
@@ -328,19 +417,19 @@ library QueryResponseLib {
     uint respOff;
 
     uint8 numBatchCallData;
-    (ret.requestTargetTimestamp,      reqOff) = pcr.request.asUint64Unchecked(reqOff);
-    (ret.requestTargetBlockIdHint,    reqOff) = pcr.request.sliceUint32PrefixedUnchecked(reqOff);
-    (ret.requestFollowingBlockIdHint, reqOff) = pcr.request.sliceUint32PrefixedUnchecked(reqOff);
-    (numBatchCallData,                reqOff) = pcr.request.asUint8Unchecked(reqOff);
+    (ret.requestTargetTimestamp,      reqOff) = pcr.request.asUint64MemUnchecked(reqOff);
+    (ret.requestTargetBlockIdHint,    reqOff) = pcr.request.sliceUint32PrefixedMemUnchecked(reqOff);
+    (ret.requestFollowingBlockIdHint, reqOff) = pcr.request.sliceUint32PrefixedMemUnchecked(reqOff);
+    (numBatchCallData,                reqOff) = pcr.request.asUint8MemUnchecked(reqOff);
 
     uint8 respNumResults;
-    (ret.targetBlockNum,     respOff) = pcr.response.asUint64Unchecked(respOff);
-    (ret.targetBlockHash,    respOff) = pcr.response.asBytes32Unchecked(respOff);
-    (ret.targetBlockTime,    respOff) = pcr.response.asUint64Unchecked(respOff);
-    (ret.followingBlockNum,  respOff) = pcr.response.asUint64Unchecked(respOff);
-    (ret.followingBlockHash, respOff) = pcr.response.asBytes32Unchecked(respOff);
-    (ret.followingBlockTime, respOff) = pcr.response.asUint64Unchecked(respOff);
-    (respNumResults,         respOff) = pcr.response.asUint8Unchecked(respOff);
+    (ret.targetBlockNum,     respOff) = pcr.response.asUint64MemUnchecked(respOff);
+    (ret.targetBlockHash,    respOff) = pcr.response.asBytes32MemUnchecked(respOff);
+    (ret.targetBlockTime,    respOff) = pcr.response.asUint64MemUnchecked(respOff);
+    (ret.followingBlockNum,  respOff) = pcr.response.asUint64MemUnchecked(respOff);
+    (ret.followingBlockHash, respOff) = pcr.response.asBytes32MemUnchecked(respOff);
+    (ret.followingBlockTime, respOff) = pcr.response.asUint64MemUnchecked(respOff);
+    (respNumResults,         respOff) = pcr.response.asUint8MemUnchecked(respOff);
 
     if (respNumResults != numBatchCallData)
       revert UnexpectedNumberOfResults();
@@ -349,17 +438,18 @@ library QueryResponseLib {
 
     //walk through the call inputs and outputs in lock step.
     for (uint i; i < numBatchCallData; ++i) {
-      (ret.results[i].contractAddress, reqOff) = pcr.request.asAddressUnchecked(reqOff);
-      (ret.results[i].callData,        reqOff) = pcr.request.sliceUint32PrefixedUnchecked(reqOff);
+      EthCallRecord memory ecr = ret.results[i];
+      (ecr.contractAddress, reqOff) = pcr.request.asAddressMemUnchecked(reqOff);
+      (ecr.callData,        reqOff) = pcr.request.sliceUint32PrefixedMemUnchecked(reqOff);
 
-      (ret.results[i].result, respOff) = pcr.response.sliceUint32PrefixedUnchecked(respOff);
+      (ecr.result, respOff) = pcr.response.sliceUint32PrefixedMemUnchecked(respOff);
     }
 
-    _checkLength(pcr.request, reqOff);
-    _checkLength(pcr.response, respOff);
+    _checkLength(pcr.request.length, reqOff);
+    _checkLength(pcr.response.length, respOff);
   }}
 
-  function parseEthCallWithFinalityQueryResponse(
+  function decodeEthCallWithFinalityQueryResponse(
     PerChainQueryResponse memory pcr
   ) internal pure returns (EthCallWithFinalityQueryResponse memory ret) { unchecked {
     if (pcr.queryType != QueryType.ETH_CALL_WITH_FINALITY)
@@ -369,15 +459,15 @@ library QueryResponseLib {
     uint respOff;
 
     uint8 numBatchCallData;
-    (ret.requestBlockId,  reqOff) = pcr.request.sliceUint32PrefixedUnchecked(reqOff);
-    (ret.requestFinality, reqOff) = pcr.request.sliceUint32PrefixedUnchecked(reqOff);
-    (numBatchCallData,    reqOff) = pcr.request.asUint8Unchecked(reqOff);
+    (ret.requestBlockId,  reqOff) = pcr.request.sliceUint32PrefixedMemUnchecked(reqOff);
+    (ret.requestFinality, reqOff) = pcr.request.sliceUint32PrefixedMemUnchecked(reqOff);
+    (numBatchCallData,    reqOff) = pcr.request.asUint8MemUnchecked(reqOff);
 
     uint8 respNumResults;
-    (ret.blockNum,   respOff) = pcr.response.asUint64Unchecked(respOff);
-    (ret.blockHash,  respOff) = pcr.response.asBytes32Unchecked(respOff);
-    (ret.blockTime,  respOff) = pcr.response.asUint64Unchecked(respOff);
-    (respNumResults, respOff) = pcr.response.asUint8Unchecked(respOff);
+    (ret.blockNum,   respOff) = pcr.response.asUint64MemUnchecked(respOff);
+    (ret.blockHash,  respOff) = pcr.response.asBytes32MemUnchecked(respOff);
+    (ret.blockTime,  respOff) = pcr.response.asUint64MemUnchecked(respOff);
+    (respNumResults, respOff) = pcr.response.asUint8MemUnchecked(respOff);
 
     if (respNumResults != numBatchCallData)
       revert UnexpectedNumberOfResults();
@@ -386,17 +476,18 @@ library QueryResponseLib {
 
     //walk through the call inputs and outputs in lock step.
     for (uint i; i < numBatchCallData; ++i) {
-      (ret.results[i].contractAddress, reqOff) = pcr.request.asAddressUnchecked(reqOff);
-      (ret.results[i].callData,        reqOff) = pcr.request.sliceUint32PrefixedUnchecked(reqOff);
+      EthCallRecord memory ecr = ret.results[i];
+      (ecr.contractAddress, reqOff) = pcr.request.asAddressMemUnchecked(reqOff);
+      (ecr.callData,        reqOff) = pcr.request.sliceUint32PrefixedMemUnchecked(reqOff);
 
-      (ret.results[i].result, respOff) = pcr.response.sliceUint32PrefixedUnchecked(respOff);
+      (ecr.result, respOff) = pcr.response.sliceUint32PrefixedMemUnchecked(respOff);
     }
 
-    _checkLength(pcr.request, reqOff);
-    _checkLength(pcr.response, respOff);
+    _checkLength(pcr.request.length, reqOff);
+    _checkLength(pcr.response.length, respOff);
   }}
 
-  function parseSolanaAccountQueryResponse(
+  function decodeSolanaAccountQueryResponse(
     PerChainQueryResponse memory pcr
   ) internal pure returns (SolanaAccountQueryResponse memory ret) { unchecked {
     if (pcr.queryType != QueryType.SOLANA_ACCOUNT)
@@ -406,17 +497,17 @@ library QueryResponseLib {
     uint respOff;
 
     uint8 numAccounts;
-    (ret.requestCommitment,      reqOff) = pcr.request.sliceUint32PrefixedUnchecked(reqOff);
-    (ret.requestMinContextSlot,  reqOff) = pcr.request.asUint64Unchecked(reqOff);
-    (ret.requestDataSliceOffset, reqOff) = pcr.request.asUint64Unchecked(reqOff);
-    (ret.requestDataSliceLength, reqOff) = pcr.request.asUint64Unchecked(reqOff);
-    (numAccounts,                reqOff) = pcr.request.asUint8Unchecked(reqOff);
+    (ret.requestCommitment,      reqOff) = pcr.request.sliceUint32PrefixedMemUnchecked(reqOff);
+    (ret.requestMinContextSlot,  reqOff) = pcr.request.asUint64MemUnchecked(reqOff);
+    (ret.requestDataSliceOffset, reqOff) = pcr.request.asUint64MemUnchecked(reqOff);
+    (ret.requestDataSliceLength, reqOff) = pcr.request.asUint64MemUnchecked(reqOff);
+    (numAccounts,                reqOff) = pcr.request.asUint8MemUnchecked(reqOff);
 
     uint8 respNumResults;
-    (ret.slotNumber, respOff) = pcr.response.asUint64Unchecked(respOff);
-    (ret.blockTime,  respOff) = pcr.response.asUint64Unchecked(respOff);
-    (ret.blockHash,  respOff) = pcr.response.asBytes32Unchecked(respOff);
-    (respNumResults, respOff) = pcr.response.asUint8Unchecked(respOff);
+    (ret.slotNumber, respOff) = pcr.response.asUint64MemUnchecked(respOff);
+    (ret.blockTime,  respOff) = pcr.response.asUint64MemUnchecked(respOff);
+    (ret.blockHash,  respOff) = pcr.response.asBytes32MemUnchecked(respOff);
+    (respNumResults, respOff) = pcr.response.asUint8MemUnchecked(respOff);
 
     if (respNumResults != numAccounts)
       revert UnexpectedNumberOfResults();
@@ -425,20 +516,20 @@ library QueryResponseLib {
 
     //walk through the call inputs and outputs in lock step.
     for (uint i; i < numAccounts; ++i) {
-      (ret.results[i].account, reqOff) = pcr.request.asBytes32Unchecked(reqOff);
+      (ret.results[i].account, reqOff) = pcr.request.asBytes32MemUnchecked(reqOff);
 
-      (ret.results[i].lamports,   respOff) = pcr.response.asUint64Unchecked(respOff);
-      (ret.results[i].rentEpoch,  respOff) = pcr.response.asUint64Unchecked(respOff);
-      (ret.results[i].executable, respOff) = pcr.response.asBoolUnchecked(respOff);
-      (ret.results[i].owner,      respOff) = pcr.response.asBytes32Unchecked(respOff);
-      (ret.results[i].data,       respOff) = pcr.response.sliceUint32PrefixedUnchecked(respOff);
+      (ret.results[i].lamports,   respOff) = pcr.response.asUint64MemUnchecked(respOff);
+      (ret.results[i].rentEpoch,  respOff) = pcr.response.asUint64MemUnchecked(respOff);
+      (ret.results[i].executable, respOff) = pcr.response.asBoolMemUnchecked(respOff);
+      (ret.results[i].owner,      respOff) = pcr.response.asBytes32MemUnchecked(respOff);
+      (ret.results[i].data,       respOff) = pcr.response.sliceUint32PrefixedMemUnchecked(respOff);
     }
 
-    _checkLength(pcr.request, reqOff);
-    _checkLength(pcr.response, respOff);
+    _checkLength(pcr.request.length, reqOff);
+    _checkLength(pcr.response.length, respOff);
   }}
 
-  function parseSolanaPdaQueryResponse(
+  function decodeSolanaPdaQueryResponse(
     PerChainQueryResponse memory pcr
   ) internal pure returns (SolanaPdaQueryResponse memory ret) { unchecked {
     if (pcr.queryType != QueryType.SOLANA_PDA)
@@ -447,20 +538,20 @@ library QueryResponseLib {
     uint reqOff;
     uint respOff;
 
-    (ret.requestCommitment,      reqOff) = pcr.request.sliceUint32PrefixedUnchecked(reqOff);
-    (ret.requestMinContextSlot,  reqOff) = pcr.request.asUint64Unchecked(reqOff);
-    (ret.requestDataSliceOffset, reqOff) = pcr.request.asUint64Unchecked(reqOff);
-    (ret.requestDataSliceLength, reqOff) = pcr.request.asUint64Unchecked(reqOff);
+    (ret.requestCommitment,      reqOff) = pcr.request.sliceUint32PrefixedMemUnchecked(reqOff);
+    (ret.requestMinContextSlot,  reqOff) = pcr.request.asUint64MemUnchecked(reqOff);
+    (ret.requestDataSliceOffset, reqOff) = pcr.request.asUint64MemUnchecked(reqOff);
+    (ret.requestDataSliceLength, reqOff) = pcr.request.asUint64MemUnchecked(reqOff);
 
     uint8 numPdas;
-    (numPdas, reqOff) = pcr.request.asUint8Unchecked(reqOff);
+    (numPdas, reqOff) = pcr.request.asUint8MemUnchecked(reqOff);
 
-    (ret.slotNumber, respOff) = pcr.response.asUint64Unchecked(respOff);
-    (ret.blockTime,  respOff) = pcr.response.asUint64Unchecked(respOff);
-    (ret.blockHash,  respOff) = pcr.response.asBytes32Unchecked(respOff);
+    (ret.slotNumber, respOff) = pcr.response.asUint64MemUnchecked(respOff);
+    (ret.blockTime,  respOff) = pcr.response.asUint64MemUnchecked(respOff);
+    (ret.blockHash,  respOff) = pcr.response.asBytes32MemUnchecked(respOff);
 
     uint8 respNumResults;
-    (respNumResults, respOff) = pcr.response.asUint8Unchecked(respOff);
+    (respNumResults, respOff) = pcr.response.asUint8MemUnchecked(respOff);
     if (respNumResults != numPdas)
       revert UnexpectedNumberOfResults();
 
@@ -468,25 +559,25 @@ library QueryResponseLib {
 
     //walk through the call inputs and outputs in lock step.
     for (uint i; i < numPdas; ++i) {
-      (ret.results[i].programId, reqOff) = pcr.request.asBytes32Unchecked(reqOff);
+      (ret.results[i].programId, reqOff) = pcr.request.asBytes32MemUnchecked(reqOff);
 
       uint8 reqNumSeeds;
-      (reqNumSeeds, reqOff) = pcr.request.asUint8Unchecked(reqOff);
+      (reqNumSeeds, reqOff) = pcr.request.asUint8MemUnchecked(reqOff);
       ret.results[i].seeds = new bytes[](reqNumSeeds);
       for (uint s; s < reqNumSeeds; ++s)
-        (ret.results[i].seeds[s], reqOff) = pcr.request.sliceUint32PrefixedUnchecked(reqOff);
+        (ret.results[i].seeds[s], reqOff) = pcr.request.sliceUint32PrefixedMemUnchecked(reqOff);
 
-      (ret.results[i].account,    respOff) = pcr.response.asBytes32Unchecked(respOff);
-      (ret.results[i].bump,       respOff) = pcr.response.asUint8Unchecked(respOff);
-      (ret.results[i].lamports,   respOff) = pcr.response.asUint64Unchecked(respOff);
-      (ret.results[i].rentEpoch,  respOff) = pcr.response.asUint64Unchecked(respOff);
-      (ret.results[i].executable, respOff) = pcr.response.asBoolUnchecked(respOff);
-      (ret.results[i].owner,      respOff) = pcr.response.asBytes32Unchecked(respOff);
-      (ret.results[i].data,       respOff) = pcr.response.sliceUint32PrefixedUnchecked(respOff);
+      (ret.results[i].account,    respOff) = pcr.response.asBytes32MemUnchecked(respOff);
+      (ret.results[i].bump,       respOff) = pcr.response.asUint8MemUnchecked(respOff);
+      (ret.results[i].lamports,   respOff) = pcr.response.asUint64MemUnchecked(respOff);
+      (ret.results[i].rentEpoch,  respOff) = pcr.response.asUint64MemUnchecked(respOff);
+      (ret.results[i].executable, respOff) = pcr.response.asBoolMemUnchecked(respOff);
+      (ret.results[i].owner,      respOff) = pcr.response.asBytes32MemUnchecked(respOff);
+      (ret.results[i].data,       respOff) = pcr.response.sliceUint32PrefixedMemUnchecked(respOff);
     }
 
-    _checkLength(pcr.request, reqOff);
-    _checkLength(pcr.response, respOff);
+    _checkLength(pcr.request.length, reqOff);
+    _checkLength(pcr.response.length, respOff);
   }}
 
   function validateBlockTime(
@@ -553,7 +644,7 @@ library QueryResponseLib {
       if (ecd.callData.length < 4)
         revert InvalidFunctionSignature();
 
-      (bytes4 funcSig, ) = ecd.callData.asBytes4Unchecked(0);
+      (bytes4 funcSig, ) = ecd.callData.asBytes4MemUnchecked(0);
       _validateFunctionSignature(funcSig, validFunctionSignatures);
     }
   }
@@ -583,8 +674,8 @@ library QueryResponseLib {
   }}
 
   //we use this over BytesParsing.checkLength to return our custom errors in all error cases
-  function _checkLength(bytes memory encoded, uint256 expected) private pure {
-    if (encoded.length != expected)
-      revert InvalidPayloadLength(encoded.length, expected);
+  function _checkLength(uint256 length, uint256 expected) private pure {
+    if (length != expected)
+      revert InvalidPayloadLength(length, expected);
   }
 }
