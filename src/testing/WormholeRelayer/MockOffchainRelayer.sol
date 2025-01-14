@@ -14,7 +14,7 @@ import {CCTPMessageLib} from "wormhole-sdk/WormholeRelayer/CCTPBase.sol";
 import {VM_ADDRESS} from "wormhole-sdk/testing/Constants.sol";
 import "wormhole-sdk/testing/WormholeOverride.sol";
 import "wormhole-sdk/testing/CctpOverride.sol";
-import "wormhole-sdk/testing/WormholeRelayer/DeliveryInstructionDecoder.sol";
+import "wormhole-sdk/testing/WormholeRelayer/DeliveryInstructionSerde.sol";
 import "wormhole-sdk/testing/WormholeRelayer/ExecutionParameters.sol";
 
 using BytesParsing for bytes;
@@ -134,19 +134,22 @@ contract MockOffchainRelayer {
     }
 
     for (uint16 i = 0; i < vaas.length; ++i) {
+      uint16 chain = vaas[i].emitterChainId;
+      address emitter = vaas[i].emitterAddress.fromUniversalAddress();
       if (debugLogging)
-        console.log(
-          "Found VAA from chain %s emitted from %s",
-          vaas[i].emitterChainId,
-          vaas[i].emitterAddress.fromUniversalAddress()
+        console.log("Found VAA from chain %s emitted from %s", chain, emitter);
+
+      if (emitter == address(wormholeRelayerContracts[chain])) {
+        if (debugLogging)
+          console.log("Relaying VAA to chain %s", chain);
+
+        genericRelay(
+          vaas[i],
+          vaas,
+          cctpSignedMsgs,
+          deliveryOverrides
         );
-      
-      genericRelay(
-        vaas[i],
-        vaas,
-        cctpSignedMsgs,
-        deliveryOverrides
-      );
+      }
     }
   }
 
