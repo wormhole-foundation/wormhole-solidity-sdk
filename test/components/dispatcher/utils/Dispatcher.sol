@@ -23,7 +23,8 @@ contract Dispatcher is RawDispatcher, AccessControl, SweepTokens, Upgrade {
     for (uint i = 0; i < adminCount; ++i) {
       (admins[i], offset) = args.asAddressCdUnchecked(offset);
     }
-    args.checkLengthCd(offset);
+
+    BytesParsing.checkLength(offset, args.length);
 
     _accessControlConstruction(owner, admins);
   }
@@ -43,7 +44,7 @@ contract Dispatcher is RawDispatcher, AccessControl, SweepTokens, Upgrade {
         (dispatched, offset) = dispatchExecSweepTokens(data, offset, command);
     }
 
-    data.checkLengthCd(offset);
+    BytesParsing.checkLength(offset, data.length);
     return new bytes(0);
   }}
 
@@ -63,7 +64,8 @@ contract Dispatcher is RawDispatcher, AccessControl, SweepTokens, Upgrade {
 
       ret = abi.encodePacked(ret, result);
     }
-    data.checkLengthCd(offset);
+
+    BytesParsing.checkLength(offset, data.length);
     return ret;
   }}
 }

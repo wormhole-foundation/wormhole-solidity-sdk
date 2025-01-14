@@ -27,6 +27,7 @@ uint8 constant REVOKE_ADMIN_ID = 0x00;
 uint8 constant PROPOSE_OWNERSHIP_TRANSFER_ID = 0x10;
 uint8 constant RELINQUISH_OWNERSHIP_ID = 0x11;
 uint8 constant ADD_ADMIN_ID = 0x12;
+uint8 constant CANCEL_OWNERSHIP_TRANSFER_ID = 0x13;
 
 // Query commands
 

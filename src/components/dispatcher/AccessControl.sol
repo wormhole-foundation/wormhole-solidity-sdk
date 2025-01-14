@@ -14,7 +14,8 @@ import {
   ADD_ADMIN_ID,
   PROPOSE_OWNERSHIP_TRANSFER_ID,
   ACQUIRE_OWNERSHIP_ID,
-  RELINQUISH_OWNERSHIP_ID
+  RELINQUISH_OWNERSHIP_ID,
+  CANCEL_OWNERSHIP_TRANSFER_ID
 } from "wormhole-sdk/components/dispatcher/Ids.sol";
 
 //rationale for different roles (owner, admin):
@@ -83,33 +84,42 @@ abstract contract AccessControl {
     address owner,
     address[] memory admins
   ) internal {
-    accessControlState().owner = owner;
+    AccessControlState storage state = accessControlState();
+    state.owner = owner;
     for (uint i = 0; i < admins.length; ++i)
-      _updateAdmins(admins[i], true);
+      _updateAdmins(state, admins[i], true);
   }
 
   // ---- external -----
 
+  //selector: f2fde38b
   function transferOwnership(address newOwner) external {
     AccessControlState storage state = accessControlState();
-    failAuthIf(msg.sender != state.owner);
+    if (msg.sender != state.owner)
+      revert NotAuthorized();
 
-    state.pendingOwner = newOwner;
+    _proposeOwnershipTransfer(state, newOwner);
   }
 
+  //selector: 23452b9c 
   function cancelOwnershipTransfer() external {
     AccessControlState storage state = accessControlState();
-    failAuthIf(msg.sender != state.owner);
+    if (msg.sender != state.owner)
+      revert NotAuthorized();
 
-    state.pendingOwner = address(0);
+    _cancelOwnershipTransfer(state);
   }
 
+  //selector: 1c74a301
   function receiveOwnership() external {
     _acquireOwnership();
   }
 
   // ---- internals ----
 
+  /**
+   * Dispatch an execute function. Execute functions almost always modify contract state.
+   */
   function dispatchExecAccessControl(
     bytes calldata data,
     uint offset,
@@ -125,6 +135,9 @@ abstract contract AccessControl {
     return (true, offset);
   }
 
+  /**
+   * Dispatch a query function. Query functions never modify contract state.
+   */
   function dispatchQueryAccessControl(
     bytes calldata data,
     uint offset,
@@ -154,7 +167,7 @@ abstract contract AccessControl {
       if (command == REVOKE_ADMIN_ID) {
         address admin;
         (admin, offset) = commands.asAddressCdUnchecked(offset);
-        _updateAdmins(admin, false);
+        _updateAdmins(state, admin, false);
       }
       else {
         if (!isOwner)
@@ -163,20 +176,22 @@ abstract contract AccessControl {
         if (command == ADD_ADMIN_ID) {
           address newAdmin;
           (newAdmin, offset) = commands.asAddressCdUnchecked(offset);
-
-          _updateAdmins(newAdmin, true);
+          _updateAdmins(state, newAdmin, true);
         }
         else if (command == PROPOSE_OWNERSHIP_TRANSFER_ID) {
           address newOwner;
           (newOwner, offset) = commands.asAddressCdUnchecked(offset);
 
-          state.pendingOwner = newOwner;
+          _proposeOwnershipTransfer(state, newOwner);
+        }
+        else if (command == CANCEL_OWNERSHIP_TRANSFER_ID) {
+          _cancelOwnershipTransfer(state);
         }
         else if (command == RELINQUISH_OWNERSHIP_ID) {
-          _updateOwner(address(0));
+          _relinquishOwnership(state);
 
           //ownership relinquishment must be the last command in the batch
-          commands.checkLengthCd(offset);
+          BytesParsing.checkLength(offset, commands.length);
         }
         else
           revert InvalidAccessControlCommand(command);
@@ -224,25 +239,41 @@ abstract contract AccessControl {
     return (ret, offset);
   }
 
-  function _acquireOwnership() internal {
-    AccessControlState storage state = accessControlState();
-    if (msg.sender !=state.pendingOwner)
-      revert NotAuthorized();
-
-    state.pendingOwner = address(0);
-    _updateOwner(msg.sender);
-  }
-
   // ---- private ----
 
-  function _updateOwner(address newOwner) private {
-    address oldAddress;
-    accessControlState().owner = newOwner;
+  function _acquireOwnership() private {
+    AccessControlState storage state = accessControlState();
+    if (state.pendingOwner != msg.sender)
+      revert NotAuthorized();
+
+    _updateOwner(state, msg.sender);
+  }
+
+  function _relinquishOwnership(AccessControlState storage state) private {
+    _updateOwner(state, address(0));
+  }
+
+  function _updateOwner(AccessControlState storage state, address newOwner) private {
+    address oldAddress = state.owner;
+    state.owner = newOwner;
+    state.pendingOwner = address(0);
+
     emit OwnerUpdated(oldAddress, newOwner, block.timestamp);
   }
 
-  function _updateAdmins(address admin, bool authorization) private { unchecked {
-    AccessControlState storage state = accessControlState();
+  function _proposeOwnershipTransfer(AccessControlState storage state, address newOwner) private {
+    state.pendingOwner = newOwner;
+  }
+
+  function _cancelOwnershipTransfer(AccessControlState storage state) private {
+    state.pendingOwner = address(0);
+  }
+
+  function _updateAdmins(
+    AccessControlState storage state, 
+    address admin, 
+    bool authorization
+  ) private { unchecked {
     if ((state.isAdmin[admin] != 0) == authorization)
       return;
 
@@ -252,8 +283,11 @@ abstract contract AccessControl {
     }
     else {
       uint256 rawIndex = state.isAdmin[admin];
-      if (rawIndex != state.admins.length)
-        state.admins[rawIndex - 1] = state.admins[state.admins.length - 1];
+      if (rawIndex != state.admins.length) {
+        address tmpAdmin = state.admins[state.admins.length - 1];
+        state.isAdmin[tmpAdmin] = rawIndex;
+        state.admins[rawIndex - 1] = tmpAdmin;
+      }
 
       state.isAdmin[admin] = 0;
       state.admins.pop();

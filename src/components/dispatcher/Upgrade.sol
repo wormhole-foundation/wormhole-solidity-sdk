@@ -13,6 +13,20 @@ error InvalidGovernanceQuery(uint8 query);
 abstract contract Upgrade is ProxyBase {
   using BytesParsing for bytes;
 
+  // ------ external ------
+
+  //selector: c987336c
+  function upgrade(address implementation, bytes calldata data) external {
+    failAuthIf(senderRole() != Role.Owner);
+
+    _upgradeTo(implementation, data);
+  }
+
+  // ------ internal ------
+
+  /**
+   * Dispatch an execute function. Execute functions almost always modify contract state.
+   */
   function dispatchExecUpgrade(
     bytes calldata data,
     uint offset,
@@ -23,6 +37,9 @@ abstract contract Upgrade is ProxyBase {
       : (false, offset);
   }
 
+  /**
+   * Dispatch a query function. Query functions never modify contract state.
+   */
   function dispatchQueryUpgrade(
     bytes calldata,
     uint offset,
@@ -33,12 +50,6 @@ abstract contract Upgrade is ProxyBase {
       : (false, new bytes(0), offset);
   }
 
-  function upgrade(address implementation, bytes calldata data) external {
-    failAuthIf(senderRole() != Role.Owner);
-
-    _upgradeTo(implementation, data);
-  }
-
   function _upgradeContract(
     bytes calldata commands,
     uint offset
@@ -47,10 +58,13 @@ abstract contract Upgrade is ProxyBase {
 
     address newImplementation;
     (newImplementation, offset) = commands.asAddressCdUnchecked(offset);
-    //contract upgrades must be the last command in the batch
-    commands.checkLengthCd(offset);
+    bytes calldata data;
+    (data, offset) = commands.sliceCdUnchecked(offset, commands.length - offset);
 
-    _upgradeTo(newImplementation, new bytes(0));
+    //contract upgrades must be the last command in the batch
+    BytesParsing.checkLength(offset, commands.length);
+
+    _upgradeTo(newImplementation, data);
 
     return offset;
   }

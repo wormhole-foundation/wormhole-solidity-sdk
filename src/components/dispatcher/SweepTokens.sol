@@ -24,7 +24,7 @@ abstract contract SweepTokens {
     bytes calldata commands,
     uint offset
   ) internal returns (uint) {
-    senderAtLeastAdmin();
+    sweepTokenDoAuth();
 
     address token;
     uint256 amount;
@@ -33,5 +33,9 @@ abstract contract SweepTokens {
 
     tokenOrNativeTransfer(token, msg.sender, amount);
     return offset;
+  }
+
+  function sweepTokenDoAuth() view internal virtual {
+    senderAtLeastAdmin();
   }
 }

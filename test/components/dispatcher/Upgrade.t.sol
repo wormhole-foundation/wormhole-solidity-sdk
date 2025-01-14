@@ -8,9 +8,9 @@ import {NotAuthorized}      from "wormhole-sdk/components/dispatcher/AccessContr
 import {
   UPGRADE_CONTRACT_ID,
   IMPLEMENTATION_ID
-}                            from "wormhole-sdk/components/dispatcher/Ids.sol";
-import {UpgradeTester}       from "wormhole-sdk/testing/UpgradeTester.sol";
-import {DispatcherTestBase}  from "./utils/DispatcherTestBase.sol";
+}                           from "wormhole-sdk/components/dispatcher/Ids.sol";
+import {UpgradeTester}      from "wormhole-sdk/testing/UpgradeTester.sol";
+import {DispatcherTestBase} from "./utils/DispatcherTestBase.sol";
 
 contract UpgradeTest is DispatcherTestBase {
   using BytesParsing for bytes;
@@ -22,7 +22,8 @@ contract UpgradeTest is DispatcherTestBase {
     invokeDispatcher(
       abi.encodePacked(
         UPGRADE_CONTRACT_ID,
-        address(fakeAddress)
+        address(fakeAddress),
+        new bytes(0)
       )
     );
 
@@ -31,7 +32,8 @@ contract UpgradeTest is DispatcherTestBase {
     invokeDispatcher(
       abi.encodePacked(
         UPGRADE_CONTRACT_ID,
-        address(fakeAddress)
+        address(fakeAddress), 
+        new bytes(0)
       )
     );
   }
@@ -43,7 +45,8 @@ contract UpgradeTest is DispatcherTestBase {
     invokeDispatcher(
       abi.encodePacked(
         UPGRADE_CONTRACT_ID,
-        address(upgradeTester)
+        address(upgradeTester), 
+        new bytes(0)
       )
     );
 
@@ -66,7 +69,8 @@ contract UpgradeTest is DispatcherTestBase {
     invokeDispatcher(
       abi.encodePacked(
         UPGRADE_CONTRACT_ID,
-        address(upgradeTester)
+        address(upgradeTester), 
+        new bytes(0)
       )
     );
 
