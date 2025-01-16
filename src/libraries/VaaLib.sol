@@ -278,6 +278,23 @@ library VaaLib {
     (vm, ) = decodeVmStructMemUnchecked(encodedVaa, 0, encodedVaa.length);
   }
 
+  function decodeVaaStructCd(
+    bytes calldata encodedVaa
+  ) internal pure returns (Vaa memory vaa) {
+    uint envelopeOffset;
+    (vaa.header, envelopeOffset) = decodeVaaHeaderStructCdUnchecked(encodedVaa);
+    
+    uint payloadOffset;
+    (vaa.envelope, payloadOffset) = decodeVaaEnvelopeStructCdUnchecked(encodedVaa, envelopeOffset);
+    vaa.payload = decodeVaaPayloadCd(encodedVaa, payloadOffset);
+  }
+
+  function decodeVaaStructMem(
+    bytes memory encodedVaa
+  ) internal pure returns (Vaa memory vaa) {
+    (vaa, ) = decodeVaaStructMemUnchecked(encodedVaa, 0, encodedVaa.length);
+  }
+
   function decodeVaaEssentialsCd(
     bytes calldata encodedVaa
   ) internal pure returns (
@@ -488,9 +505,10 @@ library VaaLib {
     bytes memory encoded,
     uint envelopeOffset,
     uint vaaLength
-  ) internal pure returns (bytes32) {
-    return keccak256SliceUnchecked(encoded, envelopeOffset, vaaLength);
-  }
+  ) internal pure returns (bytes32) { unchecked {
+    envelopeOffset.checkBound(vaaLength);
+    return keccak256SliceUnchecked(encoded, envelopeOffset, vaaLength - envelopeOffset);
+  }}
 
   //see WARNING box at the top
   function calcSingleHash(Vaa memory vaa) internal pure returns (bytes32) {
@@ -551,6 +569,21 @@ library VaaLib {
       vm.payload,
       newOffset
     ) = decodeVaaBodyMemUnchecked(encoded, envelopeOffset, vaaLength);
+  }
+
+  function decodeVaaStructMemUnchecked(
+    bytes memory encoded,
+    uint headerOffset,
+    uint vaaLength
+  ) internal pure returns (Vaa memory vaa, uint newOffset) {
+    uint envelopeOffset;
+    (vaa.header.guardianSetIndex, vaa.header.signatures, envelopeOffset) =
+      decodeVaaHeaderMemUnchecked(encoded, headerOffset);
+    
+    uint payloadOffset;
+    (vaa.envelope, payloadOffset) = decodeVaaEnvelopeStructMemUnchecked(encoded, envelopeOffset);
+
+    (vaa.payload, newOffset) = decodeVaaPayloadMemUnchecked(encoded, payloadOffset, vaaLength);
   }
 
   function decodeVaaBodyCd(
@@ -643,7 +676,7 @@ library VaaLib {
     payloadOffset = offset;
   }
 
-  function decodeVaaEnvelopeStructCd(
+  function decodeVaaEnvelopeStructCdUnchecked(
     bytes calldata encodedVaa,
     uint envelopeOffset
   ) internal pure returns (VaaEnvelope memory envelope, uint payloadOffset) {
@@ -679,7 +712,7 @@ library VaaLib {
     payloadOffset = offset;
   }
 
-  function decodeVaaEnvelopeStructMem(
+  function decodeVaaEnvelopeStructMemUnchecked(
     bytes memory encoded,
     uint envelopeOffset
   ) internal pure returns (VaaEnvelope memory envelope, uint payloadOffset) {
@@ -808,19 +841,19 @@ library VaaLib {
 
   function decodeVaaPayloadCd(
     bytes calldata encodedVaa,
-    uint offset
+    uint payloadOffset
   ) internal pure returns (bytes calldata payload) {
-    payload = _decodeRemainderCd(encodedVaa, offset);
+    payload = _decodeRemainderCd(encodedVaa, payloadOffset);
   }
 
   function decodeVaaPayloadMemUnchecked(
     bytes memory encoded,
-    uint offset,
+    uint payloadOffset,
     uint vaaLength
   ) internal pure returns (bytes memory payload, uint newOffset) {
     //check to avoid underflow in following subtraction
-    offset.checkBound(vaaLength);
-    (payload, newOffset) = encoded.sliceMemUnchecked(offset, vaaLength - offset);
+    payloadOffset.checkBound(vaaLength);
+    (payload, newOffset) = encoded.sliceMemUnchecked(payloadOffset, vaaLength - payloadOffset);
   }
 
   // ------------ Encoding ------------

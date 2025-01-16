@@ -60,6 +60,11 @@ contract QueryResponseTest is Test {
     return string(abi.encodePacked(functionName, cd ? "Cd" : "Mem", parameters));
   }
 
+  function runBoth(function(bool) test) internal {
+    test(true);
+    test(false);
+  }
+
   function _verifyQueryResponseRaw(
     bool cd,
     bytes memory resp,
@@ -192,7 +197,7 @@ contract QueryResponseTest is Test {
     );
   }
 
-  function test_calcPrefixedResponseHash(bool cd) public {
+  function calcPrefixedResponseHash(bool cd) internal {
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
 
     (bool success, bytes memory encodedResult) =
@@ -205,13 +210,15 @@ contract QueryResponseTest is Test {
     bytes32 expectedDigest = 0x5b84b19c68ee0b37899230175a92ee6eda4c5192e8bffca1d057d811bb3660e2;
     assertEq(digest, expectedDigest);
   }
+  function test_calcPrefixedResponseHash() public { runBoth(calcPrefixedResponseHash); }
 
-  function test_verifyQueryResponse(bool cd) public {
+  function verifyQueryResponse(bool cd) internal {
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
     _verifyQueryResponse(cd, resp, sign(resp));
   }
+  function test_verifyQueryResponse() public { runBoth(verifyQueryResponse); }
 
-  function test_decodeAndVerifyQueryResponse(bool cd) public {
+  function decodeAndVerifyQueryResponse(bool cd) internal {
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
     QueryResponse memory r = _decodeAndVerifyQueryResponse(cd, resp, sign(resp));
     assertEq(r.version, 1);
@@ -224,8 +231,9 @@ contract QueryResponseTest is Test {
     assertEq(r.responses[0].request, hex"00000009307832613631616334020d500b1d8e8ef31e21c99d1db9a6444d3adf12700000000406fdde030d500b1d8e8ef31e21c99d1db9a6444d3adf12700000000418160ddd");
     assertEq(r.responses[0].response, hex"0000000002a61ac4c1adff9f6e180309e7d0d94c063338ddc61c1c4474cd6957c960efe659534d040005ff312e4f90c002000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d57726170706564204d6174696300000000000000000000000000000000000000000000200000000000000000000000000000000000000000007ae5649beabeddf889364a");
   }
+  function test_decodeAndVerifyQueryResponse() public { runBoth(decodeAndVerifyQueryResponse); }
 
-  function test_decodeEthCallQueryResponse() public {
+  function test_decodeEthCallQueryResponse() internal {
     // Take the data extracted by the previous test and break it down even further.
     PerChainQueryResponse memory r = PerChainQueryResponse({
       chainId: 5,
@@ -377,10 +385,11 @@ contract QueryResponseTest is Test {
 
   // Start of Solana Stuff ///////////////////////////////////////////////////////////////////////////
 
-  function test_verifyQueryResponseForSolana(bool cd) public {
+  function verifyQueryResponseForSolana(bool cd) internal {
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, solanaAccountSignature, solanaAccountQueryRequestVersion, solanaAccountQueryRequestNonce, solanaAccountNumPerChainQueries, solanaAccountPerChainQueries, solanaAccountNumPerChainResponses, solanaAccountPerChainResponses);
     _verifyQueryResponse(cd, resp, sign(resp));
   }
+  function test_verifyQueryResponseForSolana() public { runBoth(verifyQueryResponseForSolana); }
 
   function test_decodeSolanaAccountQueryResponse() public {
     // Take the data extracted by the previous test and break it down even further.
