@@ -166,6 +166,11 @@ contract QueryResponseTest is Test {
     return string(abi.encodePacked(functionName, cd ? "Cd" : "Mem", parameters));
   }
 
+  function runBoth(function(bool) test) internal {
+    test(true);
+    test(false);
+  }
+
   function _verifyQueryResponseRaw(
     bool cd,
     bytes memory resp,
@@ -335,7 +340,7 @@ contract QueryResponseTest is Test {
   }
   function test_decodeAndVerifyQueryResponse() public { runBoth(decodeAndVerifyQueryResponse); }
 
-  function test_decodeEthCallQueryResponse() public {
+  function test_decodeEthCallQueryResponse() internal {
     // Take the data extracted by the previous test and break it down even further.
     PerChainQueryResponse memory r = PerChainQueryResponse({
       chainId: 5,

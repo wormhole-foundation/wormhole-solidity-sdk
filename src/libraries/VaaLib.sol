@@ -283,7 +283,6 @@ library VaaLib {
   ) internal pure returns (Vaa memory vaa) {
     uint envelopeOffset;
     (vaa.header, envelopeOffset) = decodeVaaHeaderStructCdUnchecked(encodedVaa);
-
     uint payloadOffset;
     (vaa.envelope, payloadOffset) = decodeVaaEnvelopeStructCdUnchecked(encodedVaa, envelopeOffset);
     vaa.payload = decodeVaaPayloadCd(encodedVaa, payloadOffset);
@@ -579,7 +578,6 @@ library VaaLib {
     uint envelopeOffset;
     (vaa.header.guardianSetIndex, vaa.header.signatures, envelopeOffset) =
       decodeVaaHeaderMemUnchecked(encoded, headerOffset);
-
     uint payloadOffset;
     (vaa.envelope, payloadOffset) = decodeVaaEnvelopeStructMemUnchecked(encoded, envelopeOffset);
 
