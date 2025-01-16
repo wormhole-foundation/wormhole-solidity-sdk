@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.4;
 
-import "../constants/Common.sol";
+import "wormhole-sdk/constants/Common.sol";
 
 //This file appears comically large, but all unused functions are removed by the compiler.
 library BytesParsing {
