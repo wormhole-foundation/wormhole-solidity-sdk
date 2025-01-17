@@ -4,14 +4,19 @@ pragma solidity ^0.8.19;
 import "forge-std/Vm.sol";
 
 import {IMessageTransmitter} from "wormhole-sdk/interfaces/cctp/IMessageTransmitter.sol";
-import {VM_ADDRESS, DEVNET_GUARDIAN_PRIVATE_KEY} from "./Constants.sol";
-import "./CctpMessages.sol";
-import "./LogUtils.sol";
+import {LogUtils}            from "wormhole-sdk/testing/LogUtils.sol";
+import {
+  CctpMessageLib,
+  CctpTokenBurnMessage
+}                            from "wormhole-sdk/libraries/CctpMessages.sol";
+import {
+  VM_ADDRESS,
+  DEVNET_GUARDIAN_PRIVATE_KEY
+}                            from "wormhole-sdk/testing/Constants.sol";
 
 //create fake CCTP attestations for forge tests
 library CctpOverride {
-  using CctpMessages for CctpTokenBurnMessage;
-  using CctpMessages for bytes;
+  using CctpMessageLib for bytes;
   using LogUtils for Vm.Log[];
 
   Vm constant vm = Vm(VM_ADDRESS);
@@ -30,7 +35,7 @@ library CctpOverride {
 
     require(attesterPrivateKey(messageTransmitter) == 0, "CctpOverride: already set up");
 
-    require(messageTransmitter.version() == CctpMessages.MESSAGE_TRANSMITTER_HEADER_VERSION);
+    require(messageTransmitter.version() == CctpMessageLib.HEADER_VERSION);
 
     //as pioneered in WormholeOverride
     vm.store(address(messageTransmitter), _ATTESTER_PK_SLOT, bytes32(signer));
@@ -71,7 +76,8 @@ library CctpOverride {
 
     ret = new CctpTokenBurnMessage[](encodedBurnLogs.length);
     for (uint i; i < encodedBurnLogs.length; ++i)
-      ret[i++] = _logDataToActualBytes(encodedBurnLogs[i].data).decodeCctpTokenBurnMessage();
+      ret[i++] = _logDataToActualBytes(encodedBurnLogs[i].data)
+        .decodeCctpTokenBurnMessageStructMem();
   }}
 
   function _logDataToActualBytes(bytes memory data) private pure returns (bytes memory) {
@@ -79,6 +85,6 @@ library CctpOverride {
   }
 
   function _isLoggedTokenBurnMessage(bytes memory data) private pure returns (bool) {
-    return CctpMessages.isCctpTokenBurnMessage(_logDataToActualBytes(data));
+    return CctpMessageLib.isCctpTokenBurnMessageMem(_logDataToActualBytes(data));
   }
 }

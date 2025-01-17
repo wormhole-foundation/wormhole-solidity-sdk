@@ -24,56 +24,84 @@ contract QueryTypeTestWrapper {
 }
 
 contract QueryResponseLibTestWrapper {
-  function calcPrefixedResponseHash(bytes calldata response) external pure returns (bytes32) {
-    return QueryResponseLib.calcPrefixedResponseHash(response);
+  function calcPrefixedResponseHashCd(bytes calldata response) external pure returns (bytes32) {
+    return QueryResponseLib.calcPrefixedResponseHashCd(response);
   }
 
-  function parseAndVerifyQueryResponse(
+  function calcPrefixedResponseHashMem(bytes calldata response) external pure returns (bytes32) {
+    return QueryResponseLib.calcPrefixedResponseHashMem(response);
+  }
+
+  function calcPrefixedResponseHash(bytes32 responseHash) external pure returns (bytes32) {
+    return QueryResponseLib.calcPrefixedResponseHash(responseHash);
+  }
+
+  function decodeAndVerifyQueryResponseCd(
     address wormhole,
     bytes calldata response,
-    IWormhole.Signature[] calldata signatures
+    GuardianSignature[] calldata guardianSignatures
   ) external view returns (QueryResponse memory ret) {
-    return QueryResponseLib.parseAndVerifyQueryResponse(wormhole, response, signatures);
+    return QueryResponseLib.decodeAndVerifyQueryResponseCd(wormhole, response, guardianSignatures);
   }
 
-  function verifyQueryResponse(
+  function decodeAndVerifyQueryResponseMem(
     address wormhole,
     bytes calldata response,
-    IWormhole.Signature[] calldata signatures
+    GuardianSignature[] calldata guardianSignatures
+  ) external view returns (QueryResponse memory ret) {
+    return QueryResponseLib.decodeAndVerifyQueryResponseMem(wormhole, response, guardianSignatures);
+  }
+
+  function verifyQueryResponseCd(
+    address wormhole,
+    bytes calldata response,
+    GuardianSignature[] calldata guardianSignatures
   ) external view {
-    QueryResponseLib.verifyQueryResponse(wormhole, response, signatures);
+    QueryResponseLib.verifyQueryResponseCd(wormhole, response, guardianSignatures);
+  }
+
+  function verifyQueryResponseMem(
+    address wormhole,
+    bytes calldata response,
+    GuardianSignature[] calldata guardianSignatures
+  ) external view {
+    QueryResponseLib.verifyQueryResponseMem(wormhole, response, guardianSignatures);
   }
 
   function verifyQueryResponse(
     address wormhole,
     bytes32 prefixedResponseHash,
-    IWormhole.Signature[] calldata signatures
+    GuardianSignature[] calldata guardianSignatures
   ) external view {
-    QueryResponseLib.verifyQueryResponse(wormhole, prefixedResponseHash, signatures);
+    QueryResponseLib.verifyQueryResponse(wormhole, prefixedResponseHash, guardianSignatures);
   }
 
-  function parseQueryResponse(bytes calldata response) external pure returns (QueryResponse memory ret) {
-    return QueryResponseLib.parseQueryResponse(response);
+  function decodeQueryResponseCd(bytes calldata response) external pure returns (QueryResponse memory ret) {
+    return QueryResponseLib.decodeQueryResponseCd(response);
   }
 
-  function parseEthCallQueryResponse(PerChainQueryResponse calldata pcr) external pure returns (EthCallQueryResponse memory ret) {
-    return QueryResponseLib.parseEthCallQueryResponse(pcr);
+  function decodeQueryResponseMem(bytes calldata response) external pure returns (QueryResponse memory ret) {
+    return QueryResponseLib.decodeQueryResponseMem(response);
   }
 
-  function parseEthCallByTimestampQueryResponse(PerChainQueryResponse calldata pcr) external pure returns (EthCallByTimestampQueryResponse memory ret) {
-    return QueryResponseLib.parseEthCallByTimestampQueryResponse(pcr);
+  function decodeEthCallQueryResponse(PerChainQueryResponse calldata pcr) external pure returns (EthCallQueryResponse memory ret) {
+    return QueryResponseLib.decodeEthCallQueryResponse(pcr);
   }
 
-  function parseEthCallWithFinalityQueryResponse(PerChainQueryResponse calldata pcr) external pure returns (EthCallWithFinalityQueryResponse memory ret) {
-    return QueryResponseLib.parseEthCallWithFinalityQueryResponse(pcr);
+  function decodeEthCallByTimestampQueryResponse(PerChainQueryResponse calldata pcr) external pure returns (EthCallByTimestampQueryResponse memory ret) {
+    return QueryResponseLib.decodeEthCallByTimestampQueryResponse(pcr);
   }
 
-  function parseSolanaAccountQueryResponse(PerChainQueryResponse calldata pcr) external pure returns (SolanaAccountQueryResponse memory ret) {
-    return QueryResponseLib.parseSolanaAccountQueryResponse(pcr);
+  function decodeEthCallWithFinalityQueryResponse(PerChainQueryResponse calldata pcr) external pure returns (EthCallWithFinalityQueryResponse memory ret) {
+    return QueryResponseLib.decodeEthCallWithFinalityQueryResponse(pcr);
   }
 
-  function parseSolanaPdaQueryResponse(PerChainQueryResponse calldata pcr) external pure returns (SolanaPdaQueryResponse memory ret) {
-    return QueryResponseLib.parseSolanaPdaQueryResponse(pcr);
+  function decodeSolanaAccountQueryResponse(PerChainQueryResponse calldata pcr) external pure returns (SolanaAccountQueryResponse memory ret) {
+    return QueryResponseLib.decodeSolanaAccountQueryResponse(pcr);
+  }
+
+  function decodeSolanaPdaQueryResponse(PerChainQueryResponse calldata pcr) external pure returns (SolanaPdaQueryResponse memory ret) {
+    return QueryResponseLib.decodeSolanaPdaQueryResponse(pcr);
   }
 
   function validateBlockTime(uint64 blockTimeInMicroSeconds, uint256 minBlockTimeInSeconds) external pure {

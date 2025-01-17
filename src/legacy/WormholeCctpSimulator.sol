@@ -3,22 +3,27 @@ pragma solidity ^0.8.19;
 
 import {Vm} from "forge-std/Vm.sol";
 
-import "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol";
+import {IWormhole}              from "wormhole-sdk/interfaces/IWormhole.sol";
+import {IMessageTransmitter}    from "wormhole-sdk/interfaces/cctp/IMessageTransmitter.sol";
+import {ITokenMessenger}        from "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol";
+import {ITokenMinter}           from "wormhole-sdk/interfaces/cctp/ITokenMinter.sol";
 
-import "wormhole-sdk/interfaces/IWormhole.sol";
-import {WormholeCctpMessages} from "wormhole-sdk/libraries/WormholeCctpMessages.sol";
-import {toUniversalAddress} from "wormhole-sdk/Utils.sol";
-
-import {VM_ADDRESS} from "wormhole-sdk/testing/Constants.sol";
-import "wormhole-sdk/testing/CctpOverride.sol";
-import "wormhole-sdk/testing/WormholeOverride.sol";
+import {
+  CctpMessageLib,
+  CctpTokenBurnMessage
+}                               from "wormhole-sdk/libraries/CctpMessages.sol";
+import {WormholeCctpMessageLib} from "wormhole-sdk/legacy/WormholeCctpMessages.sol";
+import {toUniversalAddress}     from "wormhole-sdk/Utils.sol";
+import {VM_ADDRESS}             from "wormhole-sdk/testing/Constants.sol";
+import {CctpOverride}           from "wormhole-sdk/testing/CctpOverride.sol";
+import {WormholeOverride}       from "wormhole-sdk/testing/WormholeOverride.sol";
 
 //faked foreign call chain:
 //  foreignCaller -> foreignSender -> FOREIGN_TOKEN_MESSENGER -> foreign MessageTransmitter
 //example:
 //  foreignCaller = swap layer
 //  foreignSender = liquidity layer - implements WormholeCctpTokenMessenger
-//                     emits WormholeCctpMessages.Deposit VAA with a RedeemFill payload
+//                     emits WormholeCctpMessageLib.Deposit VAA with a RedeemFill payload
 
 //local call chain using faked vaa and circle attestation:
 //  test -> intermediate contract(s) -> mintRecipient -> MessageTransmitter -> TokenMessenger
@@ -36,9 +41,8 @@ bytes32 constant FOREIGN_USDC =
 //simulates a foreign WormholeCctpTokenMessenger
 contract WormholeCctpSimulator {
   using WormholeOverride for IWormhole;
-  using CctpMessages for CctpTokenBurnMessage;
   using CctpOverride for IMessageTransmitter;
-  using CctpMessages for bytes;
+  using CctpMessageLib for bytes;
   using { toUniversalAddress } for address;
 
   Vm constant vm = Vm(VM_ADDRESS);
@@ -138,14 +142,14 @@ contract WormholeCctpSimulator {
     encodedVaa = wormhole.craftVaa(
       foreignChain,
       foreignSender,
-      WormholeCctpMessages.encodeDeposit(
-        burnMsg.burnToken,
+      WormholeCctpMessageLib.encodeDeposit(
+        burnMsg.body.burnToken,
         amount,
         burnMsg.header.sourceDomain,
         burnMsg.header.destinationDomain,
         burnMsg.header.nonce,
         foreignCaller,
-        burnMsg.mintRecipient,
+        burnMsg.body.mintRecipient,
         payload
       )
     );
@@ -165,10 +169,10 @@ contract WormholeCctpSimulator {
     burnMsg.header.sender            = FOREIGN_TOKEN_MESSENGER;
     burnMsg.header.recipient         = address(tokenMessenger).toUniversalAddress();
     burnMsg.header.destinationCaller = destinationCaller.toUniversalAddress();
-    burnMsg.burnToken     = FOREIGN_USDC;
-    burnMsg.mintRecipient = mintRecipient.toUniversalAddress();
-    burnMsg.amount        = amount;
-    burnMsg.messageSender = foreignSender;
+    burnMsg.body.burnToken           = FOREIGN_USDC;
+    burnMsg.body.mintRecipient       = mintRecipient.toUniversalAddress();
+    burnMsg.body.amount              = amount;
+    burnMsg.body.messageSender       = foreignSender;
 
     encodedCctpMessage = burnMsg.encode();
     cctpAttestation = messageTransmitter.sign(burnMsg);

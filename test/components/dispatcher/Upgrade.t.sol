@@ -63,7 +63,7 @@ contract UpgradeTest is DispatcherTestBase {
       )
     );
     assertEq(response.length, 20);
-    (address implementation,) = response.asAddressUnchecked(0);
+    (address implementation,) = response.asAddressMemUnchecked(0);
 
     vm.startPrank(owner);
     invokeDispatcher(
@@ -82,7 +82,7 @@ contract UpgradeTest is DispatcherTestBase {
       )
     );
     assertEq(response.length, 20);
-    (address restoredImplementation,) = response.asAddressUnchecked(0);
+    (address restoredImplementation,) = response.asAddressMemUnchecked(0);
     assertEq(restoredImplementation, implementation);
   }
 
@@ -116,7 +116,7 @@ contract UpgradeTest is DispatcherTestBase {
       )
     );
     assertEq(response.length, 20);
-    (address implementation,) = response.asAddressUnchecked(0);
+    (address implementation,) = response.asAddressMemUnchecked(0);
 
     vm.startPrank(owner);
     dispatcher.upgrade(address(upgradeTester), new bytes(0));
@@ -129,7 +129,7 @@ contract UpgradeTest is DispatcherTestBase {
       )
     );
     assertEq(response.length, 20);
-    (address restoredImplementation,) = response.asAddressUnchecked(0);
+    (address restoredImplementation,) = response.asAddressMemUnchecked(0);
     assertEq(restoredImplementation, implementation);
   }
 }
