@@ -39,41 +39,69 @@ contract QueryResponseLibTestWrapper {
   function decodeAndVerifyQueryResponseCd(
     address wormhole,
     bytes calldata response,
-    GuardianSignature[] calldata guardianSignatures
+    GuardianSignature[] calldata guardianSignatures,
+    uint32 guardianSetIndex
   ) external view returns (QueryResponse memory ret) {
-    return QueryResponseLib.decodeAndVerifyQueryResponseCd(wormhole, response, guardianSignatures);
+    return QueryResponseLib.decodeAndVerifyQueryResponseCd(wormhole, response, guardianSignatures, guardianSetIndex);
   }
 
   function decodeAndVerifyQueryResponseMem(
     address wormhole,
     bytes calldata response,
-    GuardianSignature[] calldata guardianSignatures
+    GuardianSignature[] calldata guardianSignatures,
+    uint32 guardianSetIndex
   ) external view returns (QueryResponse memory ret) {
-    return QueryResponseLib.decodeAndVerifyQueryResponseMem(wormhole, response, guardianSignatures);
+    return QueryResponseLib.decodeAndVerifyQueryResponseMem(wormhole, response, guardianSignatures, guardianSetIndex);
   }
 
   function verifyQueryResponseCd(
     address wormhole,
     bytes calldata response,
-    GuardianSignature[] calldata guardianSignatures
+    GuardianSignature[] calldata guardianSignatures,
+    uint32 guardianSetIndex
   ) external view {
-    QueryResponseLib.verifyQueryResponseCd(wormhole, response, guardianSignatures);
+    QueryResponseLib.verifyQueryResponseCd(wormhole, response, guardianSignatures, guardianSetIndex);
   }
 
   function verifyQueryResponseMem(
     address wormhole,
     bytes calldata response,
-    GuardianSignature[] calldata guardianSignatures
+    GuardianSignature[] calldata guardianSignatures,
+    uint32 guardianSetIndex
   ) external view {
-    QueryResponseLib.verifyQueryResponseMem(wormhole, response, guardianSignatures);
+    QueryResponseLib.verifyQueryResponseMem(wormhole, response, guardianSignatures, guardianSetIndex);
   }
 
-  function verifyQueryResponse(
-    address wormhole,
-    bytes32 prefixedResponseHash,
-    GuardianSignature[] calldata guardianSignatures
-  ) external view {
-    QueryResponseLib.verifyQueryResponse(wormhole, prefixedResponseHash, guardianSignatures);
+  function decodeAndVerifyQueryResponseCd(
+    bytes calldata response,
+    GuardianSignature[] calldata guardianSignatures,
+    address[] calldata guardians
+  ) external pure returns (QueryResponse memory ret) {
+    return QueryResponseLib.decodeAndVerifyQueryResponseCd(response, guardianSignatures, guardians);
+  }
+
+  function decodeAndVerifyQueryResponseMem(
+    bytes calldata response,
+    GuardianSignature[] calldata guardianSignatures,
+    address[] calldata guardians
+  ) external pure returns (QueryResponse memory ret) {
+    return QueryResponseLib.decodeAndVerifyQueryResponseMem(response, guardianSignatures, guardians);
+  }
+
+  function verifyQueryResponseCd(
+    bytes calldata response,
+    GuardianSignature[] calldata guardianSignatures,
+    address[] calldata guardians
+  ) external pure {
+    QueryResponseLib.verifyQueryResponseCd(response, guardianSignatures, guardians);
+  }
+
+  function verifyQueryResponseMem(
+    bytes calldata response,
+    GuardianSignature[] calldata guardianSignatures,
+    address[] calldata guardians
+  ) external pure {
+    QueryResponseLib.verifyQueryResponseMem(response, guardianSignatures, guardians);
   }
 
   function decodeQueryResponseCd(bytes calldata response) external pure returns (QueryResponse memory ret) {

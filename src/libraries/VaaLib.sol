@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.14; //for (bugfixed) support of `using ... global;` syntax for libraries
 
 import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
@@ -283,7 +283,7 @@ library VaaLib {
   ) internal pure returns (Vaa memory vaa) {
     uint envelopeOffset;
     (vaa.header, envelopeOffset) = decodeVaaHeaderStructCdUnchecked(encodedVaa);
-    
+
     uint payloadOffset;
     (vaa.envelope, payloadOffset) = decodeVaaEnvelopeStructCdUnchecked(encodedVaa, envelopeOffset);
     vaa.payload = decodeVaaPayloadCd(encodedVaa, payloadOffset);
@@ -579,7 +579,7 @@ library VaaLib {
     uint envelopeOffset;
     (vaa.header.guardianSetIndex, vaa.header.signatures, envelopeOffset) =
       decodeVaaHeaderMemUnchecked(encoded, headerOffset);
-    
+
     uint payloadOffset;
     (vaa.envelope, payloadOffset) = decodeVaaEnvelopeStructMemUnchecked(encoded, envelopeOffset);
 
@@ -879,7 +879,7 @@ library VaaLib {
     bytes memory sigs;
     for (uint i = 0; i < signatures.length; ++i) {
       GuardianSignature memory sig = signatures[i];
-      uint8 v = sig.v - SIGNATURE_RECOVERY_MAGIC;
+      uint8 v = sig.v - SIGNATURE_RECOVERY_MAGIC; //deliberately checked
       sigs = bytes.concat(sigs, abi.encodePacked(sig.guardianIndex, sig.r, sig.s, v));
     }
 
@@ -1006,4 +1006,3 @@ using VaaLib for VaaHeader global;
 using VaaLib for VaaEnvelope global;
 using VaaLib for VaaBody global;
 using VaaLib for Vaa global;
-

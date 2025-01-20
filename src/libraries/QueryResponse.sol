@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: Apache 2
-
 pragma solidity ^0.8.4;
 
-import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
-import {CoreBridgeLib} from "wormhole-sdk/libraries/CoreBridge.sol";
-import {GuardianSignature} from "wormhole-sdk/libraries/VaaLib.sol";
+import {BytesParsing}                   from "wormhole-sdk/libraries/BytesParsing.sol";
+import {CoreBridgeLib}                  from "wormhole-sdk/libraries/CoreBridge.sol";
+import {GuardianSignature}              from "wormhole-sdk/libraries/VaaLib.sol";
 import {eagerAnd, eagerOr, keccak256Cd} from "wormhole-sdk/Utils.sol";
 
 library QueryType {
@@ -177,49 +176,110 @@ library QueryResponseLib {
     return keccak256(abi.encodePacked(RESPONSE_PREFIX, responseHash));
   }
 
-  //there isn't too much to gain from enforcing that the guardian signatures are also in calldata
+  // -------- decodeAndVerifyQueryResponse --------
+
+  // ---- guardian set index variants
+  // will look up the guardian set internally and also try to verify against the latest
+  //   guardian set, if the specified guardian set is expired.
+
   function decodeAndVerifyQueryResponseCd(
     address wormhole,
     bytes calldata response,
-    GuardianSignature[] memory guardianSignatures
+    GuardianSignature[] calldata guardianSignatures,
+    uint32 guardianSetIndex
   ) internal view returns (QueryResponse memory ret) {
-    verifyQueryResponseCd(wormhole, response, guardianSignatures);
+    verifyQueryResponseCd(wormhole, response, guardianSignatures, guardianSetIndex);
     return decodeQueryResponseCd(response);
   }
 
   function decodeAndVerifyQueryResponseMem(
     address wormhole,
     bytes memory response,
-    GuardianSignature[] memory guardianSignatures
+    GuardianSignature[] memory guardianSignatures,
+    uint32 guardianSetIndex
   ) internal view returns (QueryResponse memory ret) {
-    verifyQueryResponseMem(wormhole, response, guardianSignatures);
+    verifyQueryResponseMem(wormhole, response, guardianSignatures, guardianSetIndex);
     return decodeQueryResponseMem(response);
   }
 
   function verifyQueryResponseCd(
     address wormhole,
     bytes calldata response,
-    GuardianSignature[] memory guardianSignatures
+    GuardianSignature[] calldata guardianSignatures,
+    uint32 guardianSetIndex
   ) internal view {
-    verifyQueryResponse(wormhole, calcPrefixedResponseHashCd(response), guardianSignatures);
+    if (!CoreBridgeLib.isVerifiedByQuorumCd(
+      wormhole,
+      calcPrefixedResponseHashCd(response),
+      guardianSignatures,
+      guardianSetIndex
+    ))
+      revert VerificationFailed();
   }
 
   function verifyQueryResponseMem(
     address wormhole,
     bytes memory response,
-    GuardianSignature[] memory guardianSignatures
+    GuardianSignature[] memory guardianSignatures,
+    uint32 guardianSetIndex
   ) internal view {
-    verifyQueryResponse(wormhole, calcPrefixedResponseHashMem(response), guardianSignatures);
-  }
-
-  function verifyQueryResponse(
-    address wormhole,
-    bytes32 prefixedResponseHash,
-    GuardianSignature[] memory guardianSignatures
-  ) internal view {
-    if (!CoreBridgeLib.isVerifiedByQuorum(wormhole, prefixedResponseHash, guardianSignatures))
+    if (!CoreBridgeLib.isVerifiedByQuorumMem(
+      wormhole,
+      calcPrefixedResponseHashMem(response),
+      guardianSignatures,
+      guardianSetIndex
+    ))
       revert VerificationFailed();
   }
+
+  // ---- guardian address variants
+  // will only try to verify against the specified guardian addresses only
+
+  function decodeAndVerifyQueryResponseCd(
+    bytes calldata response,
+    GuardianSignature[] calldata guardianSignatures,
+    address[] memory guardians
+  ) internal pure returns (QueryResponse memory ret) {
+    verifyQueryResponseCd(response, guardianSignatures, guardians);
+    return decodeQueryResponseCd(response);
+  }
+
+  function decodeAndVerifyQueryResponseMem(
+    bytes memory response,
+    GuardianSignature[] memory guardianSignatures,
+    address[] memory guardians
+  ) internal pure returns (QueryResponse memory ret) {
+    verifyQueryResponseMem(response, guardianSignatures, guardians);
+    return decodeQueryResponseMem(response);
+  }
+
+  function verifyQueryResponseCd(
+    bytes calldata response,
+    GuardianSignature[] calldata guardianSignatures,
+    address[] memory guardians
+  ) internal pure {
+    if (!CoreBridgeLib.isVerifiedByQuorumCd(
+      calcPrefixedResponseHashCd(response),
+      guardianSignatures,
+      guardians
+    ))
+      revert VerificationFailed();
+  }
+
+  function verifyQueryResponseMem(
+    bytes memory response,
+    GuardianSignature[] memory guardianSignatures,
+    address[] memory guardians
+  ) internal pure {
+    if (!CoreBridgeLib.isVerifiedByQuorumMem(
+      calcPrefixedResponseHashMem(response),
+      guardianSignatures,
+      guardians
+    ))
+      revert VerificationFailed();
+  }
+
+  // -------- decode functions --------
 
   function decodeQueryResponseCd(
     bytes calldata response

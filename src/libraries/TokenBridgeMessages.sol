@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.14; //for (bugfixed) support of `using ... global;` syntax for libraries
 
 import {WORD_SIZE} from "wormhole-sdk/constants/Common.sol";
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";

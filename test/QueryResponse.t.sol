@@ -51,6 +51,7 @@ contract QueryResponseTest is Test {
 
   address wormhole;
   QueryResponseLibTestWrapper wrapper;
+  uint32 guardianSetIndex;
 
   function _withDataLocationTag(
     string memory functionName,
@@ -74,9 +75,9 @@ contract QueryResponseTest is Test {
       _withDataLocationTag(
         "verifyQueryResponse",
         cd,
-        "(address,bytes,(bytes32,bytes32,uint8,uint8)[])"
+        "(address,bytes,(bytes32,bytes32,uint8,uint8)[],uint32)"
       ),
-      wormhole, resp, sigs
+      wormhole, resp, sigs, guardianSetIndex
     ));
   }
 
@@ -119,9 +120,9 @@ contract QueryResponseTest is Test {
       _withDataLocationTag(
         "decodeAndVerifyQueryResponse",
         cd,
-        "(address,bytes,(bytes32,bytes32,uint8,uint8)[])"
+        "(address,bytes,(bytes32,bytes32,uint8,uint8)[],uint32)"
       ),
-      wormhole, resp, sigs
+      wormhole, resp, sigs, guardianSetIndex
     ));
   }
 
@@ -161,6 +162,7 @@ contract QueryResponseTest is Test {
     vm.createSelectFork(vm.envString("TEST_RPC_URL"));
     wormhole = vm.envAddress("TEST_WORMHOLE_ADDRESS");
     IWormhole(wormhole).setUpOverride();
+    guardianSetIndex = IWormhole(wormhole).getCurrentGuardianSetIndex();
     wrapper = new QueryResponseLibTestWrapper();
   }
 

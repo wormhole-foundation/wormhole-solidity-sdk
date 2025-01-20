@@ -7,7 +7,7 @@ import {WORD_SIZE, WORD_SIZE_MINUS_ONE}          from "wormhole-sdk/constants/Co
 import {IWormhole}                               from "wormhole-sdk/interfaces/IWormhole.sol";
 import {BytesParsing}                            from "wormhole-sdk/libraries/BytesParsing.sol";
 import {VaaLib}                                  from "wormhole-sdk/libraries/VaaLib.sol";
-import {minSigsForQuorum}                        from "wormhole-sdk/libraries/CoreBridge.sol";
+import {CoreBridgeLib}                           from "wormhole-sdk/libraries/CoreBridge.sol";
 import {toUniversalAddress}                      from "wormhole-sdk/Utils.sol";
 import {VM_ADDRESS, DEVNET_GUARDIAN_PRIVATE_KEY} from "wormhole-sdk/testing/Constants.sol";
 import {LogUtils}                                from "wormhole-sdk/testing/LogUtils.sol";
@@ -387,7 +387,7 @@ library AdvancedWormholeOverride {
     setNonce(wormhole, 0);
     setConsistencyLevel(wormhole, 1); //finalized
     _setGuardianPrivateKeys(wormhole, guardianPrivateKeys);
-    uint quorum = minSigsForQuorum(guardianPrivateKeys.length);
+    uint quorum = CoreBridgeLib.minSigsForQuorum(guardianPrivateKeys.length);
     uint8[] memory signingIndices = new uint8[](quorum);
     for (uint i = 0; i < quorum; ++i)
       signingIndices[i] = uint8(i);
