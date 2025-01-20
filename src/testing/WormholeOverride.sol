@@ -7,11 +7,7 @@ import {WORD_SIZE, WORD_SIZE_MINUS_ONE}          from "wormhole-sdk/constants/Co
 import {IWormhole}                               from "wormhole-sdk/interfaces/IWormhole.sol";
 import {BytesParsing}                            from "wormhole-sdk/libraries/BytesParsing.sol";
 import {VaaLib}                                  from "wormhole-sdk/libraries/VaaLib.sol";
-<<<<<<< HEAD
 import {CoreBridgeLib}                           from "wormhole-sdk/libraries/CoreBridge.sol";
-=======
-import {minSigsForQuorum}                        from "wormhole-sdk/libraries/CoreBridge.sol";
->>>>>>> cb108db (improved, extended, and unified decoding, added CoreBridgeLib)
 import {toUniversalAddress}                      from "wormhole-sdk/Utils.sol";
 import {VM_ADDRESS, DEVNET_GUARDIAN_PRIVATE_KEY} from "wormhole-sdk/testing/Constants.sol";
 import {LogUtils}                                from "wormhole-sdk/testing/LogUtils.sol";

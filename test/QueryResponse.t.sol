@@ -180,9 +180,9 @@ contract QueryResponseTest is Test {
       _withDataLocationTag(
         "verifyQueryResponse",
         cd,
-        "(address,bytes,(bytes32,bytes32,uint8,uint8)[])"
+        "(address,bytes,(bytes32,bytes32,uint8,uint8)[],uint32)"
       ),
-      wormhole, resp, sigs
+      wormhole, resp, sigs, guardianSetIndex
     ));
   }
 
@@ -225,9 +225,9 @@ contract QueryResponseTest is Test {
       _withDataLocationTag(
         "decodeAndVerifyQueryResponse",
         cd,
-        "(address,bytes,(bytes32,bytes32,uint8,uint8)[])"
+        "(address,bytes,(bytes32,bytes32,uint8,uint8)[],uint32)"
       ),
-      wormhole, resp, sigs
+      wormhole, resp, sigs, guardianSetIndex
     ));
   }
 
