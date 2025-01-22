@@ -308,6 +308,7 @@ contract AcessControlTest is DispatcherTestBase {
   }
 
   function testExternalReceiveOwnership(address newOwner) public {
+    vm.assume(newOwner != owner);
     vm.prank(owner);
     dispatcher.transferOwnership(newOwner);
 
