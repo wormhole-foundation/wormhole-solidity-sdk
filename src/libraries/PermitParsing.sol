@@ -91,6 +91,9 @@ library PermitParsing {
   error InvalidSignatureLength(uint length);
 
   uint internal constant SIGNATURE_SIZE = 65;
+  uint internal constant PERMIT_SIZE = 32 + 32 + SIGNATURE_SIZE;
+  uint internal constant PERMIT2_PERMIT_SIZE = 20 + 6 + 6 + 32 + SIGNATURE_SIZE;
+  uint internal constant PERMIT2_TRANSFER_SIZE = 32 + 32 + 32 + SIGNATURE_SIZE;
 
   // ERC2612 Permit
 
