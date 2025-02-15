@@ -23,7 +23,7 @@ library QueryRequestBuilder {
     uint32 nonce,
     uint8 numPerChainQueries,
     bytes memory perChainQueries
-  ) internal pure returns (bytes memory) {
+  ) external pure returns (bytes memory) {
     return abi.encodePacked(
       version,
       nonce,
@@ -36,7 +36,7 @@ library QueryRequestBuilder {
     uint16 chainId,
     uint8 queryType,
     bytes memory queryBytes
-  ) internal pure returns (bytes memory) {
+  ) external pure returns (bytes memory) {
     return abi.encodePacked(chainId, queryType, uint32(queryBytes.length), queryBytes);
   }
 
@@ -44,7 +44,7 @@ library QueryRequestBuilder {
     bytes memory blockId,
     uint8 numCallData,
     bytes memory callData //Created with buildEthCallRecordBytes()
-  ) internal pure returns (bytes memory) {
+  ) external pure returns (bytes memory) {
     return abi.encodePacked(uint32(blockId.length), blockId, numCallData, callData);
   }
 
@@ -54,7 +54,7 @@ library QueryRequestBuilder {
     bytes memory followingBlockHint,
     uint8 numCallData,
     bytes memory callData //Created with buildEthCallRecordBytes()
-  ) internal pure returns (bytes memory) {
+  ) external pure returns (bytes memory) {
     return abi.encodePacked(
       targetTimeUs,
       uint32(targetBlockHint.length),
@@ -71,7 +71,7 @@ library QueryRequestBuilder {
     bytes memory finality,
     uint8 numCallData,
     bytes memory callData //Created with buildEthCallRecordBytes()
-  ) internal pure returns (bytes memory) {
+  ) external pure returns (bytes memory) {
     return abi.encodePacked(
       uint32(blockId.length),
       blockId,
@@ -85,7 +85,7 @@ library QueryRequestBuilder {
   function buildEthCallRecordBytes(
     address contractAddress,
     bytes memory callData
-  ) internal pure returns (bytes memory) {
+  ) external pure returns (bytes memory) {
     return abi.encodePacked(contractAddress, uint32(callData.length), callData);
   }
 
@@ -96,7 +96,7 @@ library QueryRequestBuilder {
     uint64 dataSliceLength,
     uint8 numAccounts,
     bytes memory accounts //Each account is 32 bytes.
-  ) internal pure returns (bytes memory) {
+  ) external pure returns (bytes memory) {
     return abi.encodePacked(
       uint32(commitment.length),
       commitment,
@@ -114,7 +114,7 @@ library QueryRequestBuilder {
     uint64 dataSliceOffset,
     uint64 dataSliceLength,
     bytes[] memory pdas //Created with multiple calls to buildSolanaPdaEntry()
-  ) internal pure returns (bytes memory) {
+  ) external pure returns (bytes memory) {
     uint numPdas = pdas.length;
     if (numPdas > type(uint8).max)
       revert SolanaTooManyPDAs();
@@ -138,7 +138,7 @@ library QueryRequestBuilder {
     bytes32 programId,
     uint8 numSeeds,
     bytes memory seeds //Created with buildSolanaPdaSeedBytes()
-  ) internal pure returns (bytes memory) {
+  ) external pure returns (bytes memory) {
     if (numSeeds > SOLANA_MAX_SEEDS)
       revert SolanaTooManySeeds();
 
@@ -148,7 +148,7 @@ library QueryRequestBuilder {
   //packs the seeds for a PDA entry into an array of bytes.
   function buildSolanaPdaSeedBytes(
     bytes[] memory seeds
-  ) internal pure returns (bytes memory, uint8) {
+  ) external pure returns (bytes memory, uint8) {
     uint numSeeds = seeds.length;
     if (numSeeds > SOLANA_MAX_SEEDS)
       revert SolanaTooManySeeds();
@@ -174,7 +174,7 @@ library QueryRequestBuilder {
     bytes memory queryRequest,
     uint8 numPerChainResponses,
     bytes memory perChainResponses
-  ) internal pure returns (bytes memory) {
+  ) external pure returns (bytes memory) {
     return abi.encodePacked(
       version,
       senderChainId,
@@ -190,7 +190,7 @@ library QueryRequestBuilder {
     uint16 chainId,
     uint8 queryType,
     bytes memory responseBytes
-  ) internal pure returns (bytes memory) {
+  ) external pure returns (bytes memory) {
     return abi.encodePacked(chainId, queryType, uint32(responseBytes.length), responseBytes);
   }
 
@@ -200,7 +200,7 @@ library QueryRequestBuilder {
     uint64 blockTimeUs,
     uint8 numResults,
     bytes memory results //Created with buildEthCallResultBytes()
-  ) internal pure returns (bytes memory) {
+  ) external pure returns (bytes memory) {
     return abi.encodePacked(blockNumber, blockHash, blockTimeUs, numResults, results);
   }
 
@@ -213,7 +213,7 @@ library QueryRequestBuilder {
     uint64 followingBlockTimeUs,
     uint8 numResults,
     bytes memory results //Created with buildEthCallResultBytes()
-  ) internal pure returns (bytes memory) {
+  ) external pure returns (bytes memory) {
     return abi.encodePacked(
       targetBlockNumber,
       targetBlockHash,
@@ -233,13 +233,13 @@ library QueryRequestBuilder {
     uint64 blockTimeUs,
     uint8 numResults,
     bytes memory results //Created with buildEthCallResultBytes()
-  ) internal pure returns (bytes memory) {
+  ) external pure returns (bytes memory) {
     return abi.encodePacked(blockNumber, blockHash, blockTimeUs, numResults, results);
   }
 
   function buildEthCallResultBytes(
     bytes memory result
-  ) internal pure returns (bytes memory){
+  ) external pure returns (bytes memory){
     return abi.encodePacked(uint32(result.length), result);
   }
 
@@ -249,7 +249,7 @@ library QueryRequestBuilder {
     bytes32 blockHash,
     uint8 numResults,
     bytes memory results //Created with buildEthCallResultBytes()
-  ) internal pure returns (bytes memory) {
+  ) external pure returns (bytes memory) {
     return abi.encodePacked(slotNumber, blockTimeUs, blockHash, numResults, results);
   }
 
@@ -259,7 +259,7 @@ library QueryRequestBuilder {
     bytes32 blockHash,
     uint8 numResults,
     bytes memory results //Created with buildEthCallResultBytes()
-  ) internal pure returns (bytes memory) {
+  ) external pure returns (bytes memory) {
     return abi.encodePacked(slotNumber, blockTimeUs, blockHash, numResults, results);
   }
 }
