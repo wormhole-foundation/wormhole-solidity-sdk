@@ -12,5 +12,6 @@ pragma solidity ^0.8.0;
 // In the wormhole wire format, 0 indicates that a message is for any destination chain
 uint16 constant CHAIN_ID_UNSET = 0;`);
 
-for (const chain of chains)
+//the insane decision was made to add Hyperliquid with a fake chainId of -1 to the TS SDK...
+for (const chain of chains.filter(chain => chain !== "Hyperliquid"))
   console.log(`uint16 constant CHAIN_ID_${toCapsSnakeCase(chain)} = ${chainToChainId(chain)};`);
