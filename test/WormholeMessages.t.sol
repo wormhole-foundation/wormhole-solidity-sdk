@@ -4,14 +4,14 @@ pragma solidity ^0.8.4;
 
 import "forge-std/Test.sol";
 
-import "wormhole-sdk/interfaces/IWormhole.sol";
+import "wormhole-sdk/interfaces/ICoreBridge.sol";
 import "wormhole-sdk/libraries/VaaLib.sol";
 import "wormhole-sdk/libraries/TokenBridgeMessages.sol";
 import "./generated/VaaLibTestWrapper.sol";
 import "./generated/TokenBridgeMessagesTestWrapper.sol";
 
 contract WormholeMessagesTest is Test {
-  using VaaLib for IWormhole.VM;
+  using VaaLib for CoreBridgeVM;
 
   // ------------ Test Data ------------
 
@@ -28,81 +28,81 @@ contract WormholeMessagesTest is Test {
     return abi.encodePacked(transferVaaHeader, transferVaaEnvelope, transferVaaPayload);
   }
 
-  function transferVaaSignatures() private pure returns (IWormhole.Signature[] memory signatures) {
-    signatures = new IWormhole.Signature[](13);
-    signatures[0] = IWormhole.Signature({
+  function transferVaaSignatures() private pure returns (GuardianSignature[] memory signatures) {
+    signatures = new GuardianSignature[](13);
+    signatures[0] = GuardianSignature({
       r: bytes32(0x0d9706bcb3a4069e51fc83bfb4056eb080cf412a87384deda904f317aa986cf6),
       s: bytes32(0x1f0fdcebf63230a158d42120069321206aaa078ad60bb682031203b4e6b1b291),
       v: 27,
       guardianIndex: 0
     });
-    signatures[1] = IWormhole.Signature({
+    signatures[1] = GuardianSignature({
       r: bytes32(0xf2249a2a93433f48870b6db4d7b41691988ea9f40719bb0dbe3528db37645bf7),
       s: bytes32(0x70885087ef5dceb6ef6eb66554a86f442a406121f018e95b161cff512c503c8a),
       v: 28,
       guardianIndex: 1
     });
-    signatures[2] = IWormhole.Signature({
+    signatures[2] = GuardianSignature({
       r: bytes32(0x84dbd7d3720ba02e0e9211162742a07b4bf213528f7625df44f0feb3bb4ed472),
       s: bytes32(0x2d92050f2856c25292654f9320e3e783eb0c492bf2aec1b1a5393c4c2f279f26),
       v: 27,
       guardianIndex: 5
     });
-    signatures[3] = IWormhole.Signature({
+    signatures[3] = GuardianSignature({
       r: bytes32(0x67d3444e661e1ac6e360e6a0f8679b6ea99f740238be463046c8d727a71fd6e5),
       s: bytes32(0x19d26eb6dee985d2f774fc0e8a9a2343cbaf5c265f668d60ab74415c3dd02f86),
       v: 28,
       guardianIndex: 6
     });
-    signatures[4] = IWormhole.Signature({
+    signatures[4] = GuardianSignature({
       r: bytes32(0xce39722a65635d7a9f15a2ea8784cddcfbd88d00c6a89daac2a87548c8e0012d),
       s: bytes32(0x3923a74e4dcebfccebff601e2349923ca2a77d45089619b9e927001ce80e3426),
       v: 27,
       guardianIndex: 7
     });
-    signatures[5] = IWormhole.Signature({
+    signatures[5] = GuardianSignature({
       r: bytes32(0xcb06b678a2d78b66a8ef7743cf46f348ad53e36acb9832e9bfd584609ce84db4),
       s: bytes32(0x06537259de7244d9d7bd616f028cb56fdf328d71362656ed49381194a9c0db12),
       v: 27,
       guardianIndex: 8
     });
-    signatures[6] = IWormhole.Signature({
+    signatures[6] = GuardianSignature({
       r: bytes32(0x4e717815bb93c323311d579b1dab05c87cd7cc4f0ba943f62fb7c1ab1bd174a1),
       s: bytes32(0x7aa1507ffd148d7351f1a755b2293f4b146c8a2930fe7c118846af9379d784b7),
       v: 27,
       guardianIndex: 9
     });
-    signatures[7] = IWormhole.Signature({
+    signatures[7] = GuardianSignature({
       r: bytes32(0x16a32494fc02533081afb4d7cf83e9bb579e0018cb2fb94a5b6b988067a75fe3),
       s: bytes32(0x4f1697c0bad93cff45e5351e33a8ba5b94be6330c4a07749a5980d6ab4531be8),
       v: 27,
       guardianIndex: 10
     });
-    signatures[8] = IWormhole.Signature({
+    signatures[8] = GuardianSignature({
       r: bytes32(0xa6ea6337801ce2479410b14243c5ac4c8b228fae17ef03882dfced6b65c2b13b),
       s: bytes32(0x63a3ee5e1cd4179098712b312bc836b08db29450e917777ee509adeac40a5d2f),
       v: 28,
       guardianIndex: 13
     });
-    signatures[9] = IWormhole.Signature({
+    signatures[9] = GuardianSignature({
       r: bytes32(0xc3ee8c0183486d12137c7f4e6b0c07b0528526376aa8f7c13e103b17803329d9),
       s: bytes32(0x6f0af7c4015ba64f2fe32e43449ae6e528c7765d8be866c2fca4b8f5d22e123e),
       v: 27,
       guardianIndex: 14
     });
-    signatures[10] = IWormhole.Signature({
+    signatures[10] = GuardianSignature({
       r: bytes32(0x52971d98a3a903ab900901df4d88014baf0497792c797e38a973213d8e924d01),
       s: bytes32(0x65149e5e2298e13274b8becbd73a573e24a0f2a0769fe81da781f5ac051b03f9),
       v: 28,
       guardianIndex: 16
     });
-    signatures[11] = IWormhole.Signature({
+    signatures[11] = GuardianSignature({
       r: bytes32(0x01e6ac72622a785481b4e5541557bccfa3e224448b82109d5928037353ddf2d8),
       s: bytes32(0x6f677e7eccafb25b073227d06d286f4c5a2efe6436a86fb444c119c40b6b8839),
       v: 27,
       guardianIndex: 17
     });
-    signatures[12] = IWormhole.Signature({
+    signatures[12] = GuardianSignature({
       r: bytes32(0x78ee1a77cd29d5a6f19b3008a7f92bcf04aa7a169f572202c697712f26d0ff2a),
       s: bytes32(0x5e361542e7e5175e52633e914557e34004824d3038809496c53046773a6eb862),
       v: 28,
@@ -110,8 +110,8 @@ contract WormholeMessagesTest is Test {
     });
   }
 
-  function transferVaaVm() private view returns (IWormhole.VM memory) {
-    return IWormhole.VM({
+  function transferVaaVm() private view returns (CoreBridgeVM memory) {
+    return CoreBridgeVM({
       version: 1,
       guardianSetIndex: 4,
       signatures: transferVaaSignatures(),
@@ -154,9 +154,9 @@ contract WormholeMessagesTest is Test {
     return abi.encodePacked(twpVaaPayloadNo3, twpVaaPayload3);
   }
 
-  function twpVaaSignatures() private pure returns (IWormhole.Signature[] memory) {
-    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    signatures[0] = IWormhole.Signature({
+  function twpVaaSignatures() private pure returns (GuardianSignature[] memory) {
+    GuardianSignature[] memory signatures = new GuardianSignature[](1);
+    signatures[0] = GuardianSignature({
       r: bytes32(0x3fc0ef6fd9c137bfa4f35198f2cb7f7a9963ea1df4d12abc610506fd251e1809),
       s: bytes32(0x741981a389bd7019f615bff4dd791f16bc0cd3461082798cf3cded10d367058f),
       v: 28,
@@ -165,8 +165,8 @@ contract WormholeMessagesTest is Test {
     return signatures;
   }
 
-  function twpVaaVm() private view returns (IWormhole.VM memory) {
-    return IWormhole.VM({
+  function twpVaaVm() private view returns (CoreBridgeVM memory) {
+    return CoreBridgeVM({
       version: 1,
       guardianSetIndex: 0,
       signatures: twpVaaSignatures(),
@@ -206,9 +206,9 @@ contract WormholeMessagesTest is Test {
     return abi.encodePacked(amVaaHeader, amVaaEnvelope, amVaaPayload);
   }
 
-  function amVaaSignatures() private pure returns (IWormhole.Signature[] memory) {
-    IWormhole.Signature[] memory signatures = new IWormhole.Signature[](1);
-    signatures[0] = IWormhole.Signature({
+  function amVaaSignatures() private pure returns (GuardianSignature[] memory) {
+    GuardianSignature[] memory signatures = new GuardianSignature[](1);
+    signatures[0] = GuardianSignature({
       r: bytes32(0x258085e22c07380831e348d937e2e4e88d41732888e94c50a6192485efd39627),
       s: bytes32(0x08e606cea327c0d3b4448085b2f285a4dd8b4a4e0270671487e9ec6f49ebf5e6),
       v: 27,
@@ -217,8 +217,8 @@ contract WormholeMessagesTest is Test {
     return signatures;
   }
 
-  function amVaaVm() private view returns (IWormhole.VM memory) {
-    return IWormhole.VM({
+  function amVaaVm() private view returns (CoreBridgeVM memory) {
+    return CoreBridgeVM({
       version: 1,
       guardianSetIndex: 0,
       signatures: amVaaSignatures(),
@@ -321,8 +321,8 @@ contract WormholeMessagesTest is Test {
   }
 
   function compareSignatures(
-    IWormhole.Signature[] memory signatures,
-    IWormhole.Signature[] memory expectedSignatures
+    GuardianSignature[] memory signatures,
+    GuardianSignature[] memory expectedSignatures
   ) internal {
     assertEq(signatures.length, expectedSignatures.length);
     for (uint i = 0; i < signatures.length; i++) {
@@ -333,7 +333,7 @@ contract WormholeMessagesTest is Test {
     }
   }
 
-  function compareVms(IWormhole.VM memory vm, IWormhole.VM memory expectedVm) internal {
+  function compareVms(CoreBridgeVM memory vm, CoreBridgeVM memory expectedVm) internal {
     assertEq(vm.version, expectedVm.version);
     assertEq(vm.guardianSetIndex, expectedVm.guardianSetIndex);
     compareSignatures(vm.signatures, expectedVm.signatures);
@@ -347,9 +347,9 @@ contract WormholeMessagesTest is Test {
     assertEq(vm.hash, expectedVm.hash);
   }
 
-  function vmToVaa(IWormhole.VM memory vm) internal pure returns (Vaa memory vaa) {
+  function vmToVaa(CoreBridgeVM memory vm) internal pure returns (Vaa memory vaa) {
     vaa.header.guardianSetIndex = vm.guardianSetIndex;
-    vaa.header.signatures = VaaLib.asGuardianSignatures(vm.signatures);
+    vaa.header.signatures = vm.signatures;
     vaa.envelope.timestamp = vm.timestamp;
     vaa.envelope.nonce = vm.nonce;
     vaa.envelope.emitterChainId = vm.emitterChainId;
@@ -359,9 +359,9 @@ contract WormholeMessagesTest is Test {
     vaa.payload = vm.payload;
   }
 
-  function compareVaaVm(Vaa memory vaa, IWormhole.VM memory expectedVm) internal {
+  function compareVaaVm(Vaa memory vaa, CoreBridgeVM memory expectedVm) internal {
     assertEq(vaa.header.guardianSetIndex, expectedVm.guardianSetIndex);
-    compareSignatures(VaaLib.asIWormholeSignatures(vaa.header.signatures), expectedVm.signatures);
+    compareSignatures(vaa.header.signatures, expectedVm.signatures);
     assertEq(vaa.envelope.timestamp, expectedVm.timestamp);
     assertEq(vaa.envelope.nonce, expectedVm.nonce);
     assertEq(vaa.envelope.emitterChainId, expectedVm.emitterChainId);
@@ -447,7 +447,7 @@ contract WormholeMessagesTest is Test {
     compareVms(
       abi.decode(
         callWithBytes(vaaLibWrapper, "decodeVmStruct", cd, transferVaa(), true),
-        (IWormhole.VM)
+        (CoreBridgeVM)
       ),
       transferVaaVm()
     );
@@ -486,7 +486,7 @@ contract WormholeMessagesTest is Test {
     compareVms(
       abi.decode(
         callWithBytes(vaaLibWrapper, "decodeVmStruct", cd, twpVaa(), true),
-        (IWormhole.VM)
+        (CoreBridgeVM)
       ),
       twpVaaVm()
     );
@@ -526,7 +526,7 @@ contract WormholeMessagesTest is Test {
     compareVms(
       abi.decode(
         callWithBytes(vaaLibWrapper, "decodeVmStruct", cd, amVaa(), true),
-        (IWormhole.VM)
+        (CoreBridgeVM)
       ),
       amVaaVm()
     );
@@ -545,9 +545,9 @@ contract WormholeMessagesTest is Test {
   function testDecodingAmVaaStruct() public { runBoth(decodingAmVaaStruct); }
 
   function decodingAmPayload(bool cd) internal {
-    IWormhole.VM memory vm = abi.decode(
+    CoreBridgeVM memory vm = abi.decode(
       callWithBytes(vaaLibWrapper, "decodeVmStruct", cd, amVaa(), true),
-      (IWormhole.VM)
+      (CoreBridgeVM)
     );
 
     compareVms(vm, amVaaVm());

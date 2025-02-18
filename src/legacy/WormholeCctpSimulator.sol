@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import {Vm} from "forge-std/Vm.sol";
 
-import {IWormhole}              from "wormhole-sdk/interfaces/IWormhole.sol";
+import {ICoreBridge}            from "wormhole-sdk/interfaces/ICoreBridge.sol";
 import {IMessageTransmitter}    from "wormhole-sdk/interfaces/cctp/IMessageTransmitter.sol";
 import {ITokenMessenger}        from "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol";
 import {ITokenMinter}           from "wormhole-sdk/interfaces/cctp/ITokenMinter.sol";
@@ -40,14 +40,14 @@ bytes32 constant FOREIGN_USDC =
 
 //simulates a foreign WormholeCctpTokenMessenger
 contract WormholeCctpSimulator {
-  using WormholeOverride for IWormhole;
+  using WormholeOverride for ICoreBridge;
   using CctpOverride for IMessageTransmitter;
   using CctpMessageLib for bytes;
   using { toUniversalAddress } for address;
 
   Vm constant vm = Vm(VM_ADDRESS);
 
-  IWormhole           immutable wormhole;
+  ICoreBridge         immutable coreBridge;
   IMessageTransmitter immutable messageTransmitter;
   ITokenMessenger     immutable tokenMessenger;
   uint16              immutable foreignChain;
@@ -60,7 +60,7 @@ contract WormholeCctpSimulator {
   address destinationCaller; //by default mintRecipient
 
   constructor(
-    IWormhole wormhole_,
+    ICoreBridge coreBridge_,
     address tokenMessenger_,
     uint16 foreignChain_,
     bytes32 foreignSender_, //contract that invokes the core bridge and calls depositForBurn
@@ -68,7 +68,7 @@ contract WormholeCctpSimulator {
     address usdc,
     bool skipOverrideSetup
   ) {
-    wormhole           = wormhole_;
+    coreBridge         = coreBridge_;
     tokenMessenger     = ITokenMessenger(tokenMessenger_);
     foreignChain       = foreignChain_;
     foreignSender      = foreignSender_;
@@ -77,7 +77,7 @@ contract WormholeCctpSimulator {
     messageTransmitter = tokenMessenger.localMessageTransmitter();
 
     if (!skipOverrideSetup) {
-      wormhole.setUpOverride();
+      coreBridge.setUpOverride();
       messageTransmitter.setUpOverride();
     }
 
@@ -139,7 +139,7 @@ contract WormholeCctpSimulator {
     (burnMsg, encodedCctpMessage, cctpAttestation) = _craftCctpTokenBurnMessage(amount);
 
     //craft the associated VAA
-    encodedVaa = wormhole.craftVaa(
+    encodedVaa = coreBridge.craftVaa(
       foreignChain,
       foreignSender,
       WormholeCctpMessageLib.encodeDeposit(

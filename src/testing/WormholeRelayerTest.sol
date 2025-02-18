@@ -1,651 +1,241 @@
+// SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.19;
 
-import "forge-std/Test.sol";
-import "forge-std/console.sol";
+import "wormhole-sdk/testing/ForkTest.sol";
+import "wormhole-sdk/testing/WormholeRelayerStructs.sol";
 
-import "wormhole-sdk/interfaces/IWormholeRelayer.sol";
-import "wormhole-sdk/interfaces/IWormhole.sol";
-import "wormhole-sdk/interfaces/ITokenBridge.sol";
-import "wormhole-sdk/interfaces/cctp/IMessageTransmitter.sol";
-import "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol";
-import "wormhole-sdk/constants/Chains.sol";
-import "wormhole-sdk/Utils.sol";
-import "wormhole-sdk/libraries/VaaLib.sol";
+// abstract contract WormholeRelayerTest is ForkTest {
+//   using { toUniversalAddress } for address;
+//   using { fromUniversalAddress } for bytes32;
 
-import "./UsdcDealer.sol";
-import "./WormholeOverride.sol";
-import "./CctpOverride.sol";
-import "./ERC20Mock.sol";
-import "./WormholeRelayer/DeliveryInstructionSerde.sol";
-import "./WormholeRelayer/ExecutionParameters.sol";
-import "./WormholeRelayer/MockOffchainRelayer.sol";
+//   mapping(bytes32 => bytes[]) internal pastEncodedVaas;
+//   mapping(bytes32 => bytes)   internal pastEncodedDeliveryVaa;
 
-struct ChainInfo {
-  uint16 chainId;
-  string name;
-  string url;
-  IWormholeRelayer relayer;
-  ITokenBridge tokenBridge;
-  IWormhole wormhole;
-  IMessageTransmitter circleMessageTransmitter;
-  ITokenMessenger circleTokenMessenger;
-  IUSDC USDC;
-}
 
-struct ActiveFork {
-  uint16 chainId;
-  string name;
-  string url;
-  uint256 fork;
-  IWormholeRelayer relayer;
-  ITokenBridge tokenBridge;
-  IWormhole wormhole;
-  // USDC parameters - only non-empty for Ethereum, Avalanche, Optimism, Arbitrum mainnets/testnets
-  IUSDC USDC;
-  ITokenMessenger circleTokenMessenger;
-  IMessageTransmitter circleMessageTransmitter;
-}
+//   function getPastEncodedVaas(
+//     uint16 chainId,
+//     uint64 deliveryVaaSequence
+//   ) public view returns (bytes[] memory) {
+//     return pastEncodedVaas[keccak256(abi.encodePacked(chainId, deliveryVaaSequence))];
+//   }
 
-abstract contract WormholeRelayerTest is Test {
-  using WormholeOverride for IWormhole;
-  using CctpOverride for IMessageTransmitter;
-  using UsdcDealer for IUSDC;
-  using VaaLib for IWormhole.VM;
+//   function getPastDeliveryVaa(
+//     uint16 chainId,
+//     uint64 deliveryVaaSequence
+//   ) public view returns (bytes memory) {
+//     return pastEncodedDeliveryVaa[keccak256(abi.encodePacked(chainId, deliveryVaaSequence))];
+//   }
 
-  /**
-   * @dev required override to initialize active forks before each test
-   */
-  function setUpFork(ActiveFork memory fork) public virtual;
+//   function cctpKeyMatchesCctpMessage(
+//     CCTPKey memory cctpKey,
+//     CctpMessage memory cctpMessage
+//   ) internal pure returns (bool) {
+//     (uint64 nonce,) = cctpMessage.message.asUint64Mem(12);
+//     (uint32 domain,) = cctpMessage.message.asUint32Mem(4);
+//     return nonce == cctpKey.nonce && domain == cctpKey.domain;
+//   }
 
-  /**
-   * @dev optional override that runs after all forks have been set up
-   */
-  function setUpGeneral() public virtual {}
+//   function relay(Vm.Log[] memory logs, bool debugLogging) public {
+//     relay(logs, bytes(""), debugLogging);
+//   }
 
-  // conveneince information to set up tests against testnet/mainnet forks
-  mapping(uint16 => ChainInfo) public chainInfosTestnet;
-  mapping(uint16 => ChainInfo) public chainInfosMainnet;
+//   function relay(
+//     Vm.Log[] memory logs,
+//     bytes memory deliveryOverrides,
+//     bool debugLogging
+//   ) public {
+//     ICoreBridge emitterWormhole = getForkWormhole();
+//     PublishedMessage[] memory pms = emitterWormhole.fetchPublishedMessages(logs);
+//     if (debugLogging)
+//       console.log(
+//         "Found %s wormhole messages in logs from %s",
+//         pms.length,
+//         address(emitterWormhole)
+//       );
 
-  // active forks for the test
-  mapping(uint16 => ActiveFork) public activeForks;
-  uint16[] public activeForksList;
+//     Vaa[] memory vaas = new Vaa[](pms.length);
+//     for (uint256 i = 0; i < pms.length; ++i)
+//       vaas[i] = emitterWormhole.sign(pms[i]);
 
-  MockOffchainRelayer public mockOffchainRelayer;
+//     CCTPMessageLib.CCTPMessage[] memory cctpSignedMsgs = new CCTPMessageLib.CCTPMessage[](0);
+//     IMessageTransmitter emitterMessageTransmitter = getForkMessageTransmitter();
+//     if (address(emitterMessageTransmitter) != address(0)) {
+//       CctpTokenBurnMessage[] memory burnMsgs =
+//         emitterMessageTransmitter.fetchBurnMessages(logs);
+//       if (debugLogging)
+//         console.log(
+//             "Found %s circle messages in logs from %s",
+//             burnMsgs.length,
+//             address(emitterMessageTransmitter)
+//         );
 
-  constructor() {
-    initChainInfo();
+//       cctpSignedMsgs = new CCTPMessageLib.CCTPMessage[](burnMsgs.length);
+//       for (uint256 i = 0; i < cctpSignedMsgs.length; ++i) {
+//         cctpSignedMsgs[i].message = burnMsgs[i].encode();
+//         cctpSignedMsgs[i].signature = emitterMessageTransmitter.sign(burnMsgs[i]);
+//       }
+//     }
 
-    // set default active forks. These can be overridden in your test
-    ChainInfo[] memory forks = new ChainInfo[](2);
-    forks[0] = chainInfosTestnet[CHAIN_ID_AVALANCHE]; // fuji
-    forks[1] = chainInfosTestnet[CHAIN_ID_CELO]; // alfajores
-    setActiveForks(forks);
-  }
+//     for (uint16 i = 0; i < vaas.length; ++i) {
+//       uint16 chain = vaas[i].envelope.emitterChainId;
+//       address emitter = vaas[i].envelope.emitterAddress.fromUniversalAddress();
+//       if (debugLogging)
+//         console.log("Found VAA from chain %s emitted from %s", chain, emitter);
 
-  function _setActiveForks(ChainInfo[] memory chainInfos) internal virtual {
-    if (chainInfos.length < 2) {
-      console.log("setActiveForks: 2 or more forks must be specified");
-      revert("setActiveForks: 2 or more forks must be specified");
-    }
-    activeForksList = new uint16[](chainInfos.length);
-    for (uint256 i = 0; i < chainInfos.length; i++) {
-      activeForksList[i] = chainInfos[i].chainId;
-      activeForks[chainInfos[i].chainId] = ActiveFork({
-        chainId: chainInfos[i].chainId,
-        url: chainInfos[i].url,
-        name: chainInfos[i].name,
-        relayer: chainInfos[i].relayer,
-        tokenBridge: chainInfos[i].tokenBridge,
-        wormhole: chainInfos[i].wormhole,
-        // patch these in setUp() once we have the fork
-        fork: 0,
-        circleMessageTransmitter: chainInfos[i].circleMessageTransmitter,
-        circleTokenMessenger: chainInfos[i].circleTokenMessenger,
-        USDC: chainInfos[i].USDC
-      });
-    }
-  }
+//       if (emitter == address(wormholeRelayerContracts[chain])) {
+//         if (debugLogging)
+//           console.log("Relaying VAA to chain %s", chain);
 
-  function setActiveForks(ChainInfo[] memory chainInfos) public virtual {
-    _setActiveForks(chainInfos);
-  }
+//         genericRelay(
+//           vaas[i],
+//           vaas,
+//           cctpSignedMsgs,
+//           deliveryOverrides
+//         );
+//       }
+//     }
+//   }
 
-  function setUp() public virtual {
-    _setUp();
-  }
+//   function storeDelivery(
+//     uint16 chainId,
+//     uint64 deliveryVaaSequence,
+//     bytes[] memory encodedVaas,
+//     bytes memory encodedDeliveryVaa
+//   ) internal {
+//     bytes32 key = keccak256(abi.encodePacked(chainId, deliveryVaaSequence));
+//     pastEncodedVaas[key] = encodedVaas;
+//     pastEncodedDeliveryVaa[key] = encodedDeliveryVaa;
+//   }
 
-  function _setUp() internal {
-    // create and setup each active fork
-    for (uint256 i = 0; i < activeForksList.length; ++i) {
-      uint16 chainId = activeForksList[i];
-      ActiveFork storage fork = activeForks[chainId];
-      fork.fork = vm.createSelectFork(fork.url);
-      fork.wormhole.setUpOverride();
-      if (address(fork.circleMessageTransmitter) != address(0))
-        fork.circleMessageTransmitter.setUpOverride();
-    }
+//   function genericRelay(
+//     Vaa memory deliveryVaa,
+//     Vaa[] memory allVaas,
+//     CCTPMessageLib.CCTPMessage[] memory cctpMsgs,
+//     bytes memory deliveryOverrides
+//   ) internal {
+//     uint currentFork = vm.activeFork();
 
-    // run setUp virtual functions for each fork
-    for (uint256 i = 0; i < activeForksList.length; ++i) {
-      ActiveFork memory fork = activeForks[activeForksList[i]];
-      vm.selectFork(fork.fork);
-      setUpFork(fork);
-    }
+//     (uint8 payloadId, ) = deliveryVaa.payload.asUint8MemUnchecked(0);
+//     if (payloadId == PAYLOAD_ID_DELIVERY_INSTRUCTION) {
+//       DeliveryInstruction memory instruction =
+//         decodeDeliveryInstruction(deliveryVaa.payload);
 
-    ActiveFork memory firstFork = activeForks[activeForksList[0]];
-    vm.selectFork(firstFork.fork);
-    mockOffchainRelayer = new MockOffchainRelayer();
-    // register all active forks with the 'offchain' relayer
-    for (uint256 i = 0; i < activeForksList.length; ++i) {
-      ActiveFork storage fork = activeForks[activeForksList[i]];
-      mockOffchainRelayer.registerChain(
-        fork.chainId,
-        fork.wormhole,
-        fork.circleMessageTransmitter,
-        fork.relayer,
-        fork.fork
-      );
-    }
+//       bytes[] memory additionalMessages = new bytes[](instruction.messageKeys.length);
+//       for (uint8 i = 0; i < instruction.messageKeys.length; ++i) {
+//         if (instruction.messageKeys[i].keyType == VAA_KEY_TYPE) {
+//           (VaaKey memory vaaKey, ) =
+//             decodeVaaKey(instruction.messageKeys[i].encodedKey, 0);
+//           for (uint8 j = 0; j < allVaas.length; ++j)
+//             if (
+//               (vaaKey.chainId        == allVaas[j].envelope.emitterChainId) &&
+//               (vaaKey.emitterAddress == allVaas[j].envelope.emitterAddress) &&
+//               (vaaKey.sequence       == allVaas[j].envelope.sequence)
+//             ) {
+//               additionalMessages[i] = allVaas[j].encode();
+//               break;
+//             }
+//         }
+//         else if (instruction.messageKeys[i].keyType == CCTP_KEY_TYPE) {
+//           (CCTPMessageLib.CCTPKey memory key,) =
+//             decodeCCTPKey(instruction.messageKeys[i].encodedKey, 0);
+//           for (uint8 j = 0; j < cctpMsgs.length; ++j)
+//             if (cctpKeyMatchesCCTPMessage(key, cctpMsgs[j])) {
+//               additionalMessages[i] = abi.encode(cctpMsgs[j].message, cctpMsgs[j].signature);
+//               break;
+//             }
+//         }
+//         if (additionalMessages[i].length == 0)
+//           revert("Additional Message not found");
+//       }
 
-    // Allow the offchain relayer to work on all forks
-    vm.makePersistent(address(mockOffchainRelayer));
+//       EvmExecutionInfoV1 memory executionInfo =
+//         decodeEvmExecutionInfoV1(instruction.encodedExecutionInfo);
 
-    vm.selectFork(firstFork.fork);
-    setUpGeneral();
+//       uint256 budget = executionInfo.gasLimit *
+//         executionInfo.targetChainRefundPerGasUnused +
+//         instruction.requestedReceiverValue +
+//         instruction.extraReceiverValue;
 
-    vm.selectFork(firstFork.fork);
-  }
+//       uint16 targetChain = instruction.targetChain;
 
-  function performDelivery() public {
-    performDelivery(vm.getRecordedLogs(), false);
-  }
+//       vm.selectFork(forks[targetChain]);
 
-  function performDelivery(bool debugLogging) public {
-    performDelivery(vm.getRecordedLogs(), debugLogging);
-  }
+//       vm.deal(address(this), budget);
 
-  function performDelivery(Vm.Log[] memory logs) public {
-    performDelivery(logs, false);
-  }
+//       vm.recordLogs();
+//       bytes memory encodedDeliveryVaa = deliveryVaa.encode();
+//       getForkWormholeRelayer().deliver{value: budget}(
+//         additionalMessages,
+//         encodedDeliveryVaa,
+//         payable(address(this)),
+//         deliveryOverrides
+//       );
 
-  function performDelivery(Vm.Log[] memory logs, bool debugLogging) public {
-    require(logs.length > 0, "no events recorded");
-    mockOffchainRelayer.relay(logs, debugLogging);
-  }
+//       storeDelivery(
+//         deliveryVaa.envelope.emitterChainId,
+//         deliveryVaa.envelope.sequence,
+//         additionalMessages,
+//         encodedDeliveryVaa
+//       );
+//     }
+//     else if (payloadId == PAYLOAD_ID_REDELIVERY_INSTRUCTION) {
+//       RedeliveryInstruction memory instruction =
+//         decodeRedeliveryInstruction(deliveryVaa.payload);
 
-  function createAndAttestToken(
-    uint16 homeChain
-  ) public returns (ERC20Mock token) {
-    uint256 originalFork = vm.activeFork();
-    ActiveFork memory home = activeForks[homeChain];
-    vm.selectFork(home.fork);
+//       DeliveryOverride memory deliveryOverride = DeliveryOverride({
+//         newExecutionInfo: instruction.newEncodedExecutionInfo,
+//         newReceiverValue: instruction.newRequestedReceiverValue,
+//         redeliveryHash: VaaLib.calcDoubleHash(deliveryVaa)
+//       });
 
-    token = new ERC20Mock("Test Token", "TST");
-    token.mint(address(this), 5000e18);
+//       EvmExecutionInfoV1 memory executionInfo =
+//         decodeEvmExecutionInfoV1(instruction.newEncodedExecutionInfo);
 
-    vm.recordLogs();
-    home.tokenBridge.attestToken(address(token), 0);
-    bytes memory tokenAttestationVaa = home.wormhole.sign(
-      home.wormhole.fetchPublishedMessages(vm.getRecordedLogs())[0]
-    ).encode();
+//       uint256 budget = executionInfo.gasLimit *
+//         executionInfo.targetChainRefundPerGasUnused +
+//         instruction.newRequestedReceiverValue;
 
-    for (uint256 i = 0; i < activeForksList.length; ++i) {
-      if (activeForksList[i] == home.chainId) {
-        continue;
-      }
-      ActiveFork memory fork = activeForks[activeForksList[i]];
-      vm.selectFork(fork.fork);
-      fork.tokenBridge.createWrapped(tokenAttestationVaa);
-    }
+//       bytes memory oldEncodedDeliveryVaa = getPastDeliveryVaa(
+//         instruction.deliveryVaaKey.chainId,
+//         instruction.deliveryVaaKey.sequence
+//       );
 
-    vm.selectFork(originalFork);
-  }
+//       bytes[] memory oldEncodedVaas = getPastEncodedVaas(
+//         instruction.deliveryVaaKey.chainId,
+//         instruction.deliveryVaaKey.sequence
+//       );
 
-  function mintUSDC(uint16 chain, address addr, uint256 amount) public {
-    uint256 originalFork = vm.activeFork();
-    ActiveFork memory current = activeForks[chain];
-    vm.selectFork(current.fork);
+//       uint16 targetChain = decodeDeliveryInstruction(
+//         getForkWormhole().parseVM(oldEncodedDeliveryVaa).payload
+//       ).targetChain;
 
-    current.USDC.deal(addr, amount);
+//       vm.selectFork(forks[targetChain]);
+//       getForkWormholeRelayer().deliver{value: budget}(
+//         oldEncodedVaas,
+//         oldEncodedDeliveryVaa,
+//         payable(address(this)),
+//         encode(deliveryOverride)
+//       );
+//     }
+//     vm.selectFork(currentFork);
+//   }
 
-    vm.selectFork(originalFork);
-  }
+//   function performDelivery() public {
+//     performDelivery(vm.getRecordedLogs(), false);
+//   }
 
-  function logFork() public view {
-    uint256 fork = vm.activeFork();
-    for (uint256 i = 0; i < activeForksList.length; ++i) {
-      if (fork == activeForks[activeForksList[i]].fork) {
-        console.log(
-          "%s fork active",
-          activeForks[activeForksList[i]].name
-        );
-        return;
-      }
-    }
-  }
+//   function performDelivery(bool debugLogging) public {
+//     performDelivery(vm.getRecordedLogs(), debugLogging);
+//   }
 
-  function initChainInfo() private {
-    chainInfosTestnet[CHAIN_ID_AVALANCHE] = ChainInfo({
-      chainId: CHAIN_ID_AVALANCHE,
-      name: "fuji - avalanche",
-      url: vm.envOr(
-        "AVALANCHE_FUJI_RPC_URL",
-        string("https://api.avax-test.network/ext/bc/C/rpc")
-      ),
-      relayer: IWormholeRelayer(
-        0xA3cF45939bD6260bcFe3D66bc73d60f19e49a8BB
-      ),
-      tokenBridge: ITokenBridge(
-        0x61E44E506Ca5659E6c0bba9b678586fA2d729756
-      ),
-      wormhole: IWormhole(0x7bbcE28e64B3F8b84d876Ab298393c38ad7aac4C),
-      circleMessageTransmitter: IMessageTransmitter(
-        0xa9fB1b3009DCb79E2fe346c16a604B8Fa8aE0a79
-      ),
-      circleTokenMessenger: ITokenMessenger(
-        0xeb08f243E5d3FCFF26A9E38Ae5520A669f4019d0
-      ),
-      USDC: IUSDC(0x5425890298aed601595a70AB815c96711a31Bc65)
-    });
-    chainInfosTestnet[CHAIN_ID_CELO] = ChainInfo({
-      chainId: CHAIN_ID_CELO,
-      name: "alfajores - celo",
-      url: vm.envOr(
-        "CELO_TESTNET_RPC_URL",
-        string("https://alfajores-forno.celo-testnet.org")
-      ),
-      relayer: IWormholeRelayer(
-        0x306B68267Deb7c5DfCDa3619E22E9Ca39C374f84
-      ),
-      tokenBridge: ITokenBridge(
-        0x05ca6037eC51F8b712eD2E6Fa72219FEaE74E153
-      ),
-      wormhole: IWormhole(0x88505117CA88e7dd2eC6EA1E13f0948db2D50D56),
-      circleMessageTransmitter: IMessageTransmitter(address(0)),
-      circleTokenMessenger: ITokenMessenger(address(0)),
-      USDC: IUSDC(address(0))
-    });
-    chainInfosTestnet[CHAIN_ID_BSC] = ChainInfo({
-      chainId: CHAIN_ID_BSC,
-      name: "bsc testnet",
-      url: vm.envOr(
-        "BSC_TESTNET_RPC_URL",
-        string("https://bsc-testnet-rpc.publicnode.com/")
-      ),
-      relayer: IWormholeRelayer(
-        0x80aC94316391752A193C1c47E27D382b507c93F3
-      ),
-      tokenBridge: ITokenBridge(
-        0x9dcF9D205C9De35334D646BeE44b2D2859712A09
-      ),
-      wormhole: IWormhole(0x68605AD7b15c732a30b1BbC62BE8F2A509D74b4D),
-      circleMessageTransmitter: IMessageTransmitter(address(0)),
-      circleTokenMessenger: ITokenMessenger(address(0)),
-      USDC: IUSDC(address(0))
-    });
-    chainInfosTestnet[CHAIN_ID_MOONBEAM] = ChainInfo({
-      chainId: CHAIN_ID_MOONBEAM,
-      name: "moonbase alpha - moonbeam",
-      url: vm.envOr(
-        "MOONBASE_ALPHA_RPC_URL",
-        string("https://rpc.testnet.moonbeam.network")
-      ),
-      relayer: IWormholeRelayer(
-        0x0591C25ebd0580E0d4F27A82Fc2e24E7489CB5e0
-      ),
-      tokenBridge: ITokenBridge(
-        0xbc976D4b9D57E57c3cA52e1Fd136C45FF7955A96
-      ),
-      wormhole: IWormhole(0xa5B7D85a8f27dd7907dc8FdC21FA5657D5E2F901),
-      circleMessageTransmitter: IMessageTransmitter(address(0)),
-      circleTokenMessenger: ITokenMessenger(address(0)),
-      USDC: IUSDC(address(0))
-    });
-    chainInfosMainnet[CHAIN_ID_ETHEREUM] = ChainInfo({
-      chainId: CHAIN_ID_ETHEREUM,
-      name: "ethereum",
-      url: vm.envOr(
-        "ETHEREUM_RPC_URL",
-        string("https://ethereum-rpc.publicnode.com")
-      ),
-      relayer: IWormholeRelayer(
-        0x27428DD2d3DD32A4D7f7C497eAaa23130d894911
-      ),
-      tokenBridge: ITokenBridge(
-        0x3ee18B2214AFF97000D974cf647E7C347E8fa585
-      ),
-      wormhole: IWormhole(0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B),
-      circleMessageTransmitter: IMessageTransmitter(
-        0x0a992d191DEeC32aFe36203Ad87D7d289a738F81
-      ),
-      circleTokenMessenger: ITokenMessenger(
-        0xBd3fa81B58Ba92a82136038B25aDec7066af3155
-      ),
-      USDC: IUSDC(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)
-    });
-    chainInfosMainnet[CHAIN_ID_BSC] = ChainInfo({
-      chainId: CHAIN_ID_BSC,
-      name: "bsc",
-      url: vm.envOr(
-        "BSC_RPC_URL",
-        string("https://bsc-dataseed2.defibit.io")
-      ),
-      relayer: IWormholeRelayer(
-        0x27428DD2d3DD32A4D7f7C497eAaa23130d894911
-      ),
-      tokenBridge: ITokenBridge(
-        0xB6F6D86a8f9879A9c87f643768d9efc38c1Da6E7
-      ),
-      wormhole: IWormhole(0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B),
-      circleMessageTransmitter: IMessageTransmitter(address(0)),
-      circleTokenMessenger: ITokenMessenger(address(0)),
-      USDC: IUSDC(address(0))
-    });
-    chainInfosMainnet[CHAIN_ID_AVALANCHE] = ChainInfo({
-      chainId: CHAIN_ID_AVALANCHE,
-      name: "avalanche",
-      url: vm.envOr(
-        "AVALANCHE_RPC_URL",
-        string("https://avalanche-c-chain-rpc.publicnode.com")
-      ),
-      relayer: IWormholeRelayer(
-        0x27428DD2d3DD32A4D7f7C497eAaa23130d894911
-      ),
-      tokenBridge: ITokenBridge(
-        0x0e082F06FF657D94310cB8cE8B0D9a04541d8052
-      ),
-      wormhole: IWormhole(0x54a8e5f9c4CbA08F9943965859F6c34eAF03E26c),
-      circleMessageTransmitter: IMessageTransmitter(
-        0x8186359aF5F57FbB40c6b14A588d2A59C0C29880
-      ),
-      circleTokenMessenger: ITokenMessenger(
-        0x6B25532e1060CE10cc3B0A99e5683b91BFDe6982
-      ),
-      USDC: IUSDC(0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E)
-    });
-    chainInfosMainnet[CHAIN_ID_FANTOM] = ChainInfo({
-      chainId: CHAIN_ID_FANTOM,
-      name: "fantom",
-      url: vm.envOr(
-        "FANTOM_RPC_URL",
-        string("https://rpcapi.fantom.network")
-      ),
-      relayer: IWormholeRelayer(
-        0x27428DD2d3DD32A4D7f7C497eAaa23130d894911
-      ),
-      tokenBridge: ITokenBridge(
-        0x7C9Fc5741288cDFdD83CeB07f3ea7e22618D79D2
-      ),
-      wormhole: IWormhole(0x126783A6Cb203a3E35344528B26ca3a0489a1485),
-      circleMessageTransmitter: IMessageTransmitter(address(0)),
-      circleTokenMessenger: ITokenMessenger(address(0)),
-      USDC: IUSDC(address(0))
-    });
-    chainInfosMainnet[CHAIN_ID_KLAYTN] = ChainInfo({
-      chainId: CHAIN_ID_KLAYTN,
-      name: "klaytn",
-      url: vm.envOr(
-        "KLAYTN_RPC_URL",
-        string("https://klaytn-mainnet-rpc.allthatnode.com:8551")
-      ),
-      relayer: IWormholeRelayer(
-        0x27428DD2d3DD32A4D7f7C497eAaa23130d894911
-      ),
-      tokenBridge: ITokenBridge(
-        0x5b08ac39EAED75c0439FC750d9FE7E1F9dD0193F
-      ),
-      wormhole: IWormhole(0x0C21603c4f3a6387e241c0091A7EA39E43E90bb7),
-      circleMessageTransmitter: IMessageTransmitter(address(0)),
-      circleTokenMessenger: ITokenMessenger(address(0)),
-      USDC: IUSDC(address(0))
-    });
-    chainInfosMainnet[CHAIN_ID_CELO] = ChainInfo({
-      chainId: CHAIN_ID_CELO,
-      name: "celo",
-      url: vm.envOr("CELO_RPC_URL", string("https://forno.celo.org")),
-      relayer: IWormholeRelayer(
-        0x27428DD2d3DD32A4D7f7C497eAaa23130d894911
-      ),
-      tokenBridge: ITokenBridge(
-        0x796Dff6D74F3E27060B71255Fe517BFb23C93eed
-      ),
-      wormhole: IWormhole(0xa321448d90d4e5b0A732867c18eA198e75CAC48E),
-      circleMessageTransmitter: IMessageTransmitter(address(0)),
-      circleTokenMessenger: ITokenMessenger(address(0)),
-      USDC: IUSDC(address(0))
-    });
-    chainInfosMainnet[CHAIN_ID_ACALA] = ChainInfo({
-      chainId: CHAIN_ID_ACALA,
-      name: "acala",
-      url: vm.envOr(
-        "ACALA_RPC_URL",
-        string("https://eth-rpc-acala.aca-api.network")
-      ),
-      relayer: IWormholeRelayer(
-        0x27428DD2d3DD32A4D7f7C497eAaa23130d894911
-      ),
-      tokenBridge: ITokenBridge(
-        0xae9d7fe007b3327AA64A32824Aaac52C42a6E624
-      ),
-      wormhole: IWormhole(0xa321448d90d4e5b0A732867c18eA198e75CAC48E),
-      circleMessageTransmitter: IMessageTransmitter(address(0)),
-      circleTokenMessenger: ITokenMessenger(address(0)),
-      USDC: IUSDC(address(0))
-    });
-    chainInfosMainnet[CHAIN_ID_KARURA] = ChainInfo({
-      chainId: CHAIN_ID_KARURA,
-      name: "karura",
-      url: vm.envOr(
-        "KARURA_RPC_URL",
-        string("https://eth-rpc-karura.aca-api.network")
-      ),
-      relayer: IWormholeRelayer(
-        0x27428DD2d3DD32A4D7f7C497eAaa23130d894911
-      ),
-      tokenBridge: ITokenBridge(
-        0xae9d7fe007b3327AA64A32824Aaac52C42a6E624
-      ),
-      wormhole: IWormhole(0xa321448d90d4e5b0A732867c18eA198e75CAC48E),
-      circleMessageTransmitter: IMessageTransmitter(address(0)),
-      circleTokenMessenger: ITokenMessenger(address(0)),
-      USDC: IUSDC(address(0))
-    });
-    chainInfosMainnet[CHAIN_ID_MOONBEAM] = ChainInfo({
-      chainId: CHAIN_ID_MOONBEAM,
-      name: "moombeam",
-      url: vm.envOr(
-        "MOOMBEAM_RPC_URL",
-        string("https://moonbeam-rpc.publicnode.com")
-      ),
-      relayer: IWormholeRelayer(
-        0x27428DD2d3DD32A4D7f7C497eAaa23130d894911
-      ),
-      tokenBridge: ITokenBridge(
-        0xB1731c586ca89a23809861c6103F0b96B3F57D92
-      ),
-      wormhole: IWormhole(0xC8e2b0cD52Cf01b0Ce87d389Daa3d414d4cE29f3),
-      circleMessageTransmitter: IMessageTransmitter(address(0)),
-      circleTokenMessenger: ITokenMessenger(address(0)),
-      USDC: IUSDC(address(0))
-    });
-    chainInfosMainnet[CHAIN_ID_ARBITRUM] = ChainInfo({
-      chainId: CHAIN_ID_ARBITRUM,
-      name: "arbitrum",
-      url: vm.envOr(
-        "ARBITRUM_RPC_URL",
-        string("https://arb1.arbitrum.io/rpc")
-      ),
-      relayer: IWormholeRelayer(
-        0x27428DD2d3DD32A4D7f7C497eAaa23130d894911
-      ),
-      tokenBridge: ITokenBridge(
-        0x0b2402144Bb366A632D14B83F244D2e0e21bD39c
-      ),
-      wormhole: IWormhole(0xa5f208e072434bC67592E4C49C1B991BA79BCA46),
-      circleMessageTransmitter: IMessageTransmitter(
-        0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca
-      ),
-      circleTokenMessenger: ITokenMessenger(
-        0x19330d10D9Cc8751218eaf51E8885D058642E08A
-      ),
-      USDC: IUSDC(0xaf88d065e77c8cC2239327C5EDb3A432268e5831)
-    });
-    chainInfosMainnet[CHAIN_ID_OPTIMISM] = ChainInfo({
-      chainId: CHAIN_ID_OPTIMISM,
-      name: "optimism",
-      url: vm.envOr(
-        "OPTIMISM_RPC_URL",
-        string("https://mainnet.optimism.io")
-      ),
-      relayer: IWormholeRelayer(
-        0x27428DD2d3DD32A4D7f7C497eAaa23130d894911
-      ),
-      tokenBridge: ITokenBridge(
-        0x1D68124e65faFC907325e3EDbF8c4d84499DAa8b
-      ),
-      wormhole: IWormhole(0xEe91C335eab126dF5fDB3797EA9d6aD93aeC9722),
-      circleMessageTransmitter: IMessageTransmitter(
-        0x4D41f22c5a0e5c74090899E5a8Fb597a8842b3e8
-      ),
-      circleTokenMessenger: ITokenMessenger(
-        0x2B4069517957735bE00ceE0fadAE88a26365528f
-      ),
-      USDC: IUSDC(0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85)
-    });
-    chainInfosMainnet[CHAIN_ID_BASE] = ChainInfo({
-      chainId: CHAIN_ID_BASE,
-      name: "base",
-      url: vm.envOr("BASE_RPC_URL", string("https://mainnet.base.org")),
-      relayer: IWormholeRelayer(
-        0x706F82e9bb5b0813501714Ab5974216704980e31
-      ),
-      tokenBridge: ITokenBridge(
-        0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627
-      ),
-      wormhole: IWormhole(0xbebdb6C8ddC678FfA9f8748f85C815C556Dd8ac6),
-      circleMessageTransmitter: IMessageTransmitter(
-        address(0xAD09780d193884d503182aD4588450C416D6F9D4)
-      ),
-      circleTokenMessenger: ITokenMessenger(
-        address(0x1682Ae6375C4E4A97e4B583BC394c861A46D8962)
-      ),
-      USDC: IUSDC(address(0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913))
-    });
-  }
+//   function performDelivery(Vm.Log[] memory logs) public {
+//     performDelivery(logs, false);
+//   }
 
-  receive() external payable {}
-}
+//   function performDelivery(Vm.Log[] memory logs, bool debugLogging) public {
+//     require(logs.length > 0, "no events recorded");
+//     relay(logs, debugLogging);
+//   }
 
-abstract contract WormholeRelayerBasicTest is WormholeRelayerTest {
-  /**
-   * @dev virtual function to initialize source chain before each test
-   */
-  function setUpSource() public virtual;
-
-  /**
-   * @dev virtual function to initialize target chain before each test
-   */
-  function setUpTarget() public virtual;
-
-  /**
-   * @dev virtual function to initialize other active forks before each test
-   * Note: not called for source/target forks
-   */
-  function setUpOther(ActiveFork memory fork) public virtual {}
-
-  /*
-   * aliases for activeForks
-   */
-
-  ChainInfo public sourceChainInfo;
-  ChainInfo public targetChainInfo;
-
-  uint16 public sourceChain;
-  uint16 public targetChain;
-
-  uint256 public sourceFork;
-  uint256 public targetFork;
-
-  IWormholeRelayer public relayerSource;
-  ITokenBridge public tokenBridgeSource;
-  IWormhole public wormholeSource;
-
-  IWormholeRelayer public relayerTarget;
-  ITokenBridge public tokenBridgeTarget;
-  IWormhole public wormholeTarget;
-
-  /*
-   * end activeForks aliases
-   */
-
-  constructor() WormholeRelayerTest() {
-    setTestnetForkChains(CHAIN_ID_AVALANCHE, CHAIN_ID_CELO);
-  }
-
-  function setUp() public override {
-    sourceFork = 0;
-    targetFork = 1;
-    _setUp();
-    // aliases can't be set until after setUp
-    sourceFork = activeForks[activeForksList[0]].fork;
-    targetFork = activeForks[activeForksList[1]].fork;
-  }
-
-  function setUpFork(ActiveFork memory fork) public override {
-    if (fork.chainId == sourceChain) {
-      setUpSource();
-    } else if (fork.chainId == targetChain) {
-      setUpTarget();
-    } else {
-      setUpOther(fork);
-    }
-  }
-
-  function setActiveForks(ChainInfo[] memory chainInfos) public override {
-    _setActiveForks(chainInfos);
-
-    sourceChainInfo = chainInfos[0];
-    sourceChain = sourceChainInfo.chainId;
-    relayerSource = sourceChainInfo.relayer;
-    tokenBridgeSource = sourceChainInfo.tokenBridge;
-    wormholeSource = sourceChainInfo.wormhole;
-
-    targetChainInfo = chainInfos[1];
-    targetChain = targetChainInfo.chainId;
-    relayerTarget = targetChainInfo.relayer;
-    tokenBridgeTarget = targetChainInfo.tokenBridge;
-    wormholeTarget = targetChainInfo.wormhole;
-  }
-
-  function setTestnetForkChains(
-    uint16 _sourceChain,
-    uint16 _targetChain
-  ) public {
-    ChainInfo[] memory forks = new ChainInfo[](2);
-    forks[0] = chainInfosTestnet[_sourceChain];
-    forks[1] = chainInfosTestnet[_targetChain];
-    setActiveForks(forks);
-  }
-
-  function setMainnetForkChains(
-    uint16 _sourceChain,
-    uint16 _targetChain
-  ) public {
-    ChainInfo[] memory forks = new ChainInfo[](2);
-    forks[0] = chainInfosMainnet[_sourceChain];
-    forks[1] = chainInfosMainnet[_targetChain];
-    setActiveForks(forks);
-  }
-
-  function setForkChains(
-    bool testnet,
-    uint16 _sourceChain,
-    uint16 _targetChain
-  ) public {
-    if (testnet) {
-      setTestnetForkChains(_sourceChain, _targetChain);
-      return;
-    }
-    setMainnetForkChains(_sourceChain, _targetChain);
-  }
-}
+//   receive() external payable {}
+// }

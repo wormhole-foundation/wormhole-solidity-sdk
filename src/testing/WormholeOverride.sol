@@ -4,9 +4,8 @@ pragma solidity ^0.8.24;
 import {Vm} from "forge-std/Vm.sol";
 
 import {WORD_SIZE, WORD_SIZE_MINUS_ONE}          from "wormhole-sdk/constants/Common.sol";
-import {IWormhole}                               from "wormhole-sdk/interfaces/IWormhole.sol";
+import {ICoreBridge}                               from "wormhole-sdk/interfaces/ICoreBridge.sol";
 import {BytesParsing}                            from "wormhole-sdk/libraries/BytesParsing.sol";
-import {VaaLib}                                  from "wormhole-sdk/libraries/VaaLib.sol";
 import {CoreBridgeLib}                           from "wormhole-sdk/libraries/CoreBridge.sol";
 import {toUniversalAddress}                      from "wormhole-sdk/Utils.sol";
 import {VM_ADDRESS, DEVNET_GUARDIAN_PRIVATE_KEY} from "wormhole-sdk/testing/Constants.sol";
@@ -25,7 +24,7 @@ import {
 
 //simple version of the library - should be sufficient for most use cases
 library WormholeOverride {
-  using AdvancedWormholeOverride for IWormhole;
+  using AdvancedWormholeOverride for ICoreBridge;
 
   //Transition to a new guardian set under our control and set up default values for
   //  sequence (0), nonce (0), and consistency level (1 = finalized).
@@ -35,8 +34,8 @@ library WormholeOverride {
   //    Keeps in line with real world conditions. Useful for realistic gas costs and VAA sizes.
   //  true: The new guardian set is comprised of only one key: DEVNET_GUARDIAN_PRIVATE_KEY.
   //    This is useful to reduce the size of encoded VAAs and hence call traces when debugging.
-  function setUpOverride(IWormhole wormhole) internal {
-    wormhole.setUpOverride();
+  function setUpOverride(ICoreBridge coreBridge) internal {
+    coreBridge.setUpOverride();
   }
 
   //convenience function:
@@ -45,38 +44,38 @@ library WormholeOverride {
   // 2. uses sign to turn it into a VAA
   // 3. encodes the VAA as bytes
   function craftVaa(
-    IWormhole wormhole,
+    ICoreBridge coreBridge,
     uint16 emitterChain,
     bytes32 emitterAddress,
     bytes memory payload
   ) internal returns (bytes memory encodedVaa) {
-    return wormhole.craftVaa(emitterChain, emitterAddress, payload);
+    return coreBridge.craftVaa(emitterChain, emitterAddress, payload);
   }
 
   //turns a PublishedMessage struct into a VAA by having a quorum of guardians sign it
   function sign(
-    IWormhole wormhole,
+    ICoreBridge coreBridge,
     PublishedMessage memory pm
   ) internal view returns (Vaa memory vaa) {
-    return wormhole.sign(pm);
+    return coreBridge.sign(pm);
   }
 
   //fetch all messages from the logs that were emitted by the core bridge
   function fetchPublishedMessages(
-    IWormhole wormhole,
+    ICoreBridge coreBridge,
     Vm.Log[] memory logs
   ) internal view returns (PublishedMessage[] memory ret) {
-    return wormhole.fetchPublishedMessages(logs);
+    return coreBridge.fetchPublishedMessages(logs);
   }
 
   //tests should ensure support of non-zero core bridge message fees
-  function setMessageFee(IWormhole wormhole, uint256 msgFee) internal {
-    wormhole.setMessageFee(msgFee);
+  function setMessageFee(ICoreBridge coreBridge, uint256 msgFee) internal {
+    coreBridge.setMessageFee(msgFee);
   }
 
   //override the default consistency level used by craftVaa()
-  function setConsistencyLevel(IWormhole wormhole, uint8 consistencyLevel) internal {
-    wormhole.setConsistencyLevel(consistencyLevel);
+  function setConsistencyLevel(ICoreBridge coreBridge, uint8 consistencyLevel) internal {
+    coreBridge.setConsistencyLevel(consistencyLevel);
   }
 }
 
@@ -127,7 +126,10 @@ library AdvancedWormholeOverride {
 	// }
   uint256 constant private _GUARDIAN_SET_STRUCT_EXPIRATION_OFFSET = 1;
 
-  uint8 constant WORMHOLE_VAA_VERSION = 1;
+  //hardcoded because they are not exposed by the interface and to avoid the superfluous
+  //  rpc calls
+  uint16  constant private _GOVERNANCE_CHAIN_ID = 1;
+  bytes32 constant private _GOVERNANCE_CONTRACT = bytes32(uint256(4));
 
   //We add additional data to the core bridge's storage so we can conveniently use it in our
   //  library functions and to expose it to the test suite:
@@ -152,53 +154,53 @@ library AdvancedWormholeOverride {
   uint256 constant private _OR_GUARDIANS_OFFSET = 3;
   uint256 constant private _OR_SIGNING_INDICES_OFFSET = 4;
 
-  function setSequence(IWormhole wormhole, uint64 sequence) internal { unchecked {
+  function setSequence(ICoreBridge coreBridge, uint64 sequence) internal { unchecked {
     vm.store(
-      address(wormhole),
+      address(coreBridge),
       bytes32(_OVERRIDE_STATE_SLOT + _OR_SEQUENCE_OFFSET),
       bytes32(uint256(sequence))
     );
   }}
 
-  function getSequence(IWormhole wormhole) internal view returns (uint64) { unchecked {
+  function getSequence(ICoreBridge coreBridge) internal view returns (uint64) { unchecked {
     return uint64(uint256(vm.load(
-      address(wormhole),
+      address(coreBridge),
       bytes32(_OVERRIDE_STATE_SLOT + _OR_SEQUENCE_OFFSET)
     )));
   }}
 
-  function getAndIncrementSequence(IWormhole wormhole) internal returns (uint64) { unchecked {
-    uint64 sequence = getSequence(wormhole);
-    setSequence(wormhole, sequence + 1);
+  function getAndIncrementSequence(ICoreBridge coreBridge) internal returns (uint64) { unchecked {
+    uint64 sequence = getSequence(coreBridge);
+    setSequence(coreBridge, sequence + 1);
     return sequence;
   }}
 
-  function setNonce(IWormhole wormhole, uint32 nonce) internal { unchecked {
+  function setNonce(ICoreBridge coreBridge, uint32 nonce) internal { unchecked {
     vm.store(
-      address(wormhole),
+      address(coreBridge),
       bytes32(_OVERRIDE_STATE_SLOT + _OR_NONCE_OFFSET),
       bytes32(uint256(nonce))
     );
   }}
 
-  function getNonce(IWormhole wormhole) internal view returns (uint32) { unchecked {
+  function getNonce(ICoreBridge coreBridge) internal view returns (uint32) { unchecked {
     return uint32(uint256(vm.load(
-      address(wormhole),
+      address(coreBridge),
       bytes32(_OVERRIDE_STATE_SLOT + _OR_NONCE_OFFSET)
     )));
   }}
 
-  function setConsistencyLevel(IWormhole wormhole, uint8 consistencyLevel) internal {
+  function setConsistencyLevel(ICoreBridge coreBridge, uint8 consistencyLevel) internal {
     vm.store(
-      address(wormhole),
+      address(coreBridge),
       bytes32(_OVERRIDE_STATE_SLOT + _OR_CONSISTENCY_OFFSET),
       bytes32(uint256(consistencyLevel))
     );
   }
 
-  function getConsistencyLevel(IWormhole wormhole) internal view returns (uint8) {
+  function getConsistencyLevel(ICoreBridge coreBridge) internal view returns (uint8) {
     return uint8(uint256(vm.load(
-      address(wormhole),
+      address(coreBridge),
       bytes32(_OVERRIDE_STATE_SLOT + _OR_CONSISTENCY_OFFSET)
     )));
   }
@@ -209,39 +211,39 @@ library AdvancedWormholeOverride {
   }
 
   function _setGuardianPrivateKeys(
-    IWormhole wormhole,
+    ICoreBridge coreBridge,
     uint256[] memory guardianPrivateKeys
   ) private { unchecked {
     vm.store(
-      address(wormhole),
+      address(coreBridge),
       bytes32(_OVERRIDE_STATE_SLOT + _OR_GUARDIANS_OFFSET),
       bytes32(guardianPrivateKeys.length)
     );
     for (uint i = 0; i < guardianPrivateKeys.length; ++i)
       vm.store(
-        address(wormhole),
+        address(coreBridge),
         bytes32(_arraySlot(_OVERRIDE_STATE_SLOT + _OR_GUARDIANS_OFFSET) + i),
         bytes32(guardianPrivateKeys[i])
       );
   }}
 
   function getGuardianPrivateKeysLength(
-    IWormhole wormhole
+    ICoreBridge coreBridge
   ) internal view returns (uint256) { unchecked {
     return uint256(vm.load(
-      address(wormhole),
+      address(coreBridge),
       bytes32(_OVERRIDE_STATE_SLOT + _OR_GUARDIANS_OFFSET)
     ));
   }}
 
   function getGuardianPrivateKeys(
-    IWormhole wormhole
+    ICoreBridge coreBridge
   ) internal view returns (uint256[] memory) { unchecked {
-    uint len = getGuardianPrivateKeysLength(wormhole);
+    uint len = getGuardianPrivateKeysLength(coreBridge);
     uint256[] memory keys = new uint256[](len);
     for (uint i = 0; i < len; ++i)
       keys[i] = uint256(vm.load(
-        address(wormhole),
+        address(coreBridge),
         bytes32(_arraySlot(_OVERRIDE_STATE_SLOT + _OR_GUARDIANS_OFFSET) + i)
       ));
 
@@ -249,11 +251,11 @@ library AdvancedWormholeOverride {
   }}
 
   function setSigningIndices(
-    IWormhole wormhole,
+    ICoreBridge coreBridge,
     uint8[] memory signingIndices
   ) internal { unchecked {
     vm.store(
-      address(wormhole),
+      address(coreBridge),
       bytes32(_OVERRIDE_STATE_SLOT + _OR_SIGNING_INDICES_OFFSET),
       bytes32(signingIndices.length)
     );
@@ -269,7 +271,7 @@ library AdvancedWormholeOverride {
     for (uint i = 0; i < fullSlots; ++i) {
       (bytes32 val,) = packedIndices.asBytes32MemUnchecked(i * WORD_SIZE);
       vm.store(
-        address(wormhole),
+        address(coreBridge),
         bytes32(_arraySlot(_OVERRIDE_STATE_SLOT + _OR_SIGNING_INDICES_OFFSET) + i),
         val
       );
@@ -280,7 +282,7 @@ library AdvancedWormholeOverride {
       (uint256 val, ) = packedIndices.asUint256MemUnchecked(fullSlots * WORD_SIZE);
       val &= ~(type(uint256).max >> (8 * remaining)); //clean unused bits to be safe
       vm.store(
-        address(wormhole),
+        address(coreBridge),
         bytes32(_arraySlot(_OVERRIDE_STATE_SLOT + _OR_SIGNING_INDICES_OFFSET) + fullSlots),
         bytes32(val)
       );
@@ -288,22 +290,22 @@ library AdvancedWormholeOverride {
   }}
 
   function _getSigningIndicesLength(
-    IWormhole wormhole
+    ICoreBridge coreBridge
   ) private view returns (uint256) { unchecked {
     return uint256(vm.load(
-      address(wormhole),
+      address(coreBridge),
       bytes32(_OVERRIDE_STATE_SLOT + _OR_SIGNING_INDICES_OFFSET)
     ));
   }}
 
   function getSigningIndices(
-    IWormhole wormhole
+    ICoreBridge coreBridge
   ) internal view returns (bytes memory) { unchecked {
-    uint len = _getSigningIndicesLength(wormhole);
+    uint len = _getSigningIndicesLength(coreBridge);
     bytes32[] memory individualSlots = new bytes32[]((len + WORD_SIZE_MINUS_ONE) / WORD_SIZE);
     for (uint i = 0; i < individualSlots.length; ++i)
       individualSlots[i] = vm.load(
-        address(wormhole),
+        address(coreBridge),
         bytes32(_arraySlot(_OVERRIDE_STATE_SLOT + _OR_SIGNING_INDICES_OFFSET) + i)
       );
 
@@ -321,7 +323,7 @@ library AdvancedWormholeOverride {
     return uint256(keccak256(abi.encode(index, _STORAGE_GUARDIAN_SETS_SLOT)));
   }
 
-  function setUpOverride(IWormhole wormhole) internal {
+  function setUpOverride(ICoreBridge coreBridge) internal {
     bool defaultToDevnetGuardian = vm.envOr("DEFAULT_TO_DEVNET_GUARDIAN", false);
     uint256[] memory guardianPrivateKeys;
     if (defaultToDevnetGuardian) {
@@ -330,19 +332,19 @@ library AdvancedWormholeOverride {
     }
     else {
       guardianPrivateKeys =
-        new uint256[](wormhole.getGuardianSet(wormhole.getCurrentGuardianSetIndex()).keys.length);
+        new uint256[](coreBridge.getGuardianSet(coreBridge.getCurrentGuardianSetIndex()).keys.length);
 
       for (uint i = 0; i < guardianPrivateKeys.length; ++i)
         (, guardianPrivateKeys[i]) = _makeAddrAndKey(defaultGuardianLabel(i));
     }
-    setUpOverride(wormhole, guardianPrivateKeys);
+    setUpOverride(coreBridge, guardianPrivateKeys);
   }
 
   function setUpOverride(
-    IWormhole wormhole,
+    ICoreBridge coreBridge,
     uint256[] memory guardianPrivateKeys
   ) internal { unchecked {
-    if (getGuardianPrivateKeys(wormhole).length != 0)
+    if (getGuardianPrivateKeys(coreBridge).length != 0)
       revert ("already set up");
 
     if (guardianPrivateKeys.length == 0)
@@ -352,12 +354,12 @@ library AdvancedWormholeOverride {
       revert ("too many guardians, core bridge enforces upper bound of 255");
 
     //bring the core bridge under heel by introducing a new guardian set
-    uint32 curGuardianSetIndex = wormhole.getCurrentGuardianSetIndex();
+    uint32 curGuardianSetIndex = coreBridge.getCurrentGuardianSetIndex();
     uint256 curGuardianSetSlot = _guardianSetSlot(curGuardianSetIndex);
 
     //expire the current guardian set like a normal guardian set transition would
     vm.store(
-      address(wormhole),
+      address(coreBridge),
       bytes32(curGuardianSetSlot + _GUARDIAN_SET_STRUCT_EXPIRATION_OFFSET),
       bytes32(block.timestamp + 1 days)
     );
@@ -367,44 +369,44 @@ library AdvancedWormholeOverride {
 
     //update the guardian set index
     vm.store(
-      address(wormhole),
+      address(coreBridge),
       bytes32(_STORAGE_GUARDIAN_SET_INDEX_SLOT),
       bytes32(uint256(newGuardianSetIndex))
     );
 
     //dynamic storage arrays store their length in their assigned slot
-    vm.store(address(wormhole), bytes32(newGuardianSetSlot), bytes32(guardianPrivateKeys.length));
+    vm.store(address(coreBridge), bytes32(newGuardianSetSlot), bytes32(guardianPrivateKeys.length));
     //initialize the new guardian set with the provided private keys
     for (uint256 i = 0; i < guardianPrivateKeys.length; ++i)
       vm.store(
-        address(wormhole),
+        address(coreBridge),
         bytes32(_arraySlot(newGuardianSetSlot) + i),
         bytes32(uint256(uint160(vm.addr(guardianPrivateKeys[i]))))
       );
 
     //initialize override state with default values
-    setSequence(wormhole, 0);
-    setNonce(wormhole, 0);
-    setConsistencyLevel(wormhole, 1); //finalized
-    _setGuardianPrivateKeys(wormhole, guardianPrivateKeys);
+    setSequence(coreBridge, 0);
+    setNonce(coreBridge, 0);
+    setConsistencyLevel(coreBridge, 1); //finalized
+    _setGuardianPrivateKeys(coreBridge, guardianPrivateKeys);
     uint quorum = CoreBridgeLib.minSigsForQuorum(guardianPrivateKeys.length);
     uint8[] memory signingIndices = new uint8[](quorum);
     for (uint i = 0; i < quorum; ++i)
       signingIndices[i] = uint8(i);
 
-    setSigningIndices(wormhole, signingIndices);
+    setSigningIndices(coreBridge, signingIndices);
   }}
 
-  function setMessageFee(IWormhole wormhole, uint256 msgFee) internal {
-    vm.store(address(wormhole), bytes32(_STORAGE_MESSAGE_FEE_SLOT), bytes32(msgFee));
+  function setMessageFee(ICoreBridge coreBridge, uint256 msgFee) internal {
+    vm.store(address(coreBridge), bytes32(_STORAGE_MESSAGE_FEE_SLOT), bytes32(msgFee));
   }
 
   function fetchPublishedMessages(
-    IWormhole wormhole,
+    ICoreBridge coreBridge,
     Vm.Log[] memory logs
   ) internal view returns (PublishedMessage[] memory ret) { unchecked {
     Vm.Log[] memory pmLogs = logs.filter(
-      address(wormhole),
+      address(coreBridge),
       keccak256("LogMessagePublished(address,uint64,uint32,bytes,uint8)")
     );
 
@@ -416,42 +418,42 @@ library AdvancedWormholeOverride {
       (envelope.sequence, envelope.nonce, pm.payload, envelope.consistencyLevel) =
         abi.decode(pmLogs[i].data, (uint64, uint32, bytes, uint8));
       envelope.timestamp = uint32(block.timestamp);
-      envelope.emitterChainId = wormhole.chainId();
+      envelope.emitterChainId = coreBridge.chainId();
     }
   }}
 
   function sign(
-    IWormhole wormhole,
+    ICoreBridge coreBridge,
     PublishedMessage memory pm
   ) internal view returns (Vaa memory vaa) {
-    return sign(wormhole, pm, getSigningIndices(wormhole));
+    return sign(coreBridge, pm, getSigningIndices(coreBridge));
   }
 
   function sign(
-    IWormhole wormhole,
+    ICoreBridge coreBridge,
     bytes32 hash
   ) internal view returns (GuardianSignature[] memory signatures) {
-    return sign(wormhole, hash, getSigningIndices(wormhole));
+    return sign(coreBridge, hash, getSigningIndices(coreBridge));
   }
 
   function sign(
-    IWormhole wormhole,
+    ICoreBridge coreBridge,
     PublishedMessage memory pm,
     bytes memory signingGuardianIndices //treated as a packed uint8 array
   ) internal view returns (Vaa memory vaa) {
-    vaa.header.guardianSetIndex = wormhole.getCurrentGuardianSetIndex();
-    vaa.header.signatures = sign(wormhole, VaaLib.calcDoubleHash(pm), signingGuardianIndices);
+    vaa.header.guardianSetIndex = coreBridge.getCurrentGuardianSetIndex();
+    vaa.header.signatures = sign(coreBridge, VaaLib.calcDoubleHash(pm), signingGuardianIndices);
     vaa.envelope = pm.envelope;
     vaa.payload = pm.payload;
   }
 
   function sign(
-    IWormhole wormhole,
+    ICoreBridge coreBridge,
     bytes32 hash,
     bytes memory signingGuardianIndices //treated as a packed uint8 array
   ) internal view returns (GuardianSignature[] memory signatures) { unchecked {
     signatures = new GuardianSignature[](signingGuardianIndices.length);
-    uint256[] memory guardianPrivateKeys = getGuardianPrivateKeys(wormhole);
+    uint256[] memory guardianPrivateKeys = getGuardianPrivateKeys(coreBridge);
     for (uint i = 0; i < signingGuardianIndices.length; ++i) {
       (uint8 gi, ) = signingGuardianIndices.asUint8Mem(i);
       (signatures[i].v, signatures[i].r, signatures[i].s) =
@@ -461,7 +463,7 @@ library AdvancedWormholeOverride {
   }}
 
   function craftVaa(
-    IWormhole wormhole,
+    ICoreBridge coreBridge,
     uint16 emitterChain,
     bytes32 emitterAddress,
     bytes memory payload
@@ -469,20 +471,20 @@ library AdvancedWormholeOverride {
     PublishedMessage memory pm = PublishedMessage(
       VaaEnvelope(
         uint32(block.timestamp),
-        getNonce(wormhole),
+        getNonce(coreBridge),
         emitterChain,
         emitterAddress,
-        getAndIncrementSequence(wormhole),
-        getConsistencyLevel(wormhole)
+        getAndIncrementSequence(coreBridge),
+        getConsistencyLevel(coreBridge)
       ),
       payload
     );
 
-    return sign(wormhole, pm).encode();
+    return sign(coreBridge, pm).encode();
   }
 
   function craftGovernancePublishedMessage(
-    IWormhole wormhole,
+    ICoreBridge coreBridge,
     bytes32 module,
     uint8 action,
     uint16 targetChain,
@@ -491,11 +493,11 @@ library AdvancedWormholeOverride {
     return PublishedMessage(
       VaaEnvelope(
         uint32(block.timestamp),
-        getNonce(wormhole),
-        wormhole.governanceChainId(),
-        wormhole.governanceContract(),
-        getAndIncrementSequence(wormhole),
-        getConsistencyLevel(wormhole)
+        getNonce(coreBridge),
+        _GOVERNANCE_CHAIN_ID,
+        _GOVERNANCE_CONTRACT,
+        getAndIncrementSequence(coreBridge),
+        getConsistencyLevel(coreBridge)
       ),
       abi.encodePacked(module, action, targetChain, decree)
     );
