@@ -51,18 +51,125 @@ contract QueryResponseTest is Test {
 
   address wormhole;
   QueryResponseLibTestWrapper wrapper;
+  uint32 guardianSetIndex;
+
+  function _withDataLocationTag(
+    string memory functionName,
+    bool cd,
+    string memory parameters
+  ) private pure returns (string memory) {
+    return string(abi.encodePacked(functionName, cd ? "Cd" : "Mem", parameters));
+  }
+
+  function runBoth(function(bool) test) internal {
+    test(true);
+    test(false);
+  }
+
+  function _verifyQueryResponseRaw(
+    bool cd,
+    bytes memory resp,
+    GuardianSignature[] memory sigs
+  ) internal view returns (bool success, bytes memory encodedResult) {
+    return address(wrapper).staticcall(abi.encodeWithSignature(
+      _withDataLocationTag(
+        "verifyQueryResponse",
+        cd,
+        "(address,bytes,(bytes32,bytes32,uint8,uint8)[],uint32)"
+      ),
+      wormhole, resp, sigs, guardianSetIndex
+    ));
+  }
+
+  function _verifyQueryResponse(
+    bool cd,
+    bytes memory resp,
+    GuardianSignature[] memory sigs
+  ) internal {
+    (bool success, ) = _verifyQueryResponseRaw(cd, resp, sigs);
+    assertEq(success, true);
+  }
+
+  function _expectRevertVerifyQueryResponse(
+    bool cd,
+    bytes memory resp,
+    GuardianSignature[] memory sigs
+  ) internal returns (bytes memory encodedResult) {
+    bool success;
+    (success, encodedResult) = _verifyQueryResponseRaw(cd, resp, sigs);
+    assertEq(success, false);
+    return encodedResult;
+  }
+
+  function _expectRevertVerifyQueryResponse(
+    bool cd,
+    bytes memory resp,
+    GuardianSignature[] memory sigs,
+    bytes memory expectedRevert
+  ) internal {
+    bytes memory encodedResult = _expectRevertVerifyQueryResponse(cd, resp, sigs);
+    assertEq(encodedResult, expectedRevert);
+  }
+
+  function _decodeAndVerifyQueryResponseRaw(
+    bool cd,
+    bytes memory resp,
+    GuardianSignature[] memory sigs
+  ) internal view returns (bool success, bytes memory encodedResult) {
+    return address(wrapper).staticcall(abi.encodeWithSignature(
+      _withDataLocationTag(
+        "decodeAndVerifyQueryResponse",
+        cd,
+        "(address,bytes,(bytes32,bytes32,uint8,uint8)[],uint32)"
+      ),
+      wormhole, resp, sigs, guardianSetIndex
+    ));
+  }
+
+  function _decodeAndVerifyQueryResponse(
+    bool cd,
+    bytes memory resp,
+    GuardianSignature[] memory sigs
+  ) internal returns (QueryResponse memory) {
+    (bool success, bytes memory encodedResult) =
+      _decodeAndVerifyQueryResponseRaw(cd, resp, sigs);
+    assertEq(success, true);
+    return abi.decode(encodedResult, (QueryResponse));
+  }
+
+  function _expectRevertDecodeAndVerifyQueryResponse(
+    bool cd,
+    bytes memory resp,
+    GuardianSignature[] memory sigs
+  ) internal returns (bytes memory encodedResult) {
+    bool success;
+    (success, encodedResult) = _decodeAndVerifyQueryResponseRaw(cd, resp, sigs);
+    assertEq(success, false);
+    return encodedResult;
+  }
+
+  function _expectRevertDecodeAndVerifyQueryResponse(
+    bool cd,
+    bytes memory resp,
+    GuardianSignature[] memory sigs,
+    bytes memory expectedRevert
+  ) internal {
+    bytes memory encodedResult = _expectRevertDecodeAndVerifyQueryResponse(cd, resp, sigs);
+    assertEq(encodedResult, expectedRevert);
+  }
 
   function setUp() public {
     vm.createSelectFork(vm.envString("TEST_RPC_URL"));
     wormhole = vm.envAddress("TEST_WORMHOLE_ADDRESS");
     IWormhole(wormhole).setUpOverride();
+    guardianSetIndex = IWormhole(wormhole).getCurrentGuardianSetIndex();
     wrapper = new QueryResponseLibTestWrapper();
   }
 
   function sign(
     bytes memory response
-  ) internal view returns (IWormhole.Signature[] memory signatures) {
-    return IWormhole(wormhole).sign(QueryResponseLib.calcPrefixedResponseHash(response));
+  ) internal view returns (GuardianSignature[] memory signatures) {
+    return IWormhole(wormhole).sign(QueryResponseLib.calcPrefixedResponseHashMem(response));
   }
 
   function concatenateQueryResponseBytesOffChain(
@@ -92,22 +199,30 @@ contract QueryResponseTest is Test {
     );
   }
 
-  function test_calcPrefixedResponseHash() public {
+  function calcPrefixedResponseHash(bool cd) internal {
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
-    bytes32 digest = wrapper.calcPrefixedResponseHash(resp);
+
+    (bool success, bytes memory encodedResult) =
+      address(wrapper).call(abi.encodeWithSignature(
+        _withDataLocationTag("calcPrefixedResponseHash", cd, "(bytes)"),
+        resp
+      ));
+    assertEq(success, true);
+    bytes32 digest = abi.decode(encodedResult, (bytes32));
     bytes32 expectedDigest = 0x5b84b19c68ee0b37899230175a92ee6eda4c5192e8bffca1d057d811bb3660e2;
     assertEq(digest, expectedDigest);
   }
+  function test_calcPrefixedResponseHash() public { runBoth(calcPrefixedResponseHash); }
 
-  function test_verifyQueryResponse() public view {
+  function verifyQueryResponse(bool cd) internal {
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
-    wrapper.verifyQueryResponse(wormhole, resp, sign(resp));
-    // TODO: There are no assertions for this test
+    _verifyQueryResponse(cd, resp, sign(resp));
   }
+  function test_verifyQueryResponse() public { runBoth(verifyQueryResponse); }
 
-  function test_parseAndVerifyQueryResponse() public {
+  function decodeAndVerifyQueryResponse(bool cd) internal {
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
-    QueryResponse memory r = wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
+    QueryResponse memory r = _decodeAndVerifyQueryResponse(cd, resp, sign(resp));
     assertEq(r.version, 1);
     assertEq(r.senderChainId, 0);
     assertEq(r.requestId, hex"ff0c222dc9e3655ec38e212e9792bf1860356d1277462b6bf747db865caca6fc08e6317b64ee3245264e371146b1d315d38c867fe1f69614368dc4430bb560f200");
@@ -118,8 +233,9 @@ contract QueryResponseTest is Test {
     assertEq(r.responses[0].request, hex"00000009307832613631616334020d500b1d8e8ef31e21c99d1db9a6444d3adf12700000000406fdde030d500b1d8e8ef31e21c99d1db9a6444d3adf12700000000418160ddd");
     assertEq(r.responses[0].response, hex"0000000002a61ac4c1adff9f6e180309e7d0d94c063338ddc61c1c4474cd6957c960efe659534d040005ff312e4f90c002000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d57726170706564204d6174696300000000000000000000000000000000000000000000200000000000000000000000000000000000000000007ae5649beabeddf889364a");
   }
+  function test_decodeAndVerifyQueryResponse() public { runBoth(decodeAndVerifyQueryResponse); }
 
-  function test_parseEthCallQueryResponse() public {
+  function test_decodeEthCallQueryResponse() internal {
     // Take the data extracted by the previous test and break it down even further.
     PerChainQueryResponse memory r = PerChainQueryResponse({
       chainId: 5,
@@ -128,7 +244,7 @@ contract QueryResponseTest is Test {
       response: hex"0000000002a61ac4c1adff9f6e180309e7d0d94c063338ddc61c1c4474cd6957c960efe659534d040005ff312e4f90c002000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d57726170706564204d6174696300000000000000000000000000000000000000000000200000000000000000000000000000000000000000007ae5649beabeddf889364a"
     });
 
-    EthCallQueryResponse memory eqr = wrapper.parseEthCallQueryResponse(r);
+    EthCallQueryResponse memory eqr = wrapper.decodeEthCallQueryResponse(r);
     assertEq(eqr.requestBlockId, hex"307832613631616334");
     assertEq(eqr.blockNum, 44440260);
     assertEq(eqr.blockHash, hex"c1adff9f6e180309e7d0d94c063338ddc61c1c4474cd6957c960efe659534d04");
@@ -144,7 +260,7 @@ contract QueryResponseTest is Test {
     assertEq(eqr.results[1].result, hex"0000000000000000000000000000000000000000007ae5649beabeddf889364a");
   }
 
-  function test_parseEthCallQueryResponseRevertWrongQueryType() public {
+  function test_decodeEthCallQueryResponseRevertWrongQueryType() public {
     // Take the data extracted by the previous test and break it down even further.
     PerChainQueryResponse memory r = PerChainQueryResponse({
       chainId: 5,
@@ -153,11 +269,11 @@ contract QueryResponseTest is Test {
       response: hex"0000000002a61ac4c1adff9f6e180309e7d0d94c063338ddc61c1c4474cd6957c960efe659534d040005ff312e4f90c002000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d57726170706564204d6174696300000000000000000000000000000000000000000000200000000000000000000000000000000000000000007ae5649beabeddf889364a"
     });
 
-    vm.expectRevert(abi.encodeWithSelector(WrongQueryType.selector, 2, QueryType.ETH_CALL));
-    wrapper.parseEthCallQueryResponse(r);
+    vm.expectRevert(abi.encodeWithSelector(QueryResponseLib.WrongQueryType.selector, 2, QueryType.ETH_CALL));
+    wrapper.decodeEthCallQueryResponse(r);
   }
 
-  function test_parseEthCallQueryResponseComparison() public {
+  function test_decodeEthCallQueryResponseComparison() public {
     PerChainQueryResponse memory r = PerChainQueryResponse({
       chainId: 23,
       queryType: 1,
@@ -165,7 +281,7 @@ contract QueryResponseTest is Test {
       response: hex"00000000027d3343b9848f128b3658a0b9b50aa174e3ddc15ac4e54c84ee534b6d247adbdfc300c90006056cda47a84001000000200000000000000000000000000000000000000000000000000000000000000004"
     });
 
-    EthCallQueryResponse memory eqr = wrapper.parseEthCallQueryResponse(r);
+    EthCallQueryResponse memory eqr = wrapper.decodeEthCallQueryResponse(r);
     assertEq(eqr.requestBlockId, "0x27d3343");
     assertEq(eqr.blockNum, 0x27d3343);
     assertEq(eqr.blockHash, hex"b9848f128b3658a0b9b50aa174e3ddc15ac4e54c84ee534b6d247adbdfc300c9");
@@ -183,7 +299,7 @@ contract QueryResponseTest is Test {
     assertEq(abi.decode(eqr.results[0].result, (uint256)), 4);
   }
 
-  function test_parseEthCallByTimestampQueryResponse() public {
+  function test_decodeEthCallByTimestampQueryResponse() public {
     // Take the data extracted by the previous test and break it down even further.
     PerChainQueryResponse memory r = PerChainQueryResponse({
       chainId: 2,
@@ -192,7 +308,7 @@ contract QueryResponseTest is Test {
       response: hex"0000000000004271ec70d2f70cf1933770ae760050a75334ce650aa091665ee43a6ed488cd154b0800000003f4810cc000000000000042720b1608c2cddfd9d7fb4ec94f79ec1389e2410e611a2c2bbde94e9ad37519ebbb00000003f4904f0002000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d5772617070656420457468657200000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000"
     });
 
-    EthCallByTimestampQueryResponse memory eqr = wrapper.parseEthCallByTimestampQueryResponse(r);
+    EthCallByTimestampQueryResponse memory eqr = wrapper.decodeEthCallByTimestampQueryResponse(r);
     assertEq(eqr.requestTargetBlockIdHint, hex"307834323731");
     assertEq(eqr.requestFollowingBlockIdHint, hex"307834323732");
     assertEq(eqr.requestTargetTimestamp, 0x03f4810cc0);
@@ -213,7 +329,7 @@ contract QueryResponseTest is Test {
     assertEq(eqr.results[1].result, hex"0000000000000000000000000000000000000000000000000000000000000000");
   }
 
-  function test_parseEthCallByTimestampQueryResponseRevertWrongQueryType() public {
+  function test_decodeEthCallByTimestampQueryResponseRevertWrongQueryType() public {
     // Take the data extracted by the previous test and break it down even further.
     PerChainQueryResponse memory r = PerChainQueryResponse({
       chainId: 2,
@@ -222,11 +338,11 @@ contract QueryResponseTest is Test {
       response: hex"0000000000004271ec70d2f70cf1933770ae760050a75334ce650aa091665ee43a6ed488cd154b0800000003f4810cc000000000000042720b1608c2cddfd9d7fb4ec94f79ec1389e2410e611a2c2bbde94e9ad37519ebbb00000003f4904f0002000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d5772617070656420457468657200000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000"
     });
 
-    vm.expectRevert(abi.encodeWithSelector(WrongQueryType.selector, 1, QueryType.ETH_CALL_BY_TIMESTAMP));
-    wrapper.parseEthCallByTimestampQueryResponse(r);
+    vm.expectRevert(abi.encodeWithSelector(QueryResponseLib.WrongQueryType.selector, 1, QueryType.ETH_CALL_BY_TIMESTAMP));
+    wrapper.decodeEthCallByTimestampQueryResponse(r);
   }
 
-  function test_parseEthCallWithFinalityQueryResponse() public {
+  function test_decodeEthCallWithFinalityQueryResponse() public {
     // Take the data extracted by the previous test and break it down even further.
     PerChainQueryResponse memory r = PerChainQueryResponse({
       chainId: 2,
@@ -235,7 +351,7 @@ contract QueryResponseTest is Test {
       response: hex"00000000000060299eb9c56ffdae81214867ed217f5ab37e295c196b4f04b23a795d3e4aea6ff3d700000005bb1bd58002000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d5772617070656420457468657200000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000"
     });
 
-    EthCallWithFinalityQueryResponse memory eqr = wrapper.parseEthCallWithFinalityQueryResponse(r);
+    EthCallWithFinalityQueryResponse memory eqr = wrapper.decodeEthCallWithFinalityQueryResponse(r);
     assertEq(eqr.requestBlockId, hex"307836303239");
     assertEq(eqr.requestFinality, hex"66696e616c697a6564");
     assertEq(eqr.blockNum, 0x6029);
@@ -252,7 +368,7 @@ contract QueryResponseTest is Test {
     assertEq(eqr.results[1].result, hex"0000000000000000000000000000000000000000000000000000000000000000");
   }
 
-  function test_parseEthCallWithFinalityQueryResponseRevertWrongQueryType() public {
+  function test_decodeEthCallWithFinalityQueryResponseRevertWrongQueryType() public {
     // Take the data extracted by the previous test and break it down even further.
     PerChainQueryResponse memory r = PerChainQueryResponse({
       chainId: 2,
@@ -261,19 +377,23 @@ contract QueryResponseTest is Test {
       response: hex"00000000000060299eb9c56ffdae81214867ed217f5ab37e295c196b4f04b23a795d3e4aea6ff3d700000005bb1bd58002000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d5772617070656420457468657200000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000"
     });
 
-    vm.expectRevert(abi.encodeWithSelector(WrongQueryType.selector, 1, QueryType.ETH_CALL_WITH_FINALITY));
-    wrapper.parseEthCallWithFinalityQueryResponse(r);
+    vm.expectRevert(abi.encodeWithSelector(
+      QueryResponseLib.WrongQueryType.selector,
+      1,
+      QueryType.ETH_CALL_WITH_FINALITY
+    ));
+    wrapper.decodeEthCallWithFinalityQueryResponse(r);
   }
 
   // Start of Solana Stuff ///////////////////////////////////////////////////////////////////////////
 
-  function test_verifyQueryResponseForSolana() public view {
+  function verifyQueryResponseForSolana(bool cd) internal {
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, solanaAccountSignature, solanaAccountQueryRequestVersion, solanaAccountQueryRequestNonce, solanaAccountNumPerChainQueries, solanaAccountPerChainQueries, solanaAccountNumPerChainResponses, solanaAccountPerChainResponses);
-    wrapper.verifyQueryResponse(wormhole, resp, sign(resp));
-    // TODO: There are no assertions for this test
+    _verifyQueryResponse(cd, resp, sign(resp));
   }
+  function test_verifyQueryResponseForSolana() public { runBoth(verifyQueryResponseForSolana); }
 
-  function test_parseSolanaAccountQueryResponse() public {
+  function test_decodeSolanaAccountQueryResponse() public {
     // Take the data extracted by the previous test and break it down even further.
     PerChainQueryResponse memory r = PerChainQueryResponse({
       chainId: 1,
@@ -282,7 +402,7 @@ contract QueryResponseTest is Test {
       response: solanaAccountPerChainResponsesInner
     });
 
-    SolanaAccountQueryResponse memory sar = wrapper.parseSolanaAccountQueryResponse(r);
+    SolanaAccountQueryResponse memory sar = wrapper.decodeSolanaAccountQueryResponse(r);
 
     assertEq(sar.requestCommitment, "finalized");
     assertEq(sar.requestMinContextSlot, 0);
@@ -308,8 +428,8 @@ contract QueryResponseTest is Test {
     assertEq(sar.results[1].data, hex"01000000574108aed69daf7e625a361864b1f74d13702f2ca56de9660e566d1d8691848d01000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000");
   }
 
-  function test_parseSolanaAccountQueryResponseRevertWrongQueryType() public {
-    // Pass an ETH per chain response into the Solana parser.
+  function test_decodeSolanaAccountQueryResponseRevertWrongQueryType() public {
+    // Pass an ETH per chain response into the Solana decoder.
     PerChainQueryResponse memory r = PerChainQueryResponse({
       chainId: 2,
       queryType: 1,
@@ -317,11 +437,15 @@ contract QueryResponseTest is Test {
       response: solanaAccountPerChainResponsesInner
     });
 
-    vm.expectRevert(abi.encodeWithSelector(WrongQueryType.selector, 1, QueryType.SOLANA_ACCOUNT));
-    wrapper.parseSolanaAccountQueryResponse(r);
+    vm.expectRevert(abi.encodeWithSelector(
+      QueryResponseLib.WrongQueryType.selector,
+      1,
+      QueryType.SOLANA_ACCOUNT
+    ));
+    wrapper.decodeSolanaAccountQueryResponse(r);
   }
 
-  function test_parseSolanaAccountQueryResponseRevertUnexpectedNumberOfResults() public {
+  function test_decodeSolanaAccountQueryResponseRevertUnexpectedNumberOfResults() public {
     // Only one account on the request but two in the response.
     bytes memory requestWithOnlyOneAccount = hex"0000000966696e616c697a656400000000000000000000000000000000000000000000000001165809739240a0ac03b98440fe8985548e3aa683cd0d4d9df5b5659669faa301";
     PerChainQueryResponse memory r = PerChainQueryResponse({
@@ -331,11 +455,11 @@ contract QueryResponseTest is Test {
       response: solanaAccountPerChainResponsesInner
     });
 
-    vm.expectRevert(UnexpectedNumberOfResults.selector);
-    wrapper.parseSolanaAccountQueryResponse(r);
+    vm.expectRevert(QueryResponseLib.UnexpectedNumberOfResults.selector);
+    wrapper.decodeSolanaAccountQueryResponse(r);
   }
 
-  function test_parseSolanaAccountQueryResponseExtraRequestBytesRevertInvalidPayloadLength() public {
+  function test_decodeSolanaAccountQueryResponseExtraRequestBytesRevertInvalidPayloadLength() public {
     // Extra bytes at the end of the request.
     bytes memory requestWithExtraBytes = hex"0000000966696e616c697a656400000000000000000000000000000000000000000000000002165809739240a0ac03b98440fe8985548e3aa683cd0d4d9df5b5659669faa3019c006c48c8cbf33849cb07a3f936159cc523f9591cb1999abd45890ec5fee9b7DEADBEEF";
     PerChainQueryResponse memory r = PerChainQueryResponse({
@@ -345,11 +469,15 @@ contract QueryResponseTest is Test {
       response: solanaAccountPerChainResponsesInner
     });
 
-    vm.expectRevert(abi.encodeWithSelector(InvalidPayloadLength.selector, 106, 102));
-    wrapper.parseSolanaAccountQueryResponse(r);
+    vm.expectRevert(abi.encodeWithSelector(
+      QueryResponseLib.InvalidPayloadLength.selector,
+      106,
+      102
+    ));
+    wrapper.decodeSolanaAccountQueryResponse(r);
   }
 
-  function test_parseSolanaAccountQueryResponseExtraResponseBytesRevertInvalidPayloadLength() public {
+  function test_decodeSolanaAccountQueryResponseExtraResponseBytesRevertInvalidPayloadLength() public {
     // Extra bytes at the end of the response.
     bytes memory responseWithExtraBytes = hex"000000000000d85f00060f3e9915ddc03a8de2b1de609020bb0a0dcee594a8c06801619cf9ea2a498b9d910f9a25772b020000000000164d6000000000000000000006ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a90000005201000000574108aed69daf7e625a361864b1f74d13702f2ca56de9660e566d1d8691848d0000e8890423c78a09010000000000000000000000000000000000000000000000000000000000000000000000000000000000164d6000000000000000000006ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a90000005201000000574108aed69daf7e625a361864b1f74d13702f2ca56de9660e566d1d8691848d01000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000DEADBEEF";
     PerChainQueryResponse memory r = PerChainQueryResponse({
@@ -359,11 +487,15 @@ contract QueryResponseTest is Test {
       response: responseWithExtraBytes
     });
 
-    vm.expectRevert(abi.encodeWithSelector(InvalidPayloadLength.selector, 323, 319));
-    wrapper.parseSolanaAccountQueryResponse(r);
+    vm.expectRevert(abi.encodeWithSelector(
+      QueryResponseLib.InvalidPayloadLength.selector,
+      323,
+      319
+    ));
+    wrapper.decodeSolanaAccountQueryResponse(r);
   }
 
-  function test_parseSolanaPdaQueryResponse() public {
+  function test_decodeSolanaPdaQueryResponse() public {
     // Take the data extracted by the previous test and break it down even further.
     PerChainQueryResponse memory r = PerChainQueryResponse({
       chainId: 1,
@@ -372,7 +504,7 @@ contract QueryResponseTest is Test {
       response: solanaPdaPerChainResponsesInner
     });
 
-    SolanaPdaQueryResponse memory sar = wrapper.parseSolanaPdaQueryResponse(r);
+    SolanaPdaQueryResponse memory sar = wrapper.decodeSolanaPdaQueryResponse(r);
 
     assertEq(sar.requestCommitment, "finalized");
     assertEq(sar.requestMinContextSlot, 2303);
@@ -397,8 +529,8 @@ contract QueryResponseTest is Test {
     assertEq(sar.results[0].data, hex"57cd18b7f8a4d91a2da9ab4af05d0fbece2dcd65");
   }
 
-  function test_parseSolanaPdaQueryResponseRevertWrongQueryType() public {
-    // Pass an ETH per chain response into the Solana parser.
+  function test_decodeSolanaPdaQueryResponseRevertWrongQueryType() public {
+    // Pass an ETH per chain response into the Solana decoder.
     PerChainQueryResponse memory r = PerChainQueryResponse({
       chainId: 2,
       queryType: 1,
@@ -406,11 +538,15 @@ contract QueryResponseTest is Test {
       response: solanaPdaPerChainResponsesInner
     });
 
-    vm.expectRevert(abi.encodeWithSelector(WrongQueryType.selector, 1, QueryType.SOLANA_PDA));
-    wrapper.parseSolanaPdaQueryResponse(r);
+    vm.expectRevert(abi.encodeWithSelector(
+      QueryResponseLib.WrongQueryType.selector,
+      1,
+      QueryType.SOLANA_PDA
+    ));
+    wrapper.decodeSolanaPdaQueryResponse(r);
   }
 
-  function test_parseSolanaPdaQueryResponseRevertUnexpectedNumberOfResults() public {
+  function test_decodeSolanaPdaQueryResponseRevertUnexpectedNumberOfResults() public {
     // Only one Pda on the request but two in the response.
     bytes memory requestWithTwoPdas = hex"0000000966696e616c697a656400000000000008ff000000000000000c00000000000000140202c806312cbe5b79ef8aa6c17e3f423d8fdfe1d46909fb1f6cdf65ee8e2e6faa020000000b477561726469616e536574000000040000000002c806312cbe5b79ef8aa6c17e3f423d8fdfe1d46909fb1f6cdf65ee8e2e6faa020000000b477561726469616e5365740000000400000000";
     PerChainQueryResponse memory r = PerChainQueryResponse({
@@ -420,11 +556,11 @@ contract QueryResponseTest is Test {
       response: solanaPdaPerChainResponsesInner
     });
 
-    vm.expectRevert(UnexpectedNumberOfResults.selector);
-    wrapper.parseSolanaPdaQueryResponse(r);
+    vm.expectRevert(QueryResponseLib.UnexpectedNumberOfResults.selector);
+    wrapper.decodeSolanaPdaQueryResponse(r);
   }
 
-  function test_parseSolanaPdaQueryResponseExtraRequestBytesRevertInvalidPayloadLength() public {
+  function test_decodeSolanaPdaQueryResponseExtraRequestBytesRevertInvalidPayloadLength() public {
     // Extra bytes at the end of the request.
     bytes memory requestWithExtraBytes = hex"0000000966696e616c697a656400000000000008ff000000000000000c00000000000000140102c806312cbe5b79ef8aa6c17e3f423d8fdfe1d46909fb1f6cdf65ee8e2e6faa020000000b477561726469616e5365740000000400000000DEADBEEF";
     PerChainQueryResponse memory r = PerChainQueryResponse({
@@ -434,11 +570,15 @@ contract QueryResponseTest is Test {
       response: solanaPdaPerChainResponsesInner
     });
 
-    vm.expectRevert(abi.encodeWithSelector(InvalidPayloadLength.selector, 98, 94));
-    wrapper.parseSolanaPdaQueryResponse(r);
+    vm.expectRevert(abi.encodeWithSelector(
+      QueryResponseLib.InvalidPayloadLength.selector,
+      98,
+      94
+    ));
+    wrapper.decodeSolanaPdaQueryResponse(r);
   }
 
-  function test_parseSolanaPdaQueryResponseExtraResponseBytesRevertInvalidPayloadLength() public {
+  function test_decodeSolanaPdaQueryResponseExtraResponseBytesRevertInvalidPayloadLength() public {
     // Extra bytes at the end of the response.
     bytes memory responseWithExtraBytes = hex"00000000000008ff0006115e3f6d7540e05035785e15056a8559815e71343ce31db2abf23f65b19c982b68aee7bf207b014fa9188b339cfd573a0778c5deaeeee94d4bcfb12b345bf8e417e5119dae773efd0000000000116ac000000000000000000002c806312cbe5b79ef8aa6c17e3f423d8fdfe1d46909fb1f6cdf65ee8e2e6faa0000001457cd18b7f8a4d91a2da9ab4af05d0fbece2dcd65DEADBEEF";
     PerChainQueryResponse memory r = PerChainQueryResponse({
@@ -448,59 +588,66 @@ contract QueryResponseTest is Test {
       response: responseWithExtraBytes
     });
 
-    vm.expectRevert(abi.encodeWithSelector(InvalidPayloadLength.selector, 159, 155));
-    wrapper.parseSolanaPdaQueryResponse(r);
+    vm.expectRevert(abi.encodeWithSelector(
+      QueryResponseLib.InvalidPayloadLength.selector,
+      159,
+      155
+    ));
+    wrapper.decodeSolanaPdaQueryResponse(r);
   }
 
   /***********************************
   *********** FUZZ TESTS *************
   ***********************************/
 
-  function testFuzz_parseAndVerifyQueryResponse_version(
+  function testFuzz_decodeAndVerifyQueryResponse_version(
+    bool cd,
     uint8 _version
   ) public {
     vm.assume(_version != 1);
 
     bytes memory resp = concatenateQueryResponseBytesOffChain(_version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
-    vm.expectRevert(InvalidResponseVersion.selector);
-    wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
+    bytes memory expectedError = abi.encodePacked(QueryResponseLib.InvalidResponseVersion.selector);
+    _expectRevertDecodeAndVerifyQueryResponse(cd, resp, sign(resp), expectedError);
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_senderChainId(
+  function testFuzz_decodeAndVerifyQueryResponse_senderChainId(
+    bool cd,
     uint16 _senderChainId
   ) public {
     vm.assume(_senderChainId != 0);
 
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, _senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
     // This could revert for multiple reasons. But the checkLength to ensure all the bytes are consumed is the backstop.
-    vm.expectRevert();
-    wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
+    _expectRevertDecodeAndVerifyQueryResponse(cd, resp, sign(resp));
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_signatureHappyCase(
+  function testFuzz_decodeAndVerifyQueryResponse_signatureHappyCase(
+    bool cd,
     bytes memory _signature
   ) public {
     // This signature isn't validated in the QueryResponse library, therefore it could be an 65 byte hex string
     vm.assume(_signature.length == 65);
 
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, _signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
-    QueryResponse memory r = wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
+    QueryResponse memory r = _decodeAndVerifyQueryResponse(cd, resp, sign(resp));
 
     assertEq(r.requestId, _signature);
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_signatureUnhappyCase(
+  function testFuzz_decodeAndVerifyQueryResponse_signatureUnhappyCase(
+    bool cd,
     bytes memory _signature
   ) public {
     // A signature that isn't 65 bytes long will always lead to a revert. The type of revert is unknown since it could be one of many.
     vm.assume(_signature.length != 65);
 
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, _signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
-    vm.expectRevert();
-    wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
+    _expectRevertDecodeAndVerifyQueryResponse(cd, resp, sign(resp));
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_fuzzQueryRequestLen(
+  function testFuzz_decodeAndVerifyQueryResponse_fuzzQueryRequestLen(
+    bool cd,
     uint32 _queryRequestLen,
     bytes calldata _perChainQueries
   ) public {
@@ -508,42 +655,43 @@ contract QueryResponseTest is Test {
     vm.assume(_queryRequestLen != _perChainQueries.length + 6);
 
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, _perChainQueries, numPerChainResponses, perChainResponses);
-    vm.expectRevert();
-    wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
+    _expectRevertDecodeAndVerifyQueryResponse(cd, resp, sign(resp));
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_queryRequestVersion(
+  function testFuzz_decodeAndVerifyQueryResponse_queryRequestVersion(
+    bool cd,
     uint8 _version,
     uint8 _queryRequestVersion
   ) public {
     vm.assume(_version != _queryRequestVersion);
 
     bytes memory resp = concatenateQueryResponseBytesOffChain(_version, senderChainId, signature, _queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
-    vm.expectRevert();
-    wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
+    _expectRevertDecodeAndVerifyQueryResponse(cd, resp, sign(resp));
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_queryRequestNonce(
+  function testFuzz_decodeAndVerifyQueryResponse_queryRequestNonce(
+    bool cd,
     uint32 _queryRequestNonce
   ) public {
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, _queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
-    QueryResponse memory r = wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
+    QueryResponse memory r = _decodeAndVerifyQueryResponse(cd, resp, sign(resp));
 
     assertEq(r.nonce, _queryRequestNonce);
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_numPerChainQueriesAndResponses(
+  function testFuzz_decodeAndVerifyQueryResponse_numPerChainQueriesAndResponses(
+    bool cd,
     uint8 _numPerChainQueries,
     uint8 _numPerChainResponses
   ) public {
     vm.assume(_numPerChainQueries != _numPerChainResponses);
 
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, _numPerChainQueries, perChainQueries, _numPerChainResponses, perChainResponses);
-    vm.expectRevert();
-    wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
+    _expectRevertDecodeAndVerifyQueryResponse(cd, resp, sign(resp));
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_chainIds(
+  function testFuzz_decodeAndVerifyQueryResponse_chainIds(
+    bool cd,
     uint16 _requestChainId,
     uint16 _responseChainId,
     uint256 _requestQueryType
@@ -554,11 +702,12 @@ contract QueryResponseTest is Test {
     bytes memory packedPerChainQueries = abi.encodePacked(_requestChainId, uint8(_requestQueryType), uint32(perChainQueriesInner.length), perChainQueriesInner);
     bytes memory packedPerChainResponses = abi.encodePacked(_responseChainId, uint8(_requestQueryType), uint32(perChainResponsesInner.length),  perChainResponsesInner);
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, packedPerChainQueries, numPerChainResponses, packedPerChainResponses);
-    vm.expectRevert(ChainIdMismatch.selector);
-    wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
+    bytes memory expectedError = abi.encodePacked(QueryResponseLib.ChainIdMismatch.selector);
+    _expectRevertDecodeAndVerifyQueryResponse(cd, resp, sign(resp), expectedError);
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_mistmatchedRequestType(
+  function testFuzz_decodeAndVerifyQueryResponse_mistmatchedRequestType(
+    bool cd,
     uint256 _requestQueryType,
     uint256 _responseQueryType
   ) public {
@@ -569,11 +718,12 @@ contract QueryResponseTest is Test {
     bytes memory packedPerChainQueries = abi.encodePacked(uint16(0x0005), uint8(_requestQueryType), uint32(perChainQueriesInner.length), perChainQueriesInner);
     bytes memory packedPerChainResponses = abi.encodePacked(uint16(0x0005), uint8(_responseQueryType), uint32(perChainResponsesInner.length),  perChainResponsesInner);
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, packedPerChainQueries, numPerChainResponses, packedPerChainResponses);
-    vm.expectRevert(RequestTypeMismatch.selector);
-    wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
+    bytes memory expectedError = abi.encodePacked(QueryResponseLib.RequestTypeMismatch.selector);
+    _expectRevertDecodeAndVerifyQueryResponse(cd, resp, sign(resp), expectedError);
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_unsupportedRequestType(
+  function testFuzz_decodeAndVerifyQueryResponse_unsupportedRequestType(
+    bool cd,
     uint8 _requestQueryType
   ) public {
     vm.assume(!QueryType.isValid(_requestQueryType));
@@ -581,11 +731,15 @@ contract QueryResponseTest is Test {
     bytes memory packedPerChainQueries = abi.encodePacked(uint16(0x0005), uint8(_requestQueryType), uint32(perChainQueriesInner.length), perChainQueriesInner);
     bytes memory packedPerChainResponses = abi.encodePacked(uint16(0x0005), uint8(_requestQueryType), uint32(perChainResponsesInner.length),  perChainResponsesInner);
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, packedPerChainQueries, numPerChainResponses, packedPerChainResponses);
-    vm.expectRevert(abi.encodeWithSelector(UnsupportedQueryType.selector, _requestQueryType));
-    wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
+    bytes memory expectedError = abi.encodeWithSelector(
+      QueryType.UnsupportedQueryType.selector,
+      _requestQueryType
+    );
+    _expectRevertDecodeAndVerifyQueryResponse(cd, resp, sign(resp), expectedError);
   }
 
-  function testFuzz_parseAndVerifyQueryResponse_queryBytesLength(
+  function testFuzz_decodeAndVerifyQueryResponse_queryBytesLength(
+    bool cd,
     uint32 _queryLength
   ) public {
     vm.assume(_queryLength != uint32(perChainQueriesInner.length));
@@ -593,52 +747,56 @@ contract QueryResponseTest is Test {
     bytes memory packedPerChainQueries = abi.encodePacked(uint16(0x0005), uint8(0x01), _queryLength, perChainQueriesInner);
     bytes memory packedPerChainResponses = abi.encodePacked(uint16(0x0005), uint8(0x01), uint32(perChainResponsesInner.length),  perChainResponsesInner);
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, packedPerChainQueries, numPerChainResponses, packedPerChainResponses);
-    vm.expectRevert();
-    wrapper.parseAndVerifyQueryResponse(wormhole, resp, sign(resp));
+    _expectRevertDecodeAndVerifyQueryResponse(cd, resp, sign(resp));
   }
 
-  function testFuzz_verifyQueryResponse_validSignature(bytes calldata resp) public view {
+  function testFuzz_verifyQueryResponse_validSignature(bool cd, bytes calldata resp) public {
     // This should pass with a valid signature of any payload
-    wrapper.verifyQueryResponse(wormhole, resp, sign(resp));
+    _verifyQueryResponse(cd, resp, sign(resp));
   }
 
   function testFuzz_verifyQueryResponse_invalidSignature(
+    bool cd,
     bytes calldata resp,
     uint8 sigV,
     bytes32 sigR,
     bytes32 sigS,
     uint8 sigIndex
   ) public {
-    IWormhole.Signature[] memory signatures = sign(resp);
+    GuardianSignature[] memory signatures = sign(resp);
     uint sigI = bound(sigIndex, 0, signatures.length-1);
-    signatures[sigI] = IWormhole.Signature(sigR, sigS, sigV, signatures[sigI].guardianIndex);
-    vm.expectRevert(VerificationFailed.selector);
-    wrapper.verifyQueryResponse(wormhole, resp, signatures);
+    signatures[sigI] = GuardianSignature(sigR, sigS, sigV, signatures[sigI].guardianIndex);
+    bytes memory expectedError = abi.encodePacked(QueryResponseLib.VerificationFailed.selector);
+    _expectRevertVerifyQueryResponse(cd, resp, signatures, expectedError);
   }
 
-  function testFuzz_verifyQueryResponse_validSignatureWrongPrefix(bytes calldata responsePrefix) public {
+  function testFuzz_verifyQueryResponse_validSignatureWrongPrefix(
+    bool cd,
+    bytes calldata responsePrefix
+  ) public {
     vm.assume(keccak256(responsePrefix) != keccak256(QueryResponseLib.RESPONSE_PREFIX));
 
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
     bytes32 responseDigest = keccak256(abi.encodePacked(responsePrefix, keccak256(resp)));
 
-    IWormhole.Signature[] memory signatures = IWormhole(wormhole).sign(responseDigest);
-    vm.expectRevert(VerificationFailed.selector);
-    wrapper.verifyQueryResponse(wormhole, resp, signatures);
+    GuardianSignature[] memory signatures = IWormhole(wormhole).sign(responseDigest);
+    bytes memory expectedError = abi.encodePacked(QueryResponseLib.VerificationFailed.selector);
+    _expectRevertVerifyQueryResponse(cd, resp, signatures, expectedError);
   }
 
   function testFuzz_verifyQueryResponse_noQuorum(
+    bool cd,
     bytes calldata resp,
     uint8 sigCount
   ) public {
-    IWormhole.Signature[] memory signatures = sign(resp);
+    GuardianSignature[] memory signatures = sign(resp);
     uint sigC = bound(sigCount, 0, signatures.length-1);
-    IWormhole.Signature[] memory signaturesToUse = new IWormhole.Signature[](sigC);
+    GuardianSignature[] memory signaturesToUse = new GuardianSignature[](sigC);
     for (uint i = 0; i < sigC; ++i)
       signaturesToUse[i] = signatures[i];
 
-    vm.expectRevert(VerificationFailed.selector);
-    wrapper.verifyQueryResponse(wormhole, resp, signaturesToUse);
+    bytes memory expectedError = abi.encodePacked(QueryResponseLib.VerificationFailed.selector);
+    _expectRevertDecodeAndVerifyQueryResponse(cd, resp, signaturesToUse, expectedError);
   }
 
   uint64 constant private MICROSECONDS_PER_SECOND = QueryResponseLib.MICROSECONDS_PER_SECOND;
@@ -664,7 +822,7 @@ contract QueryResponseTest is Test {
     uint upperBound = _minBlockTime <= MAX_SECONDS ? _minBlockTime-1 : MAX_SECONDS;
     _blockTime = uint64(bound(_blockTime, 0, upperBound));
 
-    vm.expectRevert(StaleBlockTime.selector);
+    vm.expectRevert(QueryResponseLib.StaleBlockTime.selector);
     wrapper.validateBlockTime(_blockTime * MICROSECONDS_PER_SECOND, _minBlockTime);
   }
 
@@ -686,7 +844,7 @@ contract QueryResponseTest is Test {
     vm.assume(_minBlockNum > 0);
     _blockNum = uint64(bound(_blockNum, 0, _minBlockNum-1));
 
-    vm.expectRevert(StaleBlockNum.selector);
+    vm.expectRevert(QueryResponseLib.StaleBlockNum.selector);
     wrapper.validateBlockNum(uint64(_blockNum), _minBlockNum);
   }
 
@@ -707,7 +865,7 @@ contract QueryResponseTest is Test {
     for (uint16 i = 0; i < _validChainIds.length; ++i)
       vm.assume(_chainId != _validChainIds[i]);
 
-    vm.expectRevert(InvalidChainId.selector);
+    vm.expectRevert(QueryResponseLib.InvalidChainId.selector);
     wrapper.validateChainId(_chainId, _validChainIds);
   }
 
@@ -794,7 +952,7 @@ contract QueryResponseTest is Test {
       result: randomBytes
     });
 
-    vm.expectRevert(InvalidFunctionSignature.selector);
+    vm.expectRevert(QueryResponseLib.InvalidFunctionSignature.selector);
     wrapper.validateEthCallRecord(callData, _validContractAddresses, _validFunctionSignatures);
   }
 
@@ -818,7 +976,7 @@ contract QueryResponseTest is Test {
       result: randomBytes
     });
 
-    vm.expectRevert(InvalidContractAddress.selector);
+    vm.expectRevert(QueryResponseLib.InvalidContractAddress.selector);
     wrapper.validateEthCallRecord(callData, _validContractAddresses, _validFunctionSignatures);
   }
 

@@ -12,6 +12,7 @@ import "wormhole-sdk/libraries/BytesParsing.sol";
 import {CCTPMessageLib} from "wormhole-sdk/WormholeRelayer/CCTPBase.sol";
 
 import {VM_ADDRESS} from "wormhole-sdk/testing/Constants.sol";
+import "wormhole-sdk/libraries/VaaLib.sol";
 import "wormhole-sdk/testing/WormholeOverride.sol";
 import "wormhole-sdk/testing/CctpOverride.sol";
 import "wormhole-sdk/testing/WormholeRelayer/DeliveryInstructionSerde.sol";
@@ -22,8 +23,7 @@ using BytesParsing for bytes;
 contract MockOffchainRelayer {
   using WormholeOverride for IWormhole;
   using CctpOverride for IMessageTransmitter;
-  using CctpMessages for CctpTokenBurnMessage;
-  using VaaEncoding for IWormhole.VM;
+  using CctpMessageLib for CctpTokenBurnMessage;
   using { toUniversalAddress } for address;
   using { fromUniversalAddress } for bytes32;
 
@@ -87,8 +87,8 @@ contract MockOffchainRelayer {
     CCTPMessageLib.CCTPKey memory cctpKey,
     CCTPMessageLib.CCTPMessage memory cctpMessage
   ) internal pure returns (bool) {
-    (uint64 nonce,) = cctpMessage.message.asUint64(12);
-    (uint32 domain,) = cctpMessage.message.asUint32(4);
+    (uint64 nonce,) = cctpMessage.message.asUint64Mem(12);
+    (uint32 domain,) = cctpMessage.message.asUint32Mem(4);
     return nonce == cctpKey.nonce && domain == cctpKey.domain;
   }
 
@@ -110,7 +110,7 @@ contract MockOffchainRelayer {
         address(emitterWormhole)
       );
 
-    IWormhole.VM[] memory vaas = new IWormhole.VM[](pms.length);
+    Vaa[] memory vaas = new Vaa[](pms.length);
     for (uint256 i = 0; i < pms.length; ++i)
       vaas[i] = emitterWormhole.sign(pms[i]);
 
@@ -134,8 +134,8 @@ contract MockOffchainRelayer {
     }
 
     for (uint16 i = 0; i < vaas.length; ++i) {
-      uint16 chain = vaas[i].emitterChainId;
-      address emitter = vaas[i].emitterAddress.fromUniversalAddress();
+      uint16 chain = vaas[i].envelope.emitterChainId;
+      address emitter = vaas[i].envelope.emitterAddress.fromUniversalAddress();
       if (debugLogging)
         console.log("Found VAA from chain %s emitted from %s", chain, emitter);
 
@@ -165,14 +165,14 @@ contract MockOffchainRelayer {
   }
 
   function genericRelay(
-    IWormhole.VM memory deliveryVaa,
-    IWormhole.VM[] memory allVaas,
+    Vaa memory deliveryVaa,
+    Vaa[] memory allVaas,
     CCTPMessageLib.CCTPMessage[] memory cctpMsgs,
     bytes memory deliveryOverrides
   ) internal {
     uint currentFork = vm.activeFork();
 
-    (uint8 payloadId, ) = deliveryVaa.payload.asUint8Unchecked(0);
+    (uint8 payloadId, ) = deliveryVaa.payload.asUint8MemUnchecked(0);
     if (payloadId == PAYLOAD_ID_DELIVERY_INSTRUCTION) {
       DeliveryInstruction memory instruction =
         decodeDeliveryInstruction(deliveryVaa.payload);
@@ -184,9 +184,9 @@ contract MockOffchainRelayer {
             decodeVaaKey(instruction.messageKeys[i].encodedKey, 0);
           for (uint8 j = 0; j < allVaas.length; ++j)
             if (
-              (vaaKey.chainId        == allVaas[j].emitterChainId) &&
-              (vaaKey.emitterAddress == allVaas[j].emitterAddress) &&
-              (vaaKey.sequence       == allVaas[j].sequence)
+              (vaaKey.chainId        == allVaas[j].envelope.emitterChainId) &&
+              (vaaKey.emitterAddress == allVaas[j].envelope.emitterAddress) &&
+              (vaaKey.sequence       == allVaas[j].envelope.sequence)
             ) {
               additionalMessages[i] = allVaas[j].encode();
               break;
@@ -229,8 +229,8 @@ contract MockOffchainRelayer {
       );
 
       storeDelivery(
-        deliveryVaa.emitterChainId,
-        deliveryVaa.sequence,
+        deliveryVaa.envelope.emitterChainId,
+        deliveryVaa.envelope.sequence,
         additionalMessages,
         encodedDeliveryVaa
       );
@@ -242,7 +242,7 @@ contract MockOffchainRelayer {
       DeliveryOverride memory deliveryOverride = DeliveryOverride({
         newExecutionInfo: instruction.newEncodedExecutionInfo,
         newReceiverValue: instruction.newRequestedReceiverValue,
-        redeliveryHash: deliveryVaa.hash
+        redeliveryHash: VaaLib.calcDoubleHash(deliveryVaa)
       });
 
       EvmExecutionInfoV1 memory executionInfo =
