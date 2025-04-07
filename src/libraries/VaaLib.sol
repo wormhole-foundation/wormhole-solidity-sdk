@@ -436,6 +436,24 @@ library VaaLib {
     ) = decodeVaaBodyMemUnchecked(encodedVaa, 0, encodedVaa.length);
   }
 
+  function decodeEmitterChainIdCd(
+    bytes calldata encodedVaa
+  ) internal pure returns (uint16 emitterChainId) {
+    checkVaaVersionCd(encodedVaa);
+    uint envelopeOffset = skipVaaHeaderCd(encodedVaa);
+    uint offset = envelopeOffset + ENVELOPE_EMITTER_CHAIN_ID_OFFSET;
+    (emitterChainId, ) = encodedVaa.asUint16CdUnchecked(offset);
+  }
+
+  function decodeEmitterChainIdMem(
+    bytes memory encodedVaa
+  ) internal pure returns (uint16 emitterChainId) {
+    checkVaaVersionMemUnchecked(encodedVaa, 0);
+    uint envelopeOffset = skipVaaHeaderMemUnchecked(encodedVaa, 0);
+    uint offset = envelopeOffset + ENVELOPE_EMITTER_CHAIN_ID_OFFSET;
+    (emitterChainId, ) = encodedVaa.asUint16MemUnchecked(offset);
+  }
+
   // ------------ Advanced Decoding Functions ------------
 
   function asIWormholeSignatures(

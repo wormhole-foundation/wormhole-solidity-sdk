@@ -520,6 +520,22 @@ contract WormholeMessagesTest is Test {
     assertEq(transfer.payload, expected.payload);
   }
   function testDecodingTwpPayload() public { runBoth(decodingTwpPayload); }
+
+  function decodingTwpPayloadEssentials(bool cd) internal {
+    TokenBridgeTransferWithPayloadEssentials memory transfer = abi.decode(
+      callWithBytes(tbLibWrapper, "decodeTransferWithPayloadEssentialsStruct", cd, twpVaaPayload(), true),
+      (TokenBridgeTransferWithPayloadEssentials)
+    );
+    TokenBridgeTransferWithPayload memory expected = decodedTwpStruct();
+
+    assertEq(transfer.normalizedAmount, expected.normalizedAmount);
+    assertEq(transfer.tokenAddress, expected.tokenAddress);
+    assertEq(transfer.tokenChainId, expected.tokenChainId);
+    assertEq(transfer.fromAddress, expected.fromAddress);
+    assertEq(transfer.payload, expected.payload);
+  }
+  function testDecodingTwpPayloadEssentials() public { runBoth(decodingTwpPayloadEssentials); }
+
   // ----
 
   function decodingAmVaaVm(bool cd) internal {
@@ -565,4 +581,14 @@ contract WormholeMessagesTest is Test {
     assertEq(transfer.name, expected.name);
   }
   function testDecodingAmPayload() public { runBoth(decodingAmPayload); }
+
+  function decodingEmitterChainId(bool cd) internal {
+    uint16 emitterChainId = abi.decode(
+      callWithBytes(vaaLibWrapper, "decodeEmitterChainId", cd, amVaa(), true),
+      (uint16)
+    );
+
+    assertEq(emitterChainId, amVaaVm().emitterChainId);
+  }
+  function testDecodingEmitterChainId() public { runBoth(decodingEmitterChainId); }
 }

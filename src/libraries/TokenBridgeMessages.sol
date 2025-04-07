@@ -97,6 +97,17 @@ struct TokenBridgeTransferWithPayload {
   bytes   payload;
 }
 
+struct TokenBridgeTransferWithPayloadEssentials {
+  //uint8 payloadId; //see PAYLOAD_ID_TRANSFER_WITH_PAYLOAD
+  uint256 normalizedAmount;
+  bytes32 tokenAddress;
+  uint16  tokenChainId;
+  bytes32 toAddress;
+  uint16  toChainId;
+  bytes32 fromAddress;
+  bytes   payload;
+}
+
 struct TokenBridgeAttestMeta {
   //uint8 payloadId; //see PAYLOAD_ID_ATTEST_META
   bytes32 tokenAddress;
@@ -372,6 +383,95 @@ library TokenBridgeMessageLib {
     ) = decodeTransferWithPayloadMem(encoded, offset, length);
   }
 
+  // TransferWithPayloadEssentials
+
+  function decodeTransferWithPayloadEssentialsCd(
+    bytes calldata encoded
+  ) internal pure returns (
+    uint256 normalizedAmount,
+    bytes32 tokenAddress,
+    uint16  tokenChainId,
+    bytes32 fromAddress,
+    bytes calldata payload
+  ) { unchecked {
+    uint offset = 0;
+    (normalizedAmount, tokenAddress, tokenChainId, offset) =
+      _decodeTransferCommonHeaderEssentialsCdUnchecked(encoded, PAYLOAD_ID_TRANSFER_WITH_PAYLOAD);
+    
+    offset += COMMON_TRANSFER_TO_ADDRESS_SIZE + COMMON_TRANSFER_TO_CHAIN_ID_SIZE;
+    (fromAddress, offset) = encoded.asBytes32CdUnchecked(offset);
+
+    offset.checkBound(encoded.length); //check for underflow
+    (payload, ) = encoded.sliceCdUnchecked(offset, encoded.length - offset);
+  }}
+
+  function decodeTransferWithPayloadEssentialsStructCd(
+    bytes calldata encoded
+  ) internal pure returns (TokenBridgeTransferWithPayloadEssentials memory twp) {
+    ( twp.normalizedAmount,
+      twp.tokenAddress,
+      twp.tokenChainId,
+      twp.fromAddress,
+      twp.payload
+    ) = decodeTransferWithPayloadEssentialsCd(encoded);
+  }
+
+  function decodeTransferWithPayloadEssentialsMem(
+    bytes memory encoded
+  ) internal pure returns (
+    uint256 normalizedAmount,
+    bytes32 tokenAddress,
+    uint16  tokenChainId,
+    bytes32 fromAddress,
+    bytes memory payload
+  ) {
+    (normalizedAmount, tokenAddress, tokenChainId, fromAddress, payload, ) =
+      decodeTransferWithPayloadEssentialsMem(encoded, 0, encoded.length);
+  }
+
+  function decodeTransferWithPayloadEssentialsStructMem(
+    bytes memory encoded
+  ) internal pure returns (TokenBridgeTransferWithPayloadEssentials memory twp) {
+    (twp, ) = decodeTransferWithPayloadEssentialsStructMem(encoded, 0, encoded.length);
+  }
+
+  function decodeTransferWithPayloadEssentialsMem(
+    bytes memory encoded,
+    uint offset,
+    uint length
+  ) internal pure returns (
+    uint256 normalizedAmount,
+    bytes32 tokenAddress,
+    uint16  tokenChainId,
+    bytes32 fromAddress,
+    bytes memory payload,
+    uint    newOffset
+  ) { unchecked {
+    (normalizedAmount, tokenAddress, tokenChainId, offset) =
+      _decodeTransferCommonHeaderEssentialsMemUnchecked(encoded, offset, PAYLOAD_ID_TRANSFER_WITH_PAYLOAD);
+
+    offset += COMMON_TRANSFER_TO_ADDRESS_SIZE + COMMON_TRANSFER_TO_CHAIN_ID_SIZE;
+    (fromAddress, offset) = encoded.asBytes32MemUnchecked(offset);
+
+    offset.checkBound(length); //check for underflow
+    (payload, newOffset) = encoded.sliceMemUnchecked(offset, length - offset);
+
+  }}
+
+  function decodeTransferWithPayloadEssentialsStructMem(
+    bytes memory encoded,
+    uint offset,
+    uint length
+  ) internal pure returns (TokenBridgeTransferWithPayloadEssentials memory twp, uint newOffset) {
+    ( twp.normalizedAmount,
+      twp.tokenAddress,
+      twp.tokenChainId,
+      twp.fromAddress,
+      twp.payload,
+      newOffset
+    ) = decodeTransferWithPayloadEssentialsMem(encoded, offset, length);
+  }
+
   // AttestMeta
 
   function decodeAttestMetaCd(
@@ -554,6 +654,44 @@ library TokenBridgeMessageLib {
 
   // ------------ Private ------------
 
+  function _decodeTransferCommonHeaderEssentialsCdUnchecked(
+    bytes calldata encoded,
+    uint8 expectedPayloadId
+  ) private pure returns (
+    uint256 normalizedAmount,
+    bytes32 tokenAddress,
+    uint16  tokenChainId,
+    uint    newOffset
+  ) {
+    uint8 payloadId;
+    uint offset = 0;
+    (payloadId,        offset) = encoded.asUint8CdUnchecked(offset);
+    checkPayloadId(payloadId, expectedPayloadId);
+    (normalizedAmount, offset) = encoded.asUint256CdUnchecked(offset);
+    (tokenAddress,     offset) = encoded.asBytes32CdUnchecked(offset);
+    (tokenChainId,     offset) = encoded.asUint16CdUnchecked(offset);
+    newOffset = offset;
+  }
+
+  function _decodeTransferCommonHeaderEssentialsMemUnchecked(
+    bytes memory encoded,
+    uint offset,
+    uint8 expectedPayloadId
+  ) private pure returns (
+    uint256 normalizedAmount,
+    bytes32 tokenAddress,
+    uint16  tokenChainId,
+    uint    newOffset
+  ) {
+    uint8 payloadId;
+    (payloadId,        offset) = encoded.asUint8MemUnchecked(offset);
+    checkPayloadId(payloadId, expectedPayloadId);
+    (normalizedAmount, offset) = encoded.asUint256MemUnchecked(offset);
+    (tokenAddress,     offset) = encoded.asBytes32MemUnchecked(offset);
+    (tokenChainId,     offset) = encoded.asUint16MemUnchecked(offset);
+    newOffset = offset;
+  }
+
   function _decodeTransferCommonHeaderCdUnchecked(
     bytes calldata encoded,
     uint8 expectedPayloadId
@@ -565,15 +703,15 @@ library TokenBridgeMessageLib {
     uint16  toChainId,
     uint    newOffset
   ) {
-    uint8 payloadId;
-    uint offset = 0;
-    (payloadId,        offset) = encoded.asUint8CdUnchecked(offset);
-    checkPayloadId(payloadId, expectedPayloadId);
-    (normalizedAmount, offset) = encoded.asUint256CdUnchecked(offset);
-    (tokenAddress,     offset) = encoded.asBytes32CdUnchecked(offset);
-    (tokenChainId,     offset) = encoded.asUint16CdUnchecked(offset);
-    (toAddress,        offset) = encoded.asBytes32CdUnchecked(offset);
-    (toChainId,        offset) = encoded.asUint16CdUnchecked(offset);
+    uint offset;
+    (
+      normalizedAmount,
+      tokenAddress,
+      tokenChainId,
+      offset
+    ) = _decodeTransferCommonHeaderEssentialsCdUnchecked(encoded, expectedPayloadId);
+    (toAddress, offset) = encoded.asBytes32CdUnchecked(offset);
+    (toChainId, offset) = encoded.asUint16CdUnchecked(offset);
     newOffset = offset;
   }
 
@@ -589,14 +727,14 @@ library TokenBridgeMessageLib {
     uint16  toChainId,
     uint    newOffset
   ) {
-    uint8 payloadId;
-    (payloadId,        offset) = encoded.asUint8MemUnchecked(offset);
-    checkPayloadId(payloadId, expectedPayloadId);
-    (normalizedAmount, offset) = encoded.asUint256MemUnchecked(offset);
-    (tokenAddress,     offset) = encoded.asBytes32MemUnchecked(offset);
-    (tokenChainId,     offset) = encoded.asUint16MemUnchecked(offset);
-    (toAddress,        offset) = encoded.asBytes32MemUnchecked(offset);
-    (toChainId,        offset) = encoded.asUint16MemUnchecked(offset);
+    (
+      normalizedAmount,
+      tokenAddress,
+      tokenChainId,
+      offset
+    ) = _decodeTransferCommonHeaderEssentialsMemUnchecked(encoded, offset, expectedPayloadId);
+    (toAddress, offset) = encoded.asBytes32MemUnchecked(offset);
+    (toChainId, offset) = encoded.asUint16MemUnchecked(offset);
     newOffset = offset;
   }
 }
