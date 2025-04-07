@@ -306,7 +306,7 @@ abstract contract WormholeRelayerTest is Test {
       name: "ethereum",
       url: vm.envOr(
         "ETHEREUM_RPC_URL",
-        string("https://rpc.ankr.com/eth")
+        string("https://ethereum-rpc.publicnode.com")
       ),
       relayer: IWormholeRelayer(
         0x27428DD2d3DD32A4D7f7C497eAaa23130d894911
@@ -346,7 +346,7 @@ abstract contract WormholeRelayerTest is Test {
       name: "avalanche",
       url: vm.envOr(
         "AVALANCHE_RPC_URL",
-        string("https://rpc.ankr.com/avalanche")
+        string("https://avalanche-c-chain-rpc.publicnode.com")
       ),
       relayer: IWormholeRelayer(
         0x27428DD2d3DD32A4D7f7C497eAaa23130d894911
@@ -368,7 +368,7 @@ abstract contract WormholeRelayerTest is Test {
       name: "fantom",
       url: vm.envOr(
         "FANTOM_RPC_URL",
-        string("https://rpc.ankr.com/fantom")
+        string("https://rpcapi.fantom.network")
       ),
       relayer: IWormholeRelayer(
         0x27428DD2d3DD32A4D7f7C497eAaa23130d894911
@@ -455,7 +455,7 @@ abstract contract WormholeRelayerTest is Test {
       name: "moombeam",
       url: vm.envOr(
         "MOOMBEAM_RPC_URL",
-        string("https://rpc.ankr.com/moonbeam")
+        string("https://moonbeam-rpc.publicnode.com")
       ),
       relayer: IWormholeRelayer(
         0x27428DD2d3DD32A4D7f7C497eAaa23130d894911
@@ -495,7 +495,7 @@ abstract contract WormholeRelayerTest is Test {
       name: "optimism",
       url: vm.envOr(
         "OPTIMISM_RPC_URL",
-        string("https://rpc.ankr.com/optimism")
+        string("https://mainnet.optimism.io")
       ),
       relayer: IWormholeRelayer(
         0x27428DD2d3DD32A4D7f7C497eAaa23130d894911
