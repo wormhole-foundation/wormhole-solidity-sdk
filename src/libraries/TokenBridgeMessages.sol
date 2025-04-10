@@ -102,8 +102,6 @@ struct TokenBridgeTransferWithPayloadEssentials {
   uint256 normalizedAmount;
   bytes32 tokenAddress;
   uint16  tokenChainId;
-  bytes32 toAddress;
-  uint16  toChainId;
   bytes32 fromAddress;
   bytes   payload;
 }

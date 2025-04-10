@@ -436,7 +436,7 @@ library VaaLib {
     ) = decodeVaaBodyMemUnchecked(encodedVaa, 0, encodedVaa.length);
   }
 
-  function decodeEmitterChainIdCd(
+  function decodeEmitterChainIdCdUnchecked(
     bytes calldata encodedVaa
   ) internal pure returns (uint16 emitterChainId) {
     checkVaaVersionCd(encodedVaa);
@@ -445,7 +445,7 @@ library VaaLib {
     (emitterChainId, ) = encodedVaa.asUint16CdUnchecked(offset);
   }
 
-  function decodeEmitterChainIdMem(
+  function decodeEmitterChainIdMemUnchecked(
     bytes memory encodedVaa
   ) internal pure returns (uint16 emitterChainId) {
     checkVaaVersionMemUnchecked(encodedVaa, 0);

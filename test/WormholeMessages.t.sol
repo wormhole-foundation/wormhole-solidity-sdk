@@ -274,9 +274,20 @@ contract WormholeMessagesTest is Test {
     bytes memory encoded,
     bool expectSuccess
   ) private returns (bytes memory) {
+    return callWithBytes(wrapper, functionName, cd, false, encoded, expectSuccess);
+  }
+
+  function callWithBytes(
+    address wrapper,
+    string memory functionName,
+    bool cd,
+    bool uc,
+    bytes memory encoded,
+    bool expectSuccess
+  ) private returns (bytes memory) {
     (bool success, bytes memory encodedResult) =
       wrapper.staticcall(abi.encodeWithSignature(
-        withDataLocationTag(functionName, cd, false, "(bytes)"),
+        withDataLocationTag(functionName, cd, uc, "(bytes)"),
         encoded
       ));
     assertEq(success, expectSuccess);
@@ -584,7 +595,7 @@ contract WormholeMessagesTest is Test {
 
   function decodingEmitterChainId(bool cd) internal {
     uint16 emitterChainId = abi.decode(
-      callWithBytes(vaaLibWrapper, "decodeEmitterChainId", cd, amVaa(), true),
+      callWithBytes(vaaLibWrapper, "decodeEmitterChainId", cd, true, amVaa(), true),
       (uint16)
     );
 
