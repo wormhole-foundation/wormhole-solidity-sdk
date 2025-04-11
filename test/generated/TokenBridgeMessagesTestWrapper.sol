@@ -110,6 +110,57 @@ contract TokenBridgeMessageLibTestWrapper {
     return TokenBridgeMessageLib.decodeTransferWithPayloadStructMem(encoded, offset, length);
   }
 
+  function decodeTransferWithPayloadEssentialsCd(bytes calldata encoded) external pure returns (
+    uint256 normalizedAmount,
+    bytes32 tokenAddress,
+    uint16 tokenChainId,
+    bytes32 fromAddress,
+    bytes calldata payload
+  ) {
+    return TokenBridgeMessageLib.decodeTransferWithPayloadEssentialsCd(encoded);
+  }
+
+  function decodeTransferWithPayloadEssentialsStructCd(bytes calldata encoded) external pure returns (TokenBridgeTransferWithPayloadEssentials memory twp) {
+    return TokenBridgeMessageLib.decodeTransferWithPayloadEssentialsStructCd(encoded);
+  }
+
+  function decodeTransferWithPayloadEssentialsMem(bytes calldata encoded) external pure returns (
+    uint256 normalizedAmount,
+    bytes32 tokenAddress,
+    uint16 tokenChainId,
+    bytes32 fromAddress,
+    bytes memory payload
+  ) {
+    return TokenBridgeMessageLib.decodeTransferWithPayloadEssentialsMem(encoded);
+  }
+
+  function decodeTransferWithPayloadEssentialsStructMem(bytes calldata encoded) external pure returns (TokenBridgeTransferWithPayloadEssentials memory twp) {
+    return TokenBridgeMessageLib.decodeTransferWithPayloadEssentialsStructMem(encoded);
+  }
+
+  function decodeTransferWithPayloadEssentialsMem(
+    bytes calldata encoded,
+    uint offset,
+    uint length
+  ) external pure returns (
+    uint256 normalizedAmount,
+    bytes32 tokenAddress,
+    uint16 tokenChainId,
+    bytes32 fromAddress,
+    bytes memory payload,
+    uint newOffset
+  ) {
+    return TokenBridgeMessageLib.decodeTransferWithPayloadEssentialsMem(encoded, offset, length);
+  }
+
+  function decodeTransferWithPayloadEssentialsStructMem(
+    bytes calldata encoded,
+    uint offset,
+    uint length
+  ) external pure returns (TokenBridgeTransferWithPayloadEssentials memory twp, uint newOffset) {
+    return TokenBridgeMessageLib.decodeTransferWithPayloadEssentialsStructMem(encoded, offset, length);
+  }
+
   function decodeAttestMetaCd(bytes calldata encoded) external pure returns (
     bytes32 tokenAddress,
     uint16 tokenChainId,

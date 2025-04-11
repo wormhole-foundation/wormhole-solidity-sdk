@@ -102,6 +102,14 @@ contract VaaLibTestWrapper {
     return VaaLib.decodeVaaBodyStructMem(encodedVaa);
   }
 
+  function decodeEmitterChainIdCdUnchecked(bytes calldata encodedVaa) external pure returns (uint16 emitterChainId) {
+    return VaaLib.decodeEmitterChainIdCdUnchecked(encodedVaa);
+  }
+
+  function decodeEmitterChainIdMemUnchecked(bytes calldata encodedVaa) external pure returns (uint16 emitterChainId) {
+    return VaaLib.decodeEmitterChainIdMemUnchecked(encodedVaa);
+  }
+
   function asIWormholeSignatures(GuardianSignature[] calldata signatures) external pure returns (IWormhole.Signature[] memory vmSignatures) {
     return VaaLib.asIWormholeSignatures(signatures);
   }

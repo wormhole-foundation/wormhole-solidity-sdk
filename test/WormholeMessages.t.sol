@@ -274,9 +274,20 @@ contract WormholeMessagesTest is Test {
     bytes memory encoded,
     bool expectSuccess
   ) private returns (bytes memory) {
+    return callWithBytes(wrapper, functionName, cd, false, encoded, expectSuccess);
+  }
+
+  function callWithBytes(
+    address wrapper,
+    string memory functionName,
+    bool cd,
+    bool uc,
+    bytes memory encoded,
+    bool expectSuccess
+  ) private returns (bytes memory) {
     (bool success, bytes memory encodedResult) =
       wrapper.staticcall(abi.encodeWithSignature(
-        withDataLocationTag(functionName, cd, false, "(bytes)"),
+        withDataLocationTag(functionName, cd, uc, "(bytes)"),
         encoded
       ));
     assertEq(success, expectSuccess);
@@ -520,6 +531,22 @@ contract WormholeMessagesTest is Test {
     assertEq(transfer.payload, expected.payload);
   }
   function testDecodingTwpPayload() public { runBoth(decodingTwpPayload); }
+
+  function decodingTwpPayloadEssentials(bool cd) internal {
+    TokenBridgeTransferWithPayloadEssentials memory transfer = abi.decode(
+      callWithBytes(tbLibWrapper, "decodeTransferWithPayloadEssentialsStruct", cd, twpVaaPayload(), true),
+      (TokenBridgeTransferWithPayloadEssentials)
+    );
+    TokenBridgeTransferWithPayload memory expected = decodedTwpStruct();
+
+    assertEq(transfer.normalizedAmount, expected.normalizedAmount);
+    assertEq(transfer.tokenAddress, expected.tokenAddress);
+    assertEq(transfer.tokenChainId, expected.tokenChainId);
+    assertEq(transfer.fromAddress, expected.fromAddress);
+    assertEq(transfer.payload, expected.payload);
+  }
+  function testDecodingTwpPayloadEssentials() public { runBoth(decodingTwpPayloadEssentials); }
+
   // ----
 
   function decodingAmVaaVm(bool cd) internal {
@@ -565,4 +592,14 @@ contract WormholeMessagesTest is Test {
     assertEq(transfer.name, expected.name);
   }
   function testDecodingAmPayload() public { runBoth(decodingAmPayload); }
+
+  function decodingEmitterChainId(bool cd) internal {
+    uint16 emitterChainId = abi.decode(
+      callWithBytes(vaaLibWrapper, "decodeEmitterChainId", cd, true, amVaa(), true),
+      (uint16)
+    );
+
+    assertEq(emitterChainId, amVaaVm().emitterChainId);
+  }
+  function testDecodingEmitterChainId() public { runBoth(decodingEmitterChainId); }
 }
