@@ -39,10 +39,10 @@ struct Fork {
   ITokenBridge tokenBridge;
   IWormholeRelayer relayer;
 
-  uint32 cctpDomain;
   IUSDC usdc;
-  IMessageTransmitter circleMessageTransmitter;
-  ITokenMessenger circleTokenMessenger;
+  uint32 cctpDomain;
+  IMessageTransmitter cctpMessageTransmitter;
+  ITokenMessenger cctpTokenMessenger;
 }
 
 abstract contract WormholeForkTest is Test {
@@ -72,15 +72,15 @@ abstract contract WormholeForkTest is Test {
 
   function setUpFork(uint16 chainId_, string memory rpcUrl_) internal {
     Fork memory fork = Fork(
-      vm.createFork(rpcUrl_),
+      vm.createSelectFork(rpcUrl_),
       chainId_,
       chainName_(isMainnet, chainId_),
       rpcUrl_,
       ICoreBridge(coreBridge_(isMainnet, chainId_)),
       ITokenBridge(tokenBridge_(isMainnet, chainId_)),
       IWormholeRelayer(wormholeRelayer_(isMainnet, chainId_)),
-      cctpDomain_(isMainnet, chainId_),
       IUSDC(usdc_(isMainnet, chainId_)),
+      cctpDomain_(isMainnet, chainId_),
       IMessageTransmitter(cctpMessageTransmitter_(isMainnet, chainId_)),
       ITokenMessenger(cctpTokenMessenger_(isMainnet, chainId_))
     );
@@ -130,20 +130,24 @@ abstract contract WormholeForkTest is Test {
     return activeFork().relayer;
   }
 
-  function cctpDomain() internal view returns (uint32) {
-    return activeFork().cctpDomain;
-  }
-
   function usdc() internal view returns (IUSDC) {
     return activeFork().usdc;
   }
 
-  function circleMessageTransmitter() internal view returns (IMessageTransmitter) {
-    return activeFork().circleMessageTransmitter;
+  function cctpDomain() internal view returns (uint32) {
+    return activeFork().cctpDomain;
   }
 
-  function circleTokenMessenger() internal view returns (ITokenMessenger) {
-    return activeFork().circleTokenMessenger;
+  function cctpMessageTransmitter() internal view returns (IMessageTransmitter) {
+    return activeFork().cctpMessageTransmitter;
+  }
+
+  function cctpTokenMessenger() internal view returns (ITokenMessenger) {
+    return activeFork().cctpTokenMessenger;
+  }
+
+  function dealUsdc(address to, uint256 amount) internal {
+    usdc().deal(to, amount);
   }
 
   // -- convenience functions --
@@ -182,8 +186,8 @@ abstract contract WormholeForkTest is Test {
   function fetchEncodedBurnMessageAndAttestation(
     Vm.Log[] memory logs
   ) internal view returns (bytes memory encodedBurnMessage, bytes memory attestation) {
-    CctpTokenBurnMessage memory burnMessage = circleMessageTransmitter().fetchBurnMessages(logs)[0];
-    return (burnMessage.encode(), circleMessageTransmitter().sign(burnMessage));
+    CctpTokenBurnMessage memory burnMessage = cctpMessageTransmitter().fetchBurnMessages(logs)[0];
+    return (burnMessage.encode(), cctpMessageTransmitter().sign(burnMessage));
   }
 
   // -- more low-level stuff --
@@ -194,8 +198,8 @@ abstract contract WormholeForkTest is Test {
 
   function setUpOverrides(Fork memory fork) internal {
     fork.coreBridge.setUpOverride();
-    if (address(fork.circleMessageTransmitter) != address(0))
-      fork.circleMessageTransmitter.setUpOverride();
+    if (address(fork.cctpMessageTransmitter) != address(0))
+      fork.cctpMessageTransmitter.setUpOverride();
   }
 
   function addFork(Fork memory fork) internal { unchecked {

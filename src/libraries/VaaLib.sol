@@ -283,9 +283,9 @@ library VaaLib {
     uint64  sequence,
     bytes calldata payload
   ) { unchecked {
-    checkVaaVersionCd(encodedVaa);
+    checkVaaVersionCdUnchecked(encodedVaa);
 
-    uint envelopeOffset = skipVaaHeaderCd(encodedVaa);
+    uint envelopeOffset = skipVaaHeaderCdUnchecked(encodedVaa);
     uint offset = envelopeOffset + ENVELOPE_EMITTER_CHAIN_ID_OFFSET;
     (emitterChainId, offset) = encodedVaa.asUint16CdUnchecked(offset);
     (emitterAddress, offset) = encodedVaa.asBytes32CdUnchecked(offset);
@@ -368,9 +368,9 @@ library VaaLib {
     uint8   consistencyLevel,
     bytes calldata payload
   ) {
-    checkVaaVersionCd(encodedVaa);
+    checkVaaVersionCdUnchecked(encodedVaa);
     (timestamp, nonce, emitterChainId, emitterAddress, sequence, consistencyLevel, payload) =
-      decodeVaaBodyCd(encodedVaa, skipVaaHeaderCd(encodedVaa));
+      decodeVaaBodyCd(encodedVaa, skipVaaHeaderCdUnchecked(encodedVaa));
   }
 
   function decodeVaaBodyStructCd(
@@ -418,7 +418,9 @@ library VaaLib {
 
   // ------------ Advanced Decoding Functions ------------
 
-  function checkVaaVersionCd(bytes calldata encodedVaa) internal pure returns (uint newOffset) {
+  function checkVaaVersionCdUnchecked(
+    bytes calldata encodedVaa
+  ) internal pure returns (uint newOffset) {
     uint8 version;
     (version, newOffset) = encodedVaa.asUint8CdUnchecked(0);
     checkVaaVersion(version);
@@ -439,7 +441,7 @@ library VaaLib {
   }
 
   //return the offset to the start of the envelope/body
-  function skipVaaHeaderCd(
+  function skipVaaHeaderCdUnchecked(
     bytes calldata encodedVaa
   ) internal pure returns (uint envelopeOffset) { unchecked {
     (uint sigCount, uint offset) = encodedVaa.asUint8CdUnchecked(HEADER_SIGNATURE_COUNT_OFFSET);
@@ -694,7 +696,7 @@ library VaaLib {
     GuardianSignature[] memory signatures,
     uint envelopeOffset
   ) { unchecked {
-    checkVaaVersionCd(encodedVaa);
+    checkVaaVersionCdUnchecked(encodedVaa);
     uint offset = HEADER_GUARDIAN_SET_INDEX_OFFSET;
     (guardianSetIndex, offset) = encodedVaa.asUint32CdUnchecked(offset);
 

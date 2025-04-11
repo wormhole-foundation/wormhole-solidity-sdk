@@ -1,4 +1,4 @@
-
+// SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.19;
 
 import "wormhole-sdk/interfaces/IWormholeRelayer.sol";
@@ -28,6 +28,7 @@ struct RedeliveryInstruction {
   uint16 targetChain;
   uint256 newRequestedReceiverValue;
   bytes newEncodedExecutionInfo;
+  //these are only informational off-chain and required for the redelivery itself:
   bytes32 newSourceDeliveryProvider;
   bytes32 newSenderAddress;
 }
@@ -121,6 +122,10 @@ library WormholeRelayerStructsLib {
     encoded = abi.encodePacked(vaaKey.emitterChainId, vaaKey.emitterAddress, vaaKey.sequence);
   }
 
+  function encode(CctpKey memory cctpKey) internal pure returns (bytes memory encoded) {
+    encoded = abi.encodePacked(cctpKey.domain, cctpKey.nonce);
+  }
+
   function encode(MessageKey[] memory msgKeys) internal pure returns (bytes memory encoded) {
     uint256 len = msgKeys.length;
     if (len > type(uint8).max)
@@ -146,6 +151,14 @@ library WormholeRelayerStructsLib {
   }
 
   // ---- decoding ----
+
+  function decodeDeliveryTarget(
+    bytes memory encoded
+  ) internal pure returns (uint16 targetChain, bytes32 targetAddress) {
+    uint offset = checkUint8(encoded, 0, PAYLOAD_ID_DELIVERY_INSTRUCTION);
+    (targetChain, offset) = encoded.asUint16MemUnchecked(offset);
+    (targetAddress,     ) = encoded.asBytes32Mem(offset);
+  }
 
   function decodeDeliveryInstruction(
     bytes memory encoded
@@ -216,6 +229,10 @@ library WormholeRelayerStructsLib {
     newOffset = offset;
   }
 
+  function decodeVaaKey(bytes memory encoded) internal pure returns (VaaKey memory vaaKey) {
+    (vaaKey, ) = decodeVaaKey(encoded, 0);
+  }
+
   function decodeVaaKey(
     bytes memory encoded,
     uint offset
@@ -237,6 +254,10 @@ library WormholeRelayerStructsLib {
       (msgKeys[i], offset) = decodeMessageKey(encoded, offset);
 
     newOffset = offset;
+  }
+
+  function decodeCctpKey(bytes memory encoded) internal pure returns (CctpKey memory cctpKey) {
+    (cctpKey, ) = decodeCctpKey(encoded, 0);
   }
 
   function decodeCctpKey(
@@ -286,3 +307,8 @@ library WormholeRelayerStructsLib {
       revert UnexpectedId(id, expectedId);
   }
 }
+using WormholeRelayerStructsLib for DeliveryInstruction global;
+using WormholeRelayerStructsLib for RedeliveryInstruction global;
+using WormholeRelayerStructsLib for DeliveryOverride global;
+using WormholeRelayerStructsLib for EvmExecutionParamsV1 global;
+using WormholeRelayerStructsLib for EvmExecutionInfoV1 global;

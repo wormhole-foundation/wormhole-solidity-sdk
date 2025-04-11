@@ -152,7 +152,7 @@ library CoreBridgeLib {
     uint8   consistencyLevel,
     bytes calldata payload
   ) { unchecked {
-    uint offset = VaaLib.checkVaaVersionCd(encodedVaa);
+    uint offset = VaaLib.checkVaaVersionCdUnchecked(encodedVaa);
     uint32 guardianSetIndex;
     (guardianSetIndex, offset) = encodedVaa.asUint32CdUnchecked(offset);
 

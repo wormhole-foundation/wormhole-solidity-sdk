@@ -102,8 +102,8 @@ contract VaaLibTestWrapper {
     return VaaLib.decodeVaaBodyStructMem(encodedVaa);
   }
 
-  function checkVaaVersionCd(bytes calldata encodedVaa) external pure returns (uint newOffset) {
-    return VaaLib.checkVaaVersionCd(encodedVaa);
+  function checkVaaVersionCdUnchecked(bytes calldata encodedVaa) external pure returns (uint newOffset) {
+    return VaaLib.checkVaaVersionCdUnchecked(encodedVaa);
   }
 
   function checkVaaVersionMemUnchecked(bytes calldata encoded, uint offset) external pure returns (uint newOffset) {
@@ -114,8 +114,8 @@ contract VaaLibTestWrapper {
     VaaLib.checkVaaVersion(version);
   }
 
-  function skipVaaHeaderCd(bytes calldata encodedVaa) external pure returns (uint envelopeOffset) {
-    return VaaLib.skipVaaHeaderCd(encodedVaa);
+  function skipVaaHeaderCdUnchecked(bytes calldata encodedVaa) external pure returns (uint envelopeOffset) {
+    return VaaLib.skipVaaHeaderCdUnchecked(encodedVaa);
   }
 
   function skipVaaHeaderMemUnchecked(bytes calldata encoded, uint headerOffset) external pure returns (uint envelopeOffset) {

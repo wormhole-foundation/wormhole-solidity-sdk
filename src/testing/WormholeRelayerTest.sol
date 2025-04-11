@@ -1,241 +1,288 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.19;
 
-import "wormhole-sdk/testing/ForkTest.sol";
-import "wormhole-sdk/testing/WormholeRelayerStructs.sol";
+import "wormhole-sdk/libraries/BytesParsing.sol";
+import "wormhole-sdk/libraries/VaaLib.sol";
+import "wormhole-sdk/libraries/CctpMessages.sol";
+import "wormhole-sdk/testing/WormholeForkTest.sol";
+import "wormhole-sdk/testing/WormholeRelayer/Structs.sol";
 
-// abstract contract WormholeRelayerTest is ForkTest {
-//   using { toUniversalAddress } for address;
-//   using { fromUniversalAddress } for bytes32;
+//everything is stored without signatures and only gets signed before delivery
+struct Delivery {
+  PublishedMessage deliveryPm;
+  bytes[] additionalMessages; //stored as pointers to the structs
+}
 
-//   mapping(bytes32 => bytes[]) internal pastEncodedVaas;
-//   mapping(bytes32 => bytes)   internal pastEncodedDeliveryVaa;
+abstract contract WormholeRelayerTest is WormholeForkTest {
+  using BytesParsing for bytes;
+  using AdvancedWormholeOverride for ICoreBridge;
+  using CctpOverride for IMessageTransmitter;
+  using VaaLib for bytes;
+  using CctpMessageLib for bytes;
+  using WormholeRelayerStructsLib for bytes;
 
+  using { toUniversalAddress } for address;
 
-//   function getPastEncodedVaas(
-//     uint16 chainId,
-//     uint64 deliveryVaaSequence
-//   ) public view returns (bytes[] memory) {
-//     return pastEncodedVaas[keccak256(abi.encodePacked(chainId, deliveryVaaSequence))];
-//   }
+  //Right shifted ascii encoding of "WormholeRelayer"
+  bytes32 private constant WORMHOLE_RELAYER_GOVERNANCE_MODULE =
+    0x0000000000000000000000000000000000576f726d686f6c6552656c61796572;
+  uint8 private constant WORMHOLE_RELAYER_GOVERNANCE_ACTION_UPDATE_DEFAULT_PROVIDER = 3;
 
-//   function getPastDeliveryVaa(
-//     uint16 chainId,
-//     uint64 deliveryVaaSequence
-//   ) public view returns (bytes memory) {
-//     return pastEncodedDeliveryVaa[keccak256(abi.encodePacked(chainId, deliveryVaaSequence))];
-//   }
+  uint8 internal constant KEY_TYPE_VAA  = WormholeRelayerKeysLib.KEY_TYPE_VAA;
+  uint8 internal constant KEY_TYPE_CCTP = WormholeRelayerKeysLib.KEY_TYPE_CCTP;
 
-//   function cctpKeyMatchesCctpMessage(
-//     CCTPKey memory cctpKey,
-//     CctpMessage memory cctpMessage
-//   ) internal pure returns (bool) {
-//     (uint64 nonce,) = cctpMessage.message.asUint64Mem(12);
-//     (uint32 domain,) = cctpMessage.message.asUint32Mem(4);
-//     return nonce == cctpKey.nonce && domain == cctpKey.domain;
-//   }
+  //source chain -> sequence number -> delivery
+  mapping(uint16 => mapping(uint64 => Delivery)) private _pastDeliveries;
 
-//   function relay(Vm.Log[] memory logs, bool debugLogging) public {
-//     relay(logs, bytes(""), debugLogging);
-//   }
+  function deliver() internal {
+    deliver(vm.getRecordedLogs());
+  }
 
-//   function relay(
-//     Vm.Log[] memory logs,
-//     bytes memory deliveryOverrides,
-//     bool debugLogging
-//   ) public {
-//     ICoreBridge emitterWormhole = getForkWormhole();
-//     PublishedMessage[] memory pms = emitterWormhole.fetchPublishedMessages(logs);
-//     if (debugLogging)
-//       console.log(
-//         "Found %s wormhole messages in logs from %s",
-//         pms.length,
-//         address(emitterWormhole)
-//       );
+  function deliver(Vm.Log[] memory logs) internal {
+    (Delivery[] memory deliveries, RedeliveryInstruction[] memory redeliveries) =
+      logsToDeliveries(logs);
 
-//     Vaa[] memory vaas = new Vaa[](pms.length);
-//     for (uint256 i = 0; i < pms.length; ++i)
-//       vaas[i] = emitterWormhole.sign(pms[i]);
+    for (uint i = 0; i < deliveries.length; ++i)
+      deliver(deliveries[i]);
 
-//     CCTPMessageLib.CCTPMessage[] memory cctpSignedMsgs = new CCTPMessageLib.CCTPMessage[](0);
-//     IMessageTransmitter emitterMessageTransmitter = getForkMessageTransmitter();
-//     if (address(emitterMessageTransmitter) != address(0)) {
-//       CctpTokenBurnMessage[] memory burnMsgs =
-//         emitterMessageTransmitter.fetchBurnMessages(logs);
-//       if (debugLogging)
-//         console.log(
-//             "Found %s circle messages in logs from %s",
-//             burnMsgs.length,
-//             address(emitterMessageTransmitter)
-//         );
+    for (uint i = 0; i < redeliveries.length; ++i)
+      deliver(redeliveries[i]);
+  }
 
-//       cctpSignedMsgs = new CCTPMessageLib.CCTPMessage[](burnMsgs.length);
-//       for (uint256 i = 0; i < cctpSignedMsgs.length; ++i) {
-//         cctpSignedMsgs[i].message = burnMsgs[i].encode();
-//         cctpSignedMsgs[i].signature = emitterMessageTransmitter.sign(burnMsgs[i]);
-//       }
-//     }
+  function deliver(Delivery memory delivery) internal {
+    ( DeliveryInstruction memory deliveryIx,
+      bytes memory deliveryVaa,
+      bytes[] memory attestedMessages
+    ) = _signDelivery(delivery);
 
-//     for (uint16 i = 0; i < vaas.length; ++i) {
-//       uint16 chain = vaas[i].envelope.emitterChainId;
-//       address emitter = vaas[i].envelope.emitterAddress.fromUniversalAddress();
-//       if (debugLogging)
-//         console.log("Found VAA from chain %s emitted from %s", chain, emitter);
+    EvmExecutionInfoV1 memory executionInfo =
+      deliveryIx.encodedExecutionInfo.decodeEvmExecutionInfoV1();
 
-//       if (emitter == address(wormholeRelayerContracts[chain])) {
-//         if (debugLogging)
-//           console.log("Relaying VAA to chain %s", chain);
+    uint256 deliverValue = deliveryIx.requestedReceiverValue + deliveryIx.extraReceiverValue +
+      executionInfo.gasLimit * executionInfo.targetChainRefundPerGasUnused;
 
-//         genericRelay(
-//           vaas[i],
-//           vaas,
-//           cctpSignedMsgs,
-//           deliveryOverrides
-//         );
-//       }
-//     }
-//   }
+    _deliver(deliveryIx, delivery, deliveryVaa, attestedMessages, deliverValue, "");
+  }
 
-//   function storeDelivery(
-//     uint16 chainId,
-//     uint64 deliveryVaaSequence,
-//     bytes[] memory encodedVaas,
-//     bytes memory encodedDeliveryVaa
-//   ) internal {
-//     bytes32 key = keccak256(abi.encodePacked(chainId, deliveryVaaSequence));
-//     pastEncodedVaas[key] = encodedVaas;
-//     pastEncodedDeliveryVaa[key] = encodedDeliveryVaa;
-//   }
+  function deliver(RedeliveryInstruction memory redelivery) internal {
+    Delivery memory delivery =
+      _pastDeliveries[redelivery.deliveryVaaKey.emitterChainId][redelivery.deliveryVaaKey.sequence];
+    require(delivery.deliveryPm.envelope.timestamp != 0, "Delivery not found");
 
-//   function genericRelay(
-//     Vaa memory deliveryVaa,
-//     Vaa[] memory allVaas,
-//     CCTPMessageLib.CCTPMessage[] memory cctpMsgs,
-//     bytes memory deliveryOverrides
-//   ) internal {
-//     uint currentFork = vm.activeFork();
+    EvmExecutionInfoV1 memory executionInfo =
+      redelivery.newEncodedExecutionInfo.decodeEvmExecutionInfoV1();
 
-//     (uint8 payloadId, ) = deliveryVaa.payload.asUint8MemUnchecked(0);
-//     if (payloadId == PAYLOAD_ID_DELIVERY_INSTRUCTION) {
-//       DeliveryInstruction memory instruction =
-//         decodeDeliveryInstruction(deliveryVaa.payload);
+    deliver(
+      delivery,
+      redelivery.newRequestedReceiverValue,
+      executionInfo.gasLimit,
+      executionInfo.targetChainRefundPerGasUnused
+    );
+  }
 
-//       bytes[] memory additionalMessages = new bytes[](instruction.messageKeys.length);
-//       for (uint8 i = 0; i < instruction.messageKeys.length; ++i) {
-//         if (instruction.messageKeys[i].keyType == VAA_KEY_TYPE) {
-//           (VaaKey memory vaaKey, ) =
-//             decodeVaaKey(instruction.messageKeys[i].encodedKey, 0);
-//           for (uint8 j = 0; j < allVaas.length; ++j)
-//             if (
-//               (vaaKey.chainId        == allVaas[j].envelope.emitterChainId) &&
-//               (vaaKey.emitterAddress == allVaas[j].envelope.emitterAddress) &&
-//               (vaaKey.sequence       == allVaas[j].envelope.sequence)
-//             ) {
-//               additionalMessages[i] = allVaas[j].encode();
-//               break;
-//             }
-//         }
-//         else if (instruction.messageKeys[i].keyType == CCTP_KEY_TYPE) {
-//           (CCTPMessageLib.CCTPKey memory key,) =
-//             decodeCCTPKey(instruction.messageKeys[i].encodedKey, 0);
-//           for (uint8 j = 0; j < cctpMsgs.length; ++j)
-//             if (cctpKeyMatchesCCTPMessage(key, cctpMsgs[j])) {
-//               additionalMessages[i] = abi.encode(cctpMsgs[j].message, cctpMsgs[j].signature);
-//               break;
-//             }
-//         }
-//         if (additionalMessages[i].length == 0)
-//           revert("Additional Message not found");
-//       }
+  function deliver(
+    Delivery memory delivery,
+    uint newReceiverValue,
+    uint newGasLimit,
+    uint newTargetChainRefundPerGasUnused
+  ) internal {
+    ( DeliveryInstruction memory deliveryIx,
+      bytes memory deliveryVaa,
+      bytes[] memory attestedMessages
+    ) = _signDelivery(delivery);
 
-//       EvmExecutionInfoV1 memory executionInfo =
-//         decodeEvmExecutionInfoV1(instruction.encodedExecutionInfo);
+    uint256 deliverValue = newReceiverValue + newGasLimit * newTargetChainRefundPerGasUnused;
+    
+    bytes memory encodedOverrides = DeliveryOverride({
+      newExecutionInfo: EvmExecutionInfoV1(newGasLimit, newTargetChainRefundPerGasUnused).encode(),
+      newReceiverValue: newReceiverValue,
+      redeliveryHash: bytes32(uint(1)) //normally the hash of the redelivery vaa but irrelevant here
+    }).encode();
 
-//       uint256 budget = executionInfo.gasLimit *
-//         executionInfo.targetChainRefundPerGasUnused +
-//         instruction.requestedReceiverValue +
-//         instruction.extraReceiverValue;
+    _deliver(deliveryIx, delivery, deliveryVaa, attestedMessages, deliverValue, encodedOverrides);
+  }
 
-//       uint16 targetChain = instruction.targetChain;
+  function logsToDeliveries(Vm.Log[] memory logs) internal view returns (
+    Delivery[] memory deliveries,
+    RedeliveryInstruction[] memory redeliveries
+  ) {
+    PublishedMessage[] memory pms = coreBridge().fetchPublishedMessages(logs);
+    
+    //count the number of deliveries and redeliveries
+    uint deliveryCount = 0;
+    uint redeliveryCount = 0;
+    for (uint i = 0; i < pms.length; ++i) {
+      if (pms[i].envelope.emitterAddress != address(wormholeRelayer()).toUniversalAddress())
+        continue;
+      
+      bytes memory payload = pms[i].payload;
+      (uint8 payloadId, ) = payload.asUint8MemUnchecked(0);
+      if (payloadId == WormholeRelayerStructsLib.PAYLOAD_ID_DELIVERY_INSTRUCTION)
+        ++deliveryCount;
+      else
+        ++redeliveryCount;
+    }
 
-//       vm.selectFork(forks[targetChain]);
+    //allocate the arrays
+    deliveries = new Delivery[](deliveryCount);
+    redeliveries = new RedeliveryInstruction[](redeliveryCount);
 
-//       vm.deal(address(this), budget);
+    CctpTokenBurnMessage[] memory burnMsgs = cctpMessageTransmitter().fetchBurnMessages(logs);
 
-//       vm.recordLogs();
-//       bytes memory encodedDeliveryVaa = deliveryVaa.encode();
-//       getForkWormholeRelayer().deliver{value: budget}(
-//         additionalMessages,
-//         encodedDeliveryVaa,
-//         payable(address(this)),
-//         deliveryOverrides
-//       );
+    //populate the arrays
+    uint deliveryIndex = 0;
+    uint redeliveryIndex = 0;
+    for (uint i = 0; i < pms.length; ++i) {
+      if (pms[i].envelope.emitterAddress != address(wormholeRelayer()).toUniversalAddress())
+        continue;
+      
+      bytes memory payload = pms[i].payload;
+      (uint8 payloadId, ) = payload.asUint8MemUnchecked(0);
+      if (payloadId == WormholeRelayerStructsLib.PAYLOAD_ID_DELIVERY_INSTRUCTION) {
+        DeliveryInstruction memory deliveryIx = payload.decodeDeliveryInstruction();
+        bytes[] memory additionalMessages = new bytes[](deliveryIx.messageKeys.length);
+        uint additionalMessagesIndex = 0;
+        for (uint j = 0; j < deliveryIx.messageKeys.length; ++j) {
+          MessageKey memory messageKey = deliveryIx.messageKeys[j];
+          require(
+            messageKey.keyType == KEY_TYPE_VAA || messageKey.keyType == KEY_TYPE_CCTP,
+            "Unknown message key type"
+          );
+          additionalMessages[additionalMessagesIndex++] = 
+            messageKey.keyType == KEY_TYPE_VAA
+              ? _asPtr(_findPublishedMessage(messageKey.encodedKey.decodeVaaKey(), pms))
+              : _asPtr(_findCctpMessage(messageKey.encodedKey.decodeCctpKey(), burnMsgs));
+        }
+        deliveries[deliveryIndex++] = Delivery({
+          deliveryPm: pms[i],
+          additionalMessages: additionalMessages
+        });
+      }
+      else
+        redeliveries[redeliveryIndex++] = payload.decodeRedeliveryInstruction();
+    }
+  }
 
-//       storeDelivery(
-//         deliveryVaa.envelope.emitterChainId,
-//         deliveryVaa.envelope.sequence,
-//         additionalMessages,
-//         encodedDeliveryVaa
-//       );
-//     }
-//     else if (payloadId == PAYLOAD_ID_REDELIVERY_INSTRUCTION) {
-//       RedeliveryInstruction memory instruction =
-//         decodeRedeliveryInstruction(deliveryVaa.payload);
+  function updateDefaultDeliveryProvider(
+    uint16 chain,
+    address newDefaultDeliveryProvider
+  ) internal preserveFork {
+    selectFork(chain);
+    (bool success, ) = address(wormholeRelayer()).call(abi.encodeWithSignature(
+      "setDefaultDeliveryProvider(bytes)",
+      coreBridge().sign(coreBridge().craftGovernancePublishedMessage(
+        WORMHOLE_RELAYER_GOVERNANCE_MODULE,
+        WORMHOLE_RELAYER_GOVERNANCE_ACTION_UPDATE_DEFAULT_PROVIDER,
+        chain,
+        abi.encodePacked(newDefaultDeliveryProvider.toUniversalAddress())
+      )).encode()
+    ));
+    require(success, "Failed to update default provider");
+  }
 
-//       DeliveryOverride memory deliveryOverride = DeliveryOverride({
-//         newExecutionInfo: instruction.newEncodedExecutionInfo,
-//         newReceiverValue: instruction.newRequestedReceiverValue,
-//         redeliveryHash: VaaLib.calcDoubleHash(deliveryVaa)
-//       });
+  //our contract acts as the delivery provider's relayer and also doubles as the refund address
+  receive() external payable {}
 
-//       EvmExecutionInfoV1 memory executionInfo =
-//         decodeEvmExecutionInfoV1(instruction.newEncodedExecutionInfo);
+  // ---- Private ----
 
-//       uint256 budget = executionInfo.gasLimit *
-//         executionInfo.targetChainRefundPerGasUnused +
-//         instruction.newRequestedReceiverValue;
+  function _asPtr(PublishedMessage memory pm) private pure returns (bytes memory ret) {
+    assembly ("memory-safe") { ret := pm }
+  }
 
-//       bytes memory oldEncodedDeliveryVaa = getPastDeliveryVaa(
-//         instruction.deliveryVaaKey.chainId,
-//         instruction.deliveryVaaKey.sequence
-//       );
+  function _asPtr(CctpTokenBurnMessage memory cctpMsg) private pure returns (bytes memory ret) {
+    assembly ("memory-safe") { ret := cctpMsg }
+  }
 
-//       bytes[] memory oldEncodedVaas = getPastEncodedVaas(
-//         instruction.deliveryVaaKey.chainId,
-//         instruction.deliveryVaaKey.sequence
-//       );
+  function _asPublishedMessage(
+    bytes memory ptr
+  ) private pure returns (PublishedMessage memory pm) {
+    assembly ("memory-safe") { pm := ptr }
+  }
 
-//       uint16 targetChain = decodeDeliveryInstruction(
-//         getForkWormhole().parseVM(oldEncodedDeliveryVaa).payload
-//       ).targetChain;
+  function _asCctpTokenBurnMessage(
+    bytes memory ptr
+  ) private pure returns (CctpTokenBurnMessage memory cctpMsg) {
+    assembly ("memory-safe") { cctpMsg := ptr }
+  }
 
-//       vm.selectFork(forks[targetChain]);
-//       getForkWormholeRelayer().deliver{value: budget}(
-//         oldEncodedVaas,
-//         oldEncodedDeliveryVaa,
-//         payable(address(this)),
-//         encode(deliveryOverride)
-//       );
-//     }
-//     vm.selectFork(currentFork);
-//   }
+  function _findPublishedMessage(
+    VaaKey memory vaaKey,
+    PublishedMessage[] memory pms
+  ) private pure returns (PublishedMessage memory) {
+    for (uint k = 0; k < pms.length; ++k)
+      if (_vaaKeyMatchesPublishedMessage(vaaKey, pms[k]))
+        return pms[k];
 
-//   function performDelivery() public {
-//     performDelivery(vm.getRecordedLogs(), false);
-//   }
+    revert("Failed to find VAA");
+  }
 
-//   function performDelivery(bool debugLogging) public {
-//     performDelivery(vm.getRecordedLogs(), debugLogging);
-//   }
+  function _vaaKeyMatchesPublishedMessage(
+    VaaKey memory vaaKey,
+    PublishedMessage memory pm
+  ) private pure returns (bool) {
+    return
+      (vaaKey.emitterChainId == pm.envelope.emitterChainId) &&
+      (vaaKey.emitterAddress == pm.envelope.emitterAddress) &&
+      (vaaKey.sequence == pm.envelope.sequence);
+  }
 
-//   function performDelivery(Vm.Log[] memory logs) public {
-//     performDelivery(logs, false);
-//   }
+  function _findCctpMessage(
+    CctpKey memory cctpKey,
+    CctpTokenBurnMessage[] memory cctpMessages
+  ) private pure returns (CctpTokenBurnMessage memory) {
+    for (uint k = 0; k < cctpMessages.length; ++k)
+      if (_cctpKeyMatchesCctpMessage(cctpKey, cctpMessages[k]))
+        return cctpMessages[k];
 
-//   function performDelivery(Vm.Log[] memory logs, bool debugLogging) public {
-//     require(logs.length > 0, "no events recorded");
-//     relay(logs, debugLogging);
-//   }
+    revert("Failed to find CCTP Message");
+  }
 
-//   receive() external payable {}
-// }
+  function _cctpKeyMatchesCctpMessage(
+    CctpKey memory cctpKey,
+    CctpTokenBurnMessage memory cctpMessage
+  ) private pure returns (bool) {
+    return
+      (cctpKey.domain == cctpMessage.header.sourceDomain) &&
+      (cctpKey.nonce  == cctpMessage.header.nonce);
+  }
+
+  function _signDelivery(Delivery memory delivery) private view returns (
+    DeliveryInstruction memory deliveryIx,
+    bytes memory deliveryVaa,
+    bytes[] memory attestedMessages
+  ) {
+    deliveryIx = delivery.deliveryPm.payload.decodeDeliveryInstruction();
+    deliveryVaa = coreBridge().sign(delivery.deliveryPm).encode();
+    attestedMessages = new bytes[](deliveryIx.messageKeys.length);
+    for (uint i = 0; i < deliveryIx.messageKeys.length; ++i) {
+      MessageKey memory messageKey = deliveryIx.messageKeys[i];
+      if (messageKey.keyType == KEY_TYPE_VAA)
+        attestedMessages[i] =
+          coreBridge().sign(_asPublishedMessage(delivery.additionalMessages[i])).encode();
+      else {
+        CctpTokenBurnMessage memory burnMsg =
+          _asCctpTokenBurnMessage(delivery.additionalMessages[i]);
+        bytes memory attestation = cctpMessageTransmitter().sign(burnMsg);
+        attestedMessages[i] = abi.encode(burnMsg.encode(), attestation);
+      }
+    }
+  }
+
+  function _deliver(
+    DeliveryInstruction memory deliveryIx,
+    Delivery memory delivery,
+    bytes memory deliveryVaa,
+    bytes[] memory attestedMessages,
+    uint256 deliverValue,
+    bytes memory deliveryOverrides
+  ) private preserveFork() {
+    selectFork(deliveryIx.targetChain);
+    wormholeRelayer().deliver{value: deliverValue}(
+      attestedMessages,
+      deliveryVaa,
+      payable(address(this)),
+      deliveryOverrides
+    );
+    _pastDeliveries[deliveryIx.targetChain][delivery.deliveryPm.envelope.sequence] = delivery;
+  }
+}

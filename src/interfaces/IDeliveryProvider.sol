@@ -79,8 +79,7 @@ interface IDeliveryProvider {
    *
    * @param targetChain - The chain which is being delivered to.
    */
-  function getTargetChainAddress(uint16 targetChain)
-    external
-    view
-    returns (bytes32 deliveryProviderAddress);
+  function getTargetChainAddress(
+    uint16 targetChain
+  ) external view returns (bytes32 deliveryProviderAddress);
 }
