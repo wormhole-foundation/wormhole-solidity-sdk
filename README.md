@@ -44,6 +44,16 @@ This SDK comes with its own IERC20 interface and SafeERC20 implementation. Given
 
 For additional documentation of components, see the docs directory.
 
+## Style
+
+This SDK largely follows [the Solidity style guide](https://docs.soliditylang.org/en/latest/style-guide.html) with some exceptions/modifications:
+* indentation uses 2 instead of 4 spaces
+* maximum line length where feasible is 100 characters (urls in comments are an exception)
+* [order of functions](https://docs.soliditylang.org/en/latest/style-guide.html) is roughly followed but more important functions might be sorted to the top.
+* additional whitespace are at times added to create more compelling visual blocks (e.g. for a block of related assignments)
+* function modifiers do not get a separate line each once line length is exceeded
+* NatSpec is avoided because it favors a "box-checking" approach towards documentation rather than focusing on essentials and rationales
+
 ## Philosophy/Creeds
 
 In This House We Believe:

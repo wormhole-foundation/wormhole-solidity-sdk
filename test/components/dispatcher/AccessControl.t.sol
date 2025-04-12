@@ -20,7 +20,7 @@ import {BytesParsing}                 from "wormhole-sdk/libraries/BytesParsing.
 import {AdminsUpdated, NotAuthorized} from "wormhole-sdk/components/dispatcher/AccessControl.sol";
 import {DispatcherTestBase}           from "./utils/DispatcherTestBase.sol";
 import {
-  checkForDuplicates, 
+  checkForDuplicates,
   existsInArray
 } from "./utils/utils.sol";
 
@@ -265,7 +265,7 @@ contract AcessControlTest is DispatcherTestBase {
     invokeDispatcher(
       abi.encodePacked(
         ACCESS_CONTROL_ID,
-        commandCount, 
+        commandCount,
         CANCEL_OWNERSHIP_TRANSFER_ID
       )
     );
@@ -281,7 +281,7 @@ contract AcessControlTest is DispatcherTestBase {
     invokeDispatcher(
       abi.encodePacked(
         ACCESS_CONTROL_ID,
-        commandCount, 
+        commandCount,
         CANCEL_OWNERSHIP_TRANSFER_ID
       )
     );
@@ -342,7 +342,7 @@ contract AcessControlTest is DispatcherTestBase {
     invokeDispatcher(
       abi.encodePacked(
         ACCESS_CONTROL_ID,
-        commandCount, 
+        commandCount,
         PROPOSE_OWNERSHIP_TRANSFER_ID,
         newOwner
       )
@@ -351,9 +351,9 @@ contract AcessControlTest is DispatcherTestBase {
     vm.prank(newOwner);
     invokeDispatcher(
       abi.encodePacked(
-        ACQUIRE_OWNERSHIP_ID, 
+        ACQUIRE_OWNERSHIP_ID,
         ACCESS_CONTROL_ID,
-        commandCount, 
+        commandCount,
         ADD_ADMIN_ID,
         newAdmin
       )
@@ -363,7 +363,7 @@ contract AcessControlTest is DispatcherTestBase {
     bytes memory getRes = invokeStaticDispatcher(
       abi.encodePacked(
         ACCESS_CONTROL_QUERIES_ID,
-        commandCount, 
+        commandCount,
         OWNER_ID,
         PENDING_OWNER_ID,
         IS_ADMIN_ID,
@@ -400,7 +400,7 @@ contract AcessControlTest is DispatcherTestBase {
     vm.expectRevert(NotAuthorized.selector);
     vm.prank(admin);
     invokeDispatcher(addAdminCommand);
-  } 
+  }
 
   function testAddAdmin(address newAdmin) public {
     vm.assume(newAdmin != admin);
@@ -412,7 +412,7 @@ contract AcessControlTest is DispatcherTestBase {
     invokeDispatcher(
       abi.encodePacked(
         ACCESS_CONTROL_ID,
-        commandCount, 
+        commandCount,
         ADD_ADMIN_ID,
         newAdmin
       )
@@ -428,7 +428,7 @@ contract AcessControlTest is DispatcherTestBase {
         ADMINS_ID
       )
     );
-    
+
     (bool isAdmin, ) = res.asBoolMemUnchecked(0);
     (uint8 adminsCount, ) = res.asUint8MemUnchecked(1);
     (address newAdmin_, ) = res.asAddressMemUnchecked(res.length - 20);
@@ -436,7 +436,7 @@ contract AcessControlTest is DispatcherTestBase {
     assertEq(isAdmin, true);
     assertEq(adminsCount, 2);
     assertEq(newAdmin_, newAdmin);
-  } 
+  }
 
   function testRevokeAdmin_NotAuthorized() public {
     address newAdmin = makeAddr("newAdmin");
@@ -446,12 +446,12 @@ contract AcessControlTest is DispatcherTestBase {
     invokeDispatcher(
       abi.encodePacked(
         ACCESS_CONTROL_ID,
-        commandCount, 
+        commandCount,
         REVOKE_ADMIN_ID,
         newAdmin
       )
     );
-  } 
+  }
 
   function testRevokeAdmin(address newAdmin) public {
     vm.assume(newAdmin != admin);
@@ -461,7 +461,7 @@ contract AcessControlTest is DispatcherTestBase {
     invokeDispatcher(
       abi.encodePacked(
         ACCESS_CONTROL_ID,
-        commandCount, 
+        commandCount,
         ADD_ADMIN_ID,
         newAdmin
       )
@@ -476,7 +476,7 @@ contract AcessControlTest is DispatcherTestBase {
     invokeDispatcher(
       abi.encodePacked(
         ACCESS_CONTROL_ID,
-        commandCount, 
+        commandCount,
         REVOKE_ADMIN_ID,
         newAdmin
       )
@@ -492,16 +492,16 @@ contract AcessControlTest is DispatcherTestBase {
         ADMINS_ID
       )
     );
-    
+
     (bool isAdmin, ) = res.asBoolMemUnchecked(0);
     (uint8 adminsCount, ) = res.asUint8MemUnchecked(1);
 
     assertEq(isAdmin, false);
     assertEq(adminsCount, 1);
-  } 
+  }
 
   function testDeepUpdateAdmin(
-    uint8 addAdmins, 
+    uint8 addAdmins,
     uint8 removeAdmins,
     uint8 secondAddAdmins
   ) public {
@@ -515,7 +515,7 @@ contract AcessControlTest is DispatcherTestBase {
     (uint8 initialAdmins,) = invokeStaticDispatcher(
       abi.encodePacked(
         ACCESS_CONTROL_QUERIES_ID,
-        commandCount, 
+        commandCount,
         ADMINS_ID
       )
     ).asUint8MemUnchecked(0);
@@ -548,7 +548,7 @@ contract AcessControlTest is DispatcherTestBase {
     commandCount = addAdmins + 1;
     bytes memory areAdminsAndGetAdmins = abi.encodePacked(
       ACCESS_CONTROL_QUERIES_ID,
-      commandCount, 
+      commandCount,
       ADMINS_ID,
       queryAdmins
     );
@@ -596,7 +596,7 @@ contract AcessControlTest is DispatcherTestBase {
     commandCount = addAdmins + 1;
     areAdminsAndGetAdmins = abi.encodePacked(
       ACCESS_CONTROL_QUERIES_ID,
-      commandCount, 
+      commandCount,
       ADMINS_ID,
       queryAdmins
     );
@@ -650,7 +650,7 @@ contract AcessControlTest is DispatcherTestBase {
     commandCount = secondAddAdmins + 1;
     areAdminsAndGetAdmins = abi.encodePacked(
       ACCESS_CONTROL_QUERIES_ID,
-      commandCount, 
+      commandCount,
       ADMINS_ID,
       queryAdmins
     );
@@ -679,7 +679,7 @@ contract AcessControlTest is DispatcherTestBase {
       (isAdmin, offset) = res.asBoolMemUnchecked(offset);
       assertEq(isAdmin, true);
     }
-  } 
+  }
 
   function testStaticUpdateAdmin() public {
     uint8 addAdmins   = 5;
@@ -690,7 +690,7 @@ contract AcessControlTest is DispatcherTestBase {
     bytes memory res = invokeStaticDispatcher(
       abi.encodePacked(
         ACCESS_CONTROL_QUERIES_ID,
-        commandCount, 
+        commandCount,
         ADMINS_ID
       )
     );
@@ -726,7 +726,7 @@ contract AcessControlTest is DispatcherTestBase {
     commandCount = 1;
     bytes memory getAdmins = abi.encodePacked(
       ACCESS_CONTROL_QUERIES_ID,
-      commandCount, 
+      commandCount,
       ADMINS_ID
     );
 
@@ -740,7 +740,7 @@ contract AcessControlTest is DispatcherTestBase {
     // Initial admin
     (admin_, offset) = res.asAddressMemUnchecked(offset);
     assertEq(admin_, admin);
-    
+
     // New admins, randomAddresses[0] to randomAddresses[4]
     for (uint i = 0; i < addAdmins; i++) {
       (admin_, offset) = res.asAddressMemUnchecked(offset);
@@ -768,7 +768,7 @@ contract AcessControlTest is DispatcherTestBase {
     commandCount = 1;
     getAdmins = abi.encodePacked(
       ACCESS_CONTROL_QUERIES_ID,
-      commandCount, 
+      commandCount,
       ADMINS_ID
     );
 
@@ -781,7 +781,7 @@ contract AcessControlTest is DispatcherTestBase {
     // Initial admin
     (admin_, offset) = res.asAddressMemUnchecked(offset);
     assertEq(admin_, admin);
-    
+
     // Last admin added, randomAddresses[4]
     (admin_, offset) = res.asAddressMemUnchecked(offset);
     assertEq(admin_, randomAddresses[4]);
@@ -802,7 +802,7 @@ contract AcessControlTest is DispatcherTestBase {
     commandCount = 1;
     getAdmins = abi.encodePacked(
       ACCESS_CONTROL_QUERIES_ID,
-      commandCount, 
+      commandCount,
       ADMINS_ID
     );
 
@@ -815,7 +815,7 @@ contract AcessControlTest is DispatcherTestBase {
     // Initial admin
     (admin_, offset) = res.asAddressMemUnchecked(offset);
     assertEq(admin_, admin);
-    
+
     // randomAddresses[4]
     (admin_, offset) = res.asAddressMemUnchecked(offset);
     assertEq(admin_, randomAddresses[4]);
@@ -910,11 +910,11 @@ contract AcessControlTest is DispatcherTestBase {
         PENDING_OWNER_ID
       )
     );
-    
+
     (address owner_, ) = res.asAddressMemUnchecked(0);
     (address pendingOwner_, ) = res.asAddressMemUnchecked(20);
 
-    assertEq(owner_, address(0)); 
+    assertEq(owner_, address(0));
     assertEq(pendingOwner_, address(0));
   }
 }

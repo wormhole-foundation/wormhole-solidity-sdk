@@ -1,56 +1,65 @@
 // SPDX-License-Identifier: Apache 2
-
 pragma solidity ^0.8.19;
 
-type WeiPrice is uint256;
-
-type GasPrice is uint256;
-
-type Gas is uint256;
-
-type Dollar is uint256;
-
-type Wei is uint256;
-
-type LocalNative is uint256;
-
+type Wei          is uint256;
+type Gas          is uint256;
+type Dollar       is uint256;
+type WeiPrice     is uint256;
+type GasPrice     is uint256;
+type LocalNative  is uint256;
 type TargetNative is uint256;
 
 using {
-  addWei as +,
-  subWei as -,
+  eqWei  as ==,
+  neqWei as !=,
+  ltWei  as <,
+  gtWei  as >,
   lteWei as <=,
-  ltWei as <,
-  gtWei as >,
-  eqWei as ==,
-  neqWei as !=
+  gteWei as >=,
+  addWei as +,
+  subWei as -
 } for Wei global;
-using {addTargetNative as +, subTargetNative as -} for TargetNative global;
 using {
-  leLocalNative as <,
-  leqLocalNative as <=,
+  eqGas  as ==,
+  neqGas as !=,
+  ltGas  as <,
+  lteGas as <=,
+  gteGas as >=,
+  gtGas  as >,
+  addGas as +,
+  subGas as -
+} for Gas global;
+using {
+  eqLocalNative  as ==,
   neqLocalNative as !=,
+  ltLocalNative  as <,
+  gtLocalNative  as >,
+  lteLocalNative as <=,
+  gteLocalNative as >=,
   addLocalNative as +,
   subLocalNative as -
 } for LocalNative global;
 using {
-  ltGas as <,
-  lteGas as <=,
-  subGas as -
-} for Gas global;
+  addTargetNative as +,
+  subTargetNative as -
+} for TargetNative global;
 
-using WeiLib for Wei;
-using GasLib for Gas;
-using DollarLib for Dollar;
+using WeiLib      for Wei;
+using GasLib      for Gas;
+using DollarLib   for Dollar;
 using WeiPriceLib for WeiPrice;
 using GasPriceLib for GasPrice;
 
-function ltWei(Wei a, Wei b) pure returns (bool) {
-  return Wei.unwrap(a) < Wei.unwrap(b);
-}
-
 function eqWei(Wei a, Wei b) pure returns (bool) {
   return Wei.unwrap(a) == Wei.unwrap(b);
+}
+
+function neqWei(Wei a, Wei b) pure returns (bool) {
+  return Wei.unwrap(a) != Wei.unwrap(b);
+}
+
+function ltWei(Wei a, Wei b) pure returns (bool) {
+  return Wei.unwrap(a) < Wei.unwrap(b);
 }
 
 function gtWei(Wei a, Wei b) pure returns (bool) {
@@ -61,24 +70,44 @@ function lteWei(Wei a, Wei b) pure returns (bool) {
   return Wei.unwrap(a) <= Wei.unwrap(b);
 }
 
-function subWei(Wei a, Wei b) pure returns (Wei) {
-  return Wei.wrap(Wei.unwrap(a) - Wei.unwrap(b));
+function gteWei(Wei a, Wei b) pure returns (bool) {
+  return Wei.unwrap(a) >= Wei.unwrap(b);
 }
 
 function addWei(Wei a, Wei b) pure returns (Wei) {
   return Wei.wrap(Wei.unwrap(a) + Wei.unwrap(b));
 }
 
-function neqWei(Wei a, Wei b) pure returns (bool) {
-  return Wei.unwrap(a) != Wei.unwrap(b);
+function subWei(Wei a, Wei b) pure returns (Wei) {
+  return Wei.wrap(Wei.unwrap(a) - Wei.unwrap(b));
+}
+
+function eqGas(Gas a, Gas b) pure returns (bool) {
+  return Gas.unwrap(a) == Gas.unwrap(b);
+}
+
+function neqGas(Gas a, Gas b) pure returns (bool) {
+  return Gas.unwrap(a) != Gas.unwrap(b);
 }
 
 function ltGas(Gas a, Gas b) pure returns (bool) {
   return Gas.unwrap(a) < Gas.unwrap(b);
 }
 
+function gtGas(Gas a, Gas b) pure returns (bool) {
+  return Gas.unwrap(a) > Gas.unwrap(b);
+}
+
 function lteGas(Gas a, Gas b) pure returns (bool) {
   return Gas.unwrap(a) <= Gas.unwrap(b);
+}
+
+function gteGas(Gas a, Gas b) pure returns (bool) {
+  return Gas.unwrap(a) >= Gas.unwrap(b);
+}
+
+function addGas(Gas a, Gas b) pure returns (Gas) {
+  return Gas.wrap(Gas.unwrap(a) + Gas.unwrap(b));
 }
 
 function subGas(Gas a, Gas b) pure returns (Gas) {
@@ -93,24 +122,36 @@ function subTargetNative(TargetNative a, TargetNative b) pure returns (TargetNat
   return TargetNative.wrap(TargetNative.unwrap(a) - TargetNative.unwrap(b));
 }
 
-function addLocalNative(LocalNative a, LocalNative b) pure returns (LocalNative) {
-  return LocalNative.wrap(LocalNative.unwrap(a) + LocalNative.unwrap(b));
-}
-
-function subLocalNative(LocalNative a, LocalNative b) pure returns (LocalNative) {
-  return LocalNative.wrap(LocalNative.unwrap(a) - LocalNative.unwrap(b));
+function eqLocalNative(LocalNative a, LocalNative b) pure returns (bool) {
+  return LocalNative.unwrap(a) == LocalNative.unwrap(b);
 }
 
 function neqLocalNative(LocalNative a, LocalNative b) pure returns (bool) {
   return LocalNative.unwrap(a) != LocalNative.unwrap(b);
 }
 
-function leLocalNative(LocalNative a, LocalNative b) pure returns (bool) {
+function ltLocalNative(LocalNative a, LocalNative b) pure returns (bool) {
   return LocalNative.unwrap(a) < LocalNative.unwrap(b);
 }
 
-function leqLocalNative(LocalNative a, LocalNative b) pure returns (bool) {
+function gtLocalNative(LocalNative a, LocalNative b) pure returns (bool) {
+  return LocalNative.unwrap(a) > LocalNative.unwrap(b);
+}
+
+function lteLocalNative(LocalNative a, LocalNative b) pure returns (bool) {
   return LocalNative.unwrap(a) <= LocalNative.unwrap(b);
+}
+
+function gteLocalNative(LocalNative a, LocalNative b) pure returns (bool) {
+  return LocalNative.unwrap(a) >= LocalNative.unwrap(b);
+}
+
+function addLocalNative(LocalNative a, LocalNative b) pure returns (LocalNative) {
+  return LocalNative.wrap(LocalNative.unwrap(a) + LocalNative.unwrap(b));
+}
+
+function subLocalNative(LocalNative a, LocalNative b) pure returns (LocalNative) {
+  return LocalNative.wrap(LocalNative.unwrap(a) - LocalNative.unwrap(b));
 }
 
 library WeiLib {

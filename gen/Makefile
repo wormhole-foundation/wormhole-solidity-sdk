@@ -1,6 +1,7 @@
-GENERATORS = chains cctpDomains
+GENERATORS = chains cctpDomains chainConsts
 chains_TARGET = constants/Chains.sol
 cctpDomains_TARGET = constants/CctpDomains.sol
+chainConsts_TARGET = testing/ChainConsts.sol
 
 fnGeneratorTarget = ../src/$($(1)_TARGET)
 GENERATOR_TARGETS = $(foreach generator,$(GENERATORS),$(call fnGeneratorTarget,$(generator)))

@@ -3,7 +3,9 @@ pragma solidity ^0.8.19;
 
 import {IERC20} from "IERC20/IERC20.sol";
 
-import {IWormhole}           from "wormhole-sdk/interfaces/IWormhole.sol";
+import {
+  ICoreBridge,
+  CoreBridgeVM}              from "wormhole-sdk/interfaces/ICoreBridge.sol";
 import {IMessageTransmitter} from "wormhole-sdk/interfaces/cctp/IMessageTransmitter.sol";
 import {ITokenMessenger}     from "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol";
 import {ITokenMinter}        from "wormhole-sdk/interfaces/cctp/ITokenMinter.sol";
@@ -40,7 +42,7 @@ abstract contract WormholeCctpTokenMessenger {
   error UnexpectedEmitter(bytes32, bytes32);
 
   /// @dev Wormhole Core Bridge contract address.
-  IWormhole immutable _wormhole;
+  ICoreBridge immutable _coreBridge;
 
   /// @dev Wormhole Chain ID. NOTE: This is NOT the EVM chain ID.
   uint16 immutable _chainId;
@@ -57,9 +59,9 @@ abstract contract WormholeCctpTokenMessenger {
   /// @dev CCTP domain for this network (configured by the CCTP Message Transmitter).
   uint32 immutable _localCctpDomain;
 
-  constructor(address wormhole, address cctpTokenMessenger) {
-    _wormhole = IWormhole(wormhole);
-    _chainId  = _wormhole.chainId();
+  constructor(address coreBridge, address cctpTokenMessenger) {
+    _coreBridge = ICoreBridge(coreBridge);
+    _chainId  = _coreBridge.chainId();
 
     _tokenMessenger     = ITokenMessenger(cctpTokenMessenger);
     _messageTransmitter = _tokenMessenger.localMessageTransmitter();
@@ -104,7 +106,7 @@ abstract contract WormholeCctpTokenMessenger {
     );
 
     // Publish deposit message via Wormhole Core Bridge.
-    wormholeSequence = _wormhole.publishMessage{value: wormholeFee}(
+    wormholeSequence = _coreBridge.publishMessage{value: wormholeFee}(
       wormholeNonce,
       WormholeCctpMessageLib.encodeDeposit(
         token.toUniversalAddress(),
@@ -132,7 +134,7 @@ abstract contract WormholeCctpTokenMessenger {
     bytes calldata cctpAttestation,
     bytes calldata encodedVaa
   ) internal returns (
-    IWormhole.VM memory vaa,
+    CoreBridgeVM memory vaa,
     bytes32 token,
     uint256 amount,
     bytes32 burnSource,
@@ -181,7 +183,7 @@ abstract contract WormholeCctpTokenMessenger {
     bytes calldata cctpAttestation,
     bytes calldata encodedVaa
   ) internal returns (
-    IWormhole.VM memory vaa,
+    CoreBridgeVM memory vaa,
     bytes32 token,
     uint256 amount,
     uint32 sourceCctpDomain,
@@ -237,7 +239,7 @@ abstract contract WormholeCctpTokenMessenger {
    *
    * NOTE: Reverts with `UnexpectedEmitter(bytes32, bytes32)`.
    */
-  function requireEmitter(IWormhole.VM memory vaa, bytes32 expectedEmitter) internal pure {
+  function requireEmitter(CoreBridgeVM memory vaa, bytes32 expectedEmitter) internal pure {
     if (eagerAnd(expectedEmitter != 0, vaa.emitterAddress != expectedEmitter))
       revert UnexpectedEmitter(vaa.emitterAddress, expectedEmitter);
   }
@@ -246,9 +248,9 @@ abstract contract WormholeCctpTokenMessenger {
 
   function _parseAndVerifyVaa(
     bytes calldata encodedVaa
-  ) private view returns (IWormhole.VM memory vaa) {
+  ) private view returns (CoreBridgeVM memory vaa) {
     bool valid;
-    (vaa, valid, ) = _wormhole.parseAndVerifyVM(encodedVaa);
+    (vaa, valid, ) = _coreBridge.parseAndVerifyVM(encodedVaa);
 
     if (!valid)
       revert InvalidVaa();

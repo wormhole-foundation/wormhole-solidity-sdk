@@ -13,7 +13,7 @@ contract Dispatcher is RawDispatcher, AccessControl, SweepTokens, Upgrade {
 
   function _proxyConstructor(bytes calldata args) internal override {
     uint offset = 0;
-    
+
     address owner;
     (owner, offset) = args.asAddressCdUnchecked(offset);
 

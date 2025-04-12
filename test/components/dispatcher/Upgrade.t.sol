@@ -32,7 +32,7 @@ contract UpgradeTest is DispatcherTestBase {
     invokeDispatcher(
       abi.encodePacked(
         UPGRADE_CONTRACT_ID,
-        address(fakeAddress), 
+        address(fakeAddress),
         new bytes(0)
       )
     );
@@ -45,7 +45,7 @@ contract UpgradeTest is DispatcherTestBase {
     invokeDispatcher(
       abi.encodePacked(
         UPGRADE_CONTRACT_ID,
-        address(upgradeTester), 
+        address(upgradeTester),
         new bytes(0)
       )
     );
@@ -69,7 +69,7 @@ contract UpgradeTest is DispatcherTestBase {
     invokeDispatcher(
       abi.encodePacked(
         UPGRADE_CONTRACT_ID,
-        address(upgradeTester), 
+        address(upgradeTester),
         new bytes(0)
       )
     );

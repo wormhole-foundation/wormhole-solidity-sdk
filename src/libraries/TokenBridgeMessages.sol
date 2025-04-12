@@ -395,7 +395,7 @@ library TokenBridgeMessageLib {
     uint offset = 0;
     (normalizedAmount, tokenAddress, tokenChainId, offset) =
       _decodeTransferCommonHeaderEssentialsCdUnchecked(encoded, PAYLOAD_ID_TRANSFER_WITH_PAYLOAD);
-    
+
     offset += COMMON_TRANSFER_TO_ADDRESS_SIZE + COMMON_TRANSFER_TO_CHAIN_ID_SIZE;
     (fromAddress, offset) = encoded.asBytes32CdUnchecked(offset);
 

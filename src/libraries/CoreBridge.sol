@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.14;
 
-import {IWormhole}                          from "wormhole-sdk/interfaces/IWormhole.sol";
-import {WORD_SIZE}                          from "wormhole-sdk/constants/Common.sol";
-import {BytesParsing}                       from "wormhole-sdk/libraries/BytesParsing.sol";
-import {UncheckedIndexing}                  from "wormhole-sdk/libraries/UncheckedIndexing.sol";
-import {GuardianSignature, VaaBody, VaaLib} from "wormhole-sdk/libraries/VaaLib.sol";
-import {eagerAnd, eagerOr}                  from "wormhole-sdk/Utils.sol";
+import {
+  ICoreBridge,
+  GuardianSignature,
+  GuardianSet}             from "wormhole-sdk/interfaces/ICoreBridge.sol";
+import {WORD_SIZE}         from "wormhole-sdk/constants/Common.sol";
+import {BytesParsing}      from "wormhole-sdk/libraries/BytesParsing.sol";
+import {UncheckedIndexing} from "wormhole-sdk/libraries/UncheckedIndexing.sol";
+import {VaaBody, VaaLib}   from "wormhole-sdk/libraries/VaaLib.sol";
+import {eagerAnd, eagerOr} from "wormhole-sdk/Utils.sol";
 
 // ╭────────────────────────────────────────────────────────────────────────────────────────╮
 // │ Library for "client-side" parsing and verification of VAAs / Guardian signed messages. │
@@ -138,7 +141,7 @@ library CoreBridgeLib {
   }}
 
   function decodeAndVerifyVaaCd(
-    address wormhole,
+    address coreBridge,
     bytes calldata encodedVaa
   ) internal view returns (
     uint32  timestamp,
@@ -149,11 +152,11 @@ library CoreBridgeLib {
     uint8   consistencyLevel,
     bytes calldata payload
   ) { unchecked {
-    uint offset = VaaLib.checkVaaVersionCd(encodedVaa);
+    uint offset = VaaLib.checkVaaVersionCdUnchecked(encodedVaa);
     uint32 guardianSetIndex;
     (guardianSetIndex, offset) = encodedVaa.asUint32CdUnchecked(offset);
 
-    address[] memory guardians = getGuardiansOrLatest(wormhole, guardianSetIndex);
+    address[] memory guardians = getGuardiansOrLatest(coreBridge, guardianSetIndex);
     uint guardianCount = guardians.length; //optimization puts var on stack thus avoids mload
     uint signatureCount;
     (signatureCount, offset) = encodedVaa.asUint8CdUnchecked(offset);
@@ -189,7 +192,7 @@ library CoreBridgeLib {
   }}
 
   function decodeAndVerifyVaaMem(
-    address wormhole,
+    address coreBridge,
     bytes memory encodedVaa
   ) internal view returns (
     uint32  timestamp,
@@ -201,11 +204,11 @@ library CoreBridgeLib {
     bytes memory payload
   ) {
     (timestamp, nonce, emitterChainId, emitterAddress, sequence, consistencyLevel, payload, ) =
-      decodeAndVerifyVaaMem(wormhole, encodedVaa, 0, encodedVaa.length);
+      decodeAndVerifyVaaMem(coreBridge, encodedVaa, 0, encodedVaa.length);
   }
 
   function decodeAndVerifyVaaMem(
-    address wormhole,
+    address coreBridge,
     bytes memory encodedVaa,
     uint offset,
     uint vaaLength
@@ -223,7 +226,7 @@ library CoreBridgeLib {
     uint32 guardianSetIndex;
     (guardianSetIndex, offset) = encodedVaa.asUint32MemUnchecked(offset);
 
-    address[] memory guardians = getGuardiansOrLatest(wormhole, guardianSetIndex);
+    address[] memory guardians = getGuardiansOrLatest(coreBridge, guardianSetIndex);
     uint guardianCount = guardians.length;
 
     uint signatureCount;
@@ -268,32 +271,32 @@ library CoreBridgeLib {
   }}
 
   function isVerifiedByQuorumCd(
-    address wormhole,
+    address coreBridge,
     bytes32 hash,
     GuardianSignature[] calldata guardianSignatures,
     uint32 guardianSetIndex
   ) internal view returns (bool) {
-    address[] memory guardians = getGuardiansOrLatest(wormhole, guardianSetIndex);
+    address[] memory guardians = getGuardiansOrLatest(coreBridge, guardianSetIndex);
     return isVerifiedByQuorumCd(hash, guardianSignatures, guardians);
   }
 
   function isVerifiedByQuorumMem(
-    address wormhole,
+    address coreBridge,
     bytes32 hash,
     GuardianSignature[] memory guardianSignatures,
     uint32 guardianSetIndex
   ) internal view returns (bool) {
-    address[] memory guardians = getGuardiansOrLatest(wormhole, guardianSetIndex);
+    address[] memory guardians = getGuardiansOrLatest(coreBridge, guardianSetIndex);
     return isVerifiedByQuorumMem(hash, guardianSignatures, guardians);
   }
 
   //returns empty array if the guardian set is expired
   //has more predictable gas costs (guaranteed to only do one external call)
   function getGuardiansOrEmpty(
-    address wormhole,
+    address coreBridge,
     uint32 guardianSetIndex
   ) internal view returns (address[] memory guardians) {
-    IWormhole.GuardianSet memory guardianSet = IWormhole(wormhole).getGuardianSet(guardianSetIndex);
+    GuardianSet memory guardianSet = ICoreBridge(coreBridge).getGuardianSet(guardianSetIndex);
     if (!_isExpired(guardianSet))
       guardians = guardianSet.keys;
   }
@@ -303,15 +306,15 @@ library CoreBridgeLib {
   //  the specified signatures are valid for the latest guardian set as well (about a 30 % chance
   //  for the typical guardian set rotation where one guardian address gets replaced).
   function getGuardiansOrLatest(
-    address wormhole,
+    address coreBridge,
     uint32 guardianSetIndex
   ) internal view returns (address[] memory guardians) {
-    IWormhole.GuardianSet memory guardianSet = IWormhole(wormhole).getGuardianSet(guardianSetIndex);
+    GuardianSet memory guardianSet = ICoreBridge(coreBridge).getGuardianSet(guardianSetIndex);
     if (_isExpired(guardianSet))
       //if the specified guardian set is expired, we try using the current guardian set as an adhoc
       //  repair attempt (there's almost certainly never more than 2 valid guardian sets at a time)
-      guardianSet = IWormhole(wormhole).getGuardianSet(
-        IWormhole(wormhole).getCurrentGuardianSetIndex()
+      guardianSet = ICoreBridge(coreBridge).getGuardianSet(
+        ICoreBridge(coreBridge).getCurrentGuardianSetIndex()
       );
 
     guardians = guardianSet.keys;
@@ -350,7 +353,7 @@ library CoreBridgeLib {
     );
   }
 
-  function _isExpired(IWormhole.GuardianSet memory guardianSet) private view returns (bool) {
+  function _isExpired(GuardianSet memory guardianSet) private view returns (bool) {
     uint expirationTime = guardianSet.expirationTime;
     return eagerAnd(expirationTime != 0, expirationTime < block.timestamp);
   }
