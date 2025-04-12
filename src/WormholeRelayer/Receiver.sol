@@ -15,7 +15,7 @@ abstract contract WormholeRelayerReceiver is IWormholeReceiver {
 
   //contracts form a peer network across chains and only messages from peers can be trusted
   function _isPeer(uint16 chainId, bytes32 peerAddress) internal virtual view returns (bool);
-  
+
   //note: be sure to check msg.value in your implementation
   //see AdditionalMessages.sol for how to handle additional messages if applicable
   function _handleDelivery(

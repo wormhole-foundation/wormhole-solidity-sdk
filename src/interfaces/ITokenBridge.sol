@@ -70,7 +70,7 @@ interface ITokenBridge {
   function wormhole() external view returns (address);
   //returns universal address of peer contracts on other chains
   function bridgeContracts(uint16 chainId) external view returns (bytes32);
-  //underlying implementation of the beacon 
+  //underlying implementation of the beacon
   function tokenImplementation() external view returns (address);
   //returns address of the canonical wrapped native token
   function WETH() external view returns (address);

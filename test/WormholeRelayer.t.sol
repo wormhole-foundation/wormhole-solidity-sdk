@@ -23,7 +23,7 @@ contract WormholeRelayerTestIntegration is WormholeRelayerReceiver {
   address private immutable _coreBridge;
 
   uint16 private immutable _chainId;
-  
+
   address private owner;
 
   mapping(uint16 => Peer) private _peers;
@@ -84,7 +84,7 @@ contract WormholeRelayerTestIntegration is WormholeRelayerReceiver {
           0,
           bytes("")
         );
-      
+
       messageKeys[messageKeysIndex++] = MessageKey(
         WormholeRelayerKeysLib.KEY_TYPE_VAA,
         VaaKey(_chainId, _tokenBridge.toUniversalAddress(), sequence).encode()
@@ -102,7 +102,7 @@ contract WormholeRelayerTestIntegration is WormholeRelayerReceiver {
           _usdc,
           peer
         );
-      
+
       messageKeys[messageKeysIndex++] = MessageKey(
         WormholeRelayerKeysLib.KEY_TYPE_CCTP,
         CctpKey(peerData.cctpDomain, sequence).encode()

@@ -20,7 +20,7 @@ contract WormholeMessagesTest is Test {
   bytes transferVaaHeader = hex"01000000040d000d9706bcb3a4069e51fc83bfb4056eb080cf412a87384deda904f317aa986cf61f0fdcebf63230a158d42120069321206aaa078ad60bb682031203b4e6b1b2910001f2249a2a93433f48870b6db4d7b41691988ea9f40719bb0dbe3528db37645bf770885087ef5dceb6ef6eb66554a86f442a406121f018e95b161cff512c503c8a010584dbd7d3720ba02e0e9211162742a07b4bf213528f7625df44f0feb3bb4ed4722d92050f2856c25292654f9320e3e783eb0c492bf2aec1b1a5393c4c2f279f26000667d3444e661e1ac6e360e6a0f8679b6ea99f740238be463046c8d727a71fd6e519d26eb6dee985d2f774fc0e8a9a2343cbaf5c265f668d60ab74415c3dd02f860107ce39722a65635d7a9f15a2ea8784cddcfbd88d00c6a89daac2a87548c8e0012d3923a74e4dcebfccebff601e2349923ca2a77d45089619b9e927001ce80e34260008cb06b678a2d78b66a8ef7743cf46f348ad53e36acb9832e9bfd584609ce84db406537259de7244d9d7bd616f028cb56fdf328d71362656ed49381194a9c0db1200094e717815bb93c323311d579b1dab05c87cd7cc4f0ba943f62fb7c1ab1bd174a17aa1507ffd148d7351f1a755b2293f4b146c8a2930fe7c118846af9379d784b7000a16a32494fc02533081afb4d7cf83e9bb579e0018cb2fb94a5b6b988067a75fe34f1697c0bad93cff45e5351e33a8ba5b94be6330c4a07749a5980d6ab4531be8000da6ea6337801ce2479410b14243c5ac4c8b228fae17ef03882dfced6b65c2b13b63a3ee5e1cd4179098712b312bc836b08db29450e917777ee509adeac40a5d2f010ec3ee8c0183486d12137c7f4e6b0c07b0528526376aa8f7c13e103b17803329d96f0af7c4015ba64f2fe32e43449ae6e528c7765d8be866c2fca4b8f5d22e123e001052971d98a3a903ab900901df4d88014baf0497792c797e38a973213d8e924d0165149e5e2298e13274b8becbd73a573e24a0f2a0769fe81da781f5ac051b03f9011101e6ac72622a785481b4e5541557bccfa3e224448b82109d5928037353ddf2d86f677e7eccafb25b073227d06d286f4c5a2efe6436a86fb444c119c40b6b8839001278ee1a77cd29d5a6f19b3008a7f92bcf04aa7a169f572202c697712f26d0ff2a5e361542e7e5175e52633e914557e34004824d3038809496c53046773a6eb86201";
   bytes transferVaaEnvelope = hex"678765c068e534680001ec7372995d5cc8732397fb0ad35c0121e0eaa90d26f828a534cab54391b3a4f500000000001141b520";
   bytes transferVaaPayload = hex"01000000000000000000000000000000000000000000000000000000000d2136ef069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f000000000010001000000000000000000000000fc99f58a8974a4bc36e60e2d490bb8d72899ee9f00020000000000000000000000000000000000000000000000000000000000000000";
-  
+
   bytes32 transferSingleHash = 0x9a949aeb4b73b188f29a9eeb4e61e3d4738fe55ae6e3ba6d4353b987e866b8d2;
   bytes32 transferDoubleHash = 0xe6697be620697826affc7c35bb1067a1fa2492aea7afe797a6c9481adc6a098b;
 
@@ -142,7 +142,7 @@ contract WormholeMessagesTest is Test {
   bytes twpVaaEnvelope = hex"64e5ad49083c010000060000000000000000000000000e082F06FF657D94310cB8cE8B0D9a04541d80520000000000001d6701";
   bytes twpVaaPayloadNo3 = hex"0300000000000000000000000000000000000000000000000000000000001e84800000000000000000000000009c3c9283d3e44854697cd22d3faa240cfb03288900056d9ae6b2d333c1d65301a59da3eed388ca5dc60cb12496584b75cbe6b15fdbed0020000000000000000000000000d493066498ace409059fda4c1bcd2e73d8cffe01";
   bytes twpVaaPayload3 = hex"7b2262617369635f726563697069656e74223a7b22726563697069656e74223a22633256704d54526a4e5755335a585a325933426f64576f306144687563586c6b5a6d357a4d7a49774f585a6d616e526d616d52775a54686a227d7d";
-  
+
   bytes32 twpSingleHash = 0x11f8d4f421cb592afe5d9204fd9cc345efb80f400853f82188f402963a68756f;
   bytes32 twpDoubleHash = 0xe788dce73c57ddd396c4eb5f5c16199decd8f7318a8524fe37febf10ac2d4aad;
 
@@ -198,7 +198,7 @@ contract WormholeMessagesTest is Test {
   bytes amVaaHeader = hex"01000000000100258085e22c07380831e348d937e2e4e88d41732888e94c50a6192485efd3962708e606cea327c0d3b4448085b2f285a4dd8b4a4e0270671487e9ec6f49ebf5e600";
   bytes amVaaEnvelope = hex"642c4220d1780000000e00000000000000000000000005ca6037ec51f8b712ed2e6fa72219feae74e15300000000000000d601";
   bytes amVaaPayload = hex"02000000000000000000000000f194afdf50b03e69bd7d057c1aa9e10c9954e4c9000e1243454c4f0000000000000000000000000000000000000000000000000000000043656c6f206e6174697665206173736574000000000000000000000000000000";
-  
+
   bytes32 amSingleHash = 0xe86ff721a31b17ad1a70bed86ac0a306cc0be55687a3d67b0ecee2c7eb4e046d;
   bytes32 amDoubleHash = 0x52eb27c9f34ed757cf0f0ef927ae4defcd640e1a90bcc3e2fb7526e78fa2e815;
 
@@ -274,9 +274,20 @@ contract WormholeMessagesTest is Test {
     bytes memory encoded,
     bool expectSuccess
   ) private returns (bytes memory) {
+    return callWithBytes(wrapper, functionName, cd, false, encoded, expectSuccess);
+  }
+
+  function callWithBytes(
+    address wrapper,
+    string memory functionName,
+    bool cd,
+    bool uc,
+    bytes memory encoded,
+    bool expectSuccess
+  ) private returns (bytes memory) {
     (bool success, bytes memory encodedResult) =
       wrapper.staticcall(abi.encodeWithSignature(
-        withDataLocationTag(functionName, cd, false, "(bytes)"),
+        withDataLocationTag(functionName, cd, uc, "(bytes)"),
         encoded
       ));
     assertEq(success, expectSuccess);
@@ -503,7 +514,7 @@ contract WormholeMessagesTest is Test {
     );
   }
   function testDecodingTwpVaaStruct() public { runBoth(decodingTwpVaaStruct); }
-  
+
   function decodingTwpPayload(bool cd) internal {
     TokenBridgeTransferWithPayload memory transfer = abi.decode(
       callWithBytes(tbLibWrapper, "decodeTransferWithPayloadStruct", cd, twpVaaPayload(), true),
@@ -520,6 +531,22 @@ contract WormholeMessagesTest is Test {
     assertEq(transfer.payload, expected.payload);
   }
   function testDecodingTwpPayload() public { runBoth(decodingTwpPayload); }
+
+  function decodingTwpPayloadEssentials(bool cd) internal {
+    TokenBridgeTransferWithPayloadEssentials memory transfer = abi.decode(
+      callWithBytes(tbLibWrapper, "decodeTransferWithPayloadEssentialsStruct", cd, twpVaaPayload(), true),
+      (TokenBridgeTransferWithPayloadEssentials)
+    );
+    TokenBridgeTransferWithPayload memory expected = decodedTwpStruct();
+
+    assertEq(transfer.normalizedAmount, expected.normalizedAmount);
+    assertEq(transfer.tokenAddress, expected.tokenAddress);
+    assertEq(transfer.tokenChainId, expected.tokenChainId);
+    assertEq(transfer.fromAddress, expected.fromAddress);
+    assertEq(transfer.payload, expected.payload);
+  }
+  function testDecodingTwpPayloadEssentials() public { runBoth(decodingTwpPayloadEssentials); }
+
   // ----
 
   function decodingAmVaaVm(bool cd) internal {
@@ -565,4 +592,14 @@ contract WormholeMessagesTest is Test {
     assertEq(transfer.name, expected.name);
   }
   function testDecodingAmPayload() public { runBoth(decodingAmPayload); }
+
+  function decodingEmitterChainId(bool cd) internal {
+    uint16 emitterChainId = abi.decode(
+      callWithBytes(vaaLibWrapper, "decodeEmitterChainId", cd, true, amVaa(), true),
+      (uint16)
+    );
+
+    assertEq(emitterChainId, amVaaVm().emitterChainId);
+  }
+  function testDecodingEmitterChainId() public { runBoth(decodingEmitterChainId); }
 }

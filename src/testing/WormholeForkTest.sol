@@ -34,7 +34,7 @@ struct Fork {
   uint16 chainId;
   string chainName;
   string rpcUrl;
-  
+
   ICoreBridge coreBridge;
   ITokenBridge tokenBridge;
   IWormholeRelayer relayer;

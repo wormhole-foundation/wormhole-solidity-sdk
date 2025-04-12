@@ -16,7 +16,7 @@ library WormholeRelayerKeysLib {
 
   uint internal constant VAA_KEY_SIZE =
     2 /*emitterChainId*/ + 32 /*emitterAddress*/ + 8 /*sequence*/;
-  
+
   // ---- Encoding ----
 
   function encode(VaaKey memory vaaKey) internal pure returns (bytes memory encoded) {
@@ -28,7 +28,7 @@ library WormholeRelayerKeysLib {
   }
 
   // ---- only relevant for testing ----
-  
+
   // -- VaaKey --
 
   function decodeVaaKeyStructCd(

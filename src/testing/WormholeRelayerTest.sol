@@ -92,7 +92,7 @@ abstract contract WormholeRelayerTest is WormholeForkTest {
     ) = _signDelivery(delivery);
 
     uint256 deliverValue = newReceiverValue + newGasLimit * newTargetChainRefundPerGasUnused;
-    
+
     bytes memory encodedOverrides = DeliveryOverride({
       newExecutionInfo: EvmExecutionInfoV1(newGasLimit, newTargetChainRefundPerGasUnused).encode(),
       newReceiverValue: newReceiverValue,
@@ -107,14 +107,14 @@ abstract contract WormholeRelayerTest is WormholeForkTest {
     RedeliveryInstruction[] memory redeliveries
   ) {
     PublishedMessage[] memory pms = coreBridge().fetchPublishedMessages(logs);
-    
+
     //count the number of deliveries and redeliveries
     uint deliveryCount = 0;
     uint redeliveryCount = 0;
     for (uint i = 0; i < pms.length; ++i) {
       if (pms[i].envelope.emitterAddress != address(wormholeRelayer()).toUniversalAddress())
         continue;
-      
+
       bytes memory payload = pms[i].payload;
       (uint8 payloadId, ) = payload.asUint8MemUnchecked(0);
       if (payloadId == WormholeRelayerStructsLib.PAYLOAD_ID_DELIVERY_INSTRUCTION)
@@ -135,7 +135,7 @@ abstract contract WormholeRelayerTest is WormholeForkTest {
     for (uint i = 0; i < pms.length; ++i) {
       if (pms[i].envelope.emitterAddress != address(wormholeRelayer()).toUniversalAddress())
         continue;
-      
+
       bytes memory payload = pms[i].payload;
       (uint8 payloadId, ) = payload.asUint8MemUnchecked(0);
       if (payloadId == WormholeRelayerStructsLib.PAYLOAD_ID_DELIVERY_INSTRUCTION) {
@@ -148,7 +148,7 @@ abstract contract WormholeRelayerTest is WormholeForkTest {
             messageKey.keyType == KEY_TYPE_VAA || messageKey.keyType == KEY_TYPE_CCTP,
             "Unknown message key type"
           );
-          additionalMessages[additionalMessagesIndex++] = 
+          additionalMessages[additionalMessagesIndex++] =
             messageKey.keyType == KEY_TYPE_VAA
               ? _asPtr(_findPublishedMessage(messageKey.encodedKey.decodeVaaKey(), pms))
               : _asPtr(_findCctpMessage(messageKey.encodedKey.decodeCctpKey(), burnMsgs));

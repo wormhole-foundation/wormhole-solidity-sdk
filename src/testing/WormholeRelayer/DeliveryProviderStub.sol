@@ -20,7 +20,7 @@ contract DeliveryProviderStub is IDeliveryProvider {
     (1 << WormholeRelayerKeysLib.KEY_TYPE_CCTP);
 
   mapping(uint16 => PeerData) private _peerData;
-  
+
   uint256 private _localNativePrice;
 
   constructor(uint256 localNativePrice) {
