@@ -436,22 +436,27 @@ library VaaLib {
     ) = decodeVaaBodyMemUnchecked(encodedVaa, 0, encodedVaa.length);
   }
 
-  function decodeEmitterChainIdCdUnchecked(
+  // Convinience decoding function for token bridge Vaas
+  function decodeEmitterChainAndPayloadCdUnchecked(
     bytes calldata encodedVaa
-  ) internal pure returns (uint16 emitterChainId) {
+  ) internal pure returns (uint16 emitterChainId, bytes calldata payload) {
     checkVaaVersionCd(encodedVaa);
     uint envelopeOffset = skipVaaHeaderCd(encodedVaa);
     uint offset = envelopeOffset + ENVELOPE_EMITTER_CHAIN_ID_OFFSET;
-    (emitterChainId, ) = encodedVaa.asUint16CdUnchecked(offset);
+    (emitterChainId, offset) = encodedVaa.asUint16CdUnchecked(offset);
+    offset += ENVELOPE_EMITTER_ADDRESS_SIZE + ENVELOPE_SEQUENCE_SIZE + ENVELOPE_CONSISTENCY_LEVEL_SIZE;
+    payload = decodeVaaPayloadCd(encodedVaa, offset);
   }
 
-  function decodeEmitterChainIdMemUnchecked(
+  function decodeEmitterChainAndPayloadMemUnchecked(
     bytes memory encodedVaa
-  ) internal pure returns (uint16 emitterChainId) {
+  ) internal pure returns (uint16 emitterChainId, bytes memory payload) {
     checkVaaVersionMemUnchecked(encodedVaa, 0);
     uint envelopeOffset = skipVaaHeaderMemUnchecked(encodedVaa, 0);
     uint offset = envelopeOffset + ENVELOPE_EMITTER_CHAIN_ID_OFFSET;
-    (emitterChainId, ) = encodedVaa.asUint16MemUnchecked(offset);
+    (emitterChainId, offset) = encodedVaa.asUint16MemUnchecked(offset);
+    offset += ENVELOPE_EMITTER_ADDRESS_SIZE + ENVELOPE_SEQUENCE_SIZE + ENVELOPE_CONSISTENCY_LEVEL_SIZE;
+    (payload, ) = decodeVaaPayloadMemUnchecked(encodedVaa, offset, encodedVaa.length);
   }
 
   // ------------ Advanced Decoding Functions ------------

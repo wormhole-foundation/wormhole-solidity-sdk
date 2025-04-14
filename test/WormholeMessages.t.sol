@@ -593,13 +593,16 @@ contract WormholeMessagesTest is Test {
   }
   function testDecodingAmPayload() public { runBoth(decodingAmPayload); }
 
-  function decodingEmitterChainId(bool cd) internal {
-    uint16 emitterChainId = abi.decode(
-      callWithBytes(vaaLibWrapper, "decodeEmitterChainId", cd, true, amVaa(), true),
-      (uint16)
+  function decodingEmitterChainAndPayload(bool cd) internal {
+    uint16 emitterChainId;
+    bytes memory payload; 
+    (emitterChainId, payload) = abi.decode(
+      callWithBytes(vaaLibWrapper, "decodeEmitterChainAndPayload", cd, true, amVaa(), true),
+      (uint16, bytes)
     );
 
     assertEq(emitterChainId, amVaaVm().emitterChainId);
+    assertEq(payload, amVaaVm().payload);
   }
-  function testDecodingEmitterChainId() public { runBoth(decodingEmitterChainId); }
+  function testDecodingEmitterChainAndPayload() public { runBoth(decodingEmitterChainAndPayload); }
 }
