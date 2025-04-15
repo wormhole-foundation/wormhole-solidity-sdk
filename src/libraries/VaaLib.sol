@@ -439,25 +439,25 @@ library VaaLib {
   // Convinience decoding function for token bridge Vaas
   function decodeEmitterChainAndPayloadCdUnchecked(
     bytes calldata encodedVaa
-  ) internal pure returns (uint16 emitterChainId, bytes calldata payload) {
+  ) internal pure returns (uint16 emitterChainId, bytes calldata payload) { unchecked {
     checkVaaVersionCd(encodedVaa);
     uint envelopeOffset = skipVaaHeaderCd(encodedVaa);
     uint offset = envelopeOffset + ENVELOPE_EMITTER_CHAIN_ID_OFFSET;
     (emitterChainId, offset) = encodedVaa.asUint16CdUnchecked(offset);
     offset += ENVELOPE_EMITTER_ADDRESS_SIZE + ENVELOPE_SEQUENCE_SIZE + ENVELOPE_CONSISTENCY_LEVEL_SIZE;
     payload = decodeVaaPayloadCd(encodedVaa, offset);
-  }
+  }}
 
   function decodeEmitterChainAndPayloadMemUnchecked(
     bytes memory encodedVaa
-  ) internal pure returns (uint16 emitterChainId, bytes memory payload) {
+  ) internal pure returns (uint16 emitterChainId, bytes memory payload) { unchecked {
     checkVaaVersionMemUnchecked(encodedVaa, 0);
     uint envelopeOffset = skipVaaHeaderMemUnchecked(encodedVaa, 0);
     uint offset = envelopeOffset + ENVELOPE_EMITTER_CHAIN_ID_OFFSET;
     (emitterChainId, offset) = encodedVaa.asUint16MemUnchecked(offset);
     offset += ENVELOPE_EMITTER_ADDRESS_SIZE + ENVELOPE_SEQUENCE_SIZE + ENVELOPE_CONSISTENCY_LEVEL_SIZE;
     (payload, ) = decodeVaaPayloadMemUnchecked(encodedVaa, offset, encodedVaa.length);
-  }
+  }}
 
   // ------------ Advanced Decoding Functions ------------
 
@@ -873,11 +873,11 @@ library VaaLib {
     bytes memory encoded,
     uint payloadOffset,
     uint vaaLength
-  ) internal pure returns (bytes memory payload, uint newOffset) {
+  ) internal pure returns (bytes memory payload, uint newOffset) { unchecked {
     //check to avoid underflow in following subtraction
     payloadOffset.checkBound(vaaLength);
     (payload, newOffset) = encoded.sliceMemUnchecked(payloadOffset, vaaLength - payloadOffset);
-  }
+  }}
 
   // ------------ Encoding ------------
 
@@ -1018,11 +1018,11 @@ library VaaLib {
   function _decodeRemainderCd(
     bytes calldata encodedVaa,
     uint offset
-  ) private pure returns (bytes calldata remainder) {
+  ) private pure returns (bytes calldata remainder) { unchecked {
     //check to avoid underflow in following subtraction
     offset.checkBound(encodedVaa.length);
     (remainder, ) = encodedVaa.sliceCdUnchecked(offset, encodedVaa.length - offset);
-  }
+  }}
 }
 
 using VaaLib for VaaHeader global;
