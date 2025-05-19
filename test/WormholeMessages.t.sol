@@ -423,8 +423,8 @@ contract WormholeMessagesTest is Test {
     bytes32 expectedDouble
   ) internal {
     uint envelopeOffset = abi.decode(cd
-      ? callWithBytes(vaaLibWrapper, "skipVaaHeader", cd, encoded, true)
-      : callWithBytesAndOffset(vaaLibWrapper, "skipVaaHeader", cd, !cd, encoded, 0, true),
+      ? callWithBytes(vaaLibWrapper, "skipVaaHeader", true, true, encoded, true)
+      : callWithBytesAndOffset(vaaLibWrapper, "skipVaaHeader", false, true, encoded, 0, true),
       (uint)
     );
 

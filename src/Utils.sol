@@ -21,3 +21,7 @@ import {
   eagerAnd,
   eagerOr
 } from "wormhole-sdk/utils/EagerOps.sol";
+import {
+  normalizeAmount,
+  deNormalizeAmount
+} from "wormhole-sdk/utils/DecimalNormalization.sol";

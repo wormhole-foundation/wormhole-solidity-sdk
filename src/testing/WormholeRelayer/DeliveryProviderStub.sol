@@ -5,12 +5,13 @@ import "wormhole-sdk/interfaces/IDeliveryProvider.sol";
 import "wormhole-sdk/testing/WormholeRelayer/Structs.sol";
 import "wormhole-sdk/WormholeRelayer/Keys.sol";
 import "wormhole-sdk/libraries/TypedUnits.sol";
+import { toUniversalAddress } from "wormhole-sdk/Utils.sol";
 
 contract DeliveryProviderStub is IDeliveryProvider {
   using WormholeRelayerStructsLib for bytes;
 
   struct PeerData {
-    bytes32 peer;
+    address peer;
     uint nativePrice;
     uint gasPrice;
   }
@@ -27,9 +28,9 @@ contract DeliveryProviderStub is IDeliveryProvider {
     _localNativePrice = localNativePrice;
   }
 
-  function addPeer(
+  function registerPeer(
     uint16 targetChain,
-    bytes32 peer,
+    address peer,
     uint256 nativePrice,
     uint256 gasPrice
   ) external virtual {
@@ -66,7 +67,7 @@ contract DeliveryProviderStub is IDeliveryProvider {
   }
 
   function isChainSupported(uint16 targetChain) external view virtual returns (bool supported) {
-    return _peerData[targetChain].peer != bytes32(0);
+    return _peerData[targetChain].peer != address(0);
   }
 
   function isMessageKeyTypeSupported(
@@ -82,7 +83,7 @@ contract DeliveryProviderStub is IDeliveryProvider {
   function getTargetChainAddress(
     uint16 targetChain
   ) external view virtual returns (bytes32 deliveryProviderAddress) {
-    return _peerData[targetChain].peer;
+    return toUniversalAddress(_peerData[targetChain].peer);
   }
 
   receive() external payable virtual {}
@@ -91,7 +92,7 @@ contract DeliveryProviderStub is IDeliveryProvider {
     uint16 targetChain
   ) internal view virtual returns (uint256 nativePrice, uint256 gasPrice) {
     PeerData memory peerData = _peerData[targetChain];
-    require(peerData.peer != bytes32(0), "Invalid peer");
+    require(peerData.peer != address(0), "Invalid peer");
     nativePrice = peerData.nativePrice;
     gasPrice = peerData.gasPrice;
   }

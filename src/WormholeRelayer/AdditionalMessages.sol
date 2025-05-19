@@ -2,7 +2,6 @@
 pragma solidity ^0.8.19;
 
 import {WORD_SIZE} from "wormhole-sdk/constants/Common.sol";
-import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 
 // The `additionalMessages` parameter of `receiveWormholeMessages` contains the list of
 //   VAAs, CCTP messages, and potentially other messages that were requested for delivery in
@@ -21,11 +20,18 @@ import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 function unpackAdditionalCctpMessage(
   bytes calldata message
 ) pure returns (bytes calldata cctpMessage, bytes calldata attestation) {
-  uint offset = WORD_SIZE;
-  uint length;
-  (length,      offset) = BytesParsing.asUint256CdUnchecked(message, offset);
-  (cctpMessage, offset) = BytesParsing.sliceCdUnchecked(message, offset, length);
-  (length,      offset) = BytesParsing.asUint256CdUnchecked(message, offset);
-  (attestation, offset) = BytesParsing.sliceCdUnchecked(message, offset, length);
-  BytesParsing.checkLength(offset, message.length);
+  assembly ("memory-safe") {
+    // message.offset points to ABI-encoded struct {bytes cctpMessage, bytes attestation}
+    // First word is offset to cctpMessage bytes (always 0x40)
+    // Second word is offset to attestation bytes
+    let attestationRelativeOffset := calldataload(add(message.offset, WORD_SIZE))
+    
+    let cctpMessageLengthOffset := add(message.offset, 0x40)
+    cctpMessage.offset := add(cctpMessageLengthOffset, WORD_SIZE)
+    cctpMessage.length := calldataload(cctpMessageLengthOffset)
+    
+    let attestationLengthOffset := add(message.offset, attestationRelativeOffset)
+    attestation.offset := add(attestationLengthOffset, WORD_SIZE)
+    attestation.length := calldataload(attestationLengthOffset)
+  }
 }

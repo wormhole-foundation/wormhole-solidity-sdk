@@ -102,6 +102,16 @@ abstract contract WormholeRelayerTest is WormholeForkTest {
     _deliver(deliveryIx, delivery, deliveryVaa, attestedMessages, deliverValue, encodedOverrides);
   }
 
+  function getDelivery() internal returns (Delivery memory) {
+    (Delivery[] memory deliveries, RedeliveryInstruction[] memory redeliveries) =
+      logsToDeliveries(vm.getRecordedLogs());
+    
+    require(deliveries.length == 1, "Expected exactly one delivery");
+    require(redeliveries.length == 0, "Expected no redeliveries");
+
+    return deliveries[0];
+  }
+
   function logsToDeliveries(Vm.Log[] memory logs) internal view returns (
     Delivery[] memory deliveries,
     RedeliveryInstruction[] memory redeliveries

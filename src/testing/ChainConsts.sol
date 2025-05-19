@@ -125,8 +125,6 @@ library MainnetChainConstants {
       return "Optimism";
     if (chainId == CHAIN_ID_POLYGON)
       return "Polygon";
-    if (chainId == CHAIN_ID_ROOTSTOCK)
-      return "Rootstock";
     if (chainId == CHAIN_ID_MANTLE)
       return "Mantle";
     if (chainId == CHAIN_ID_SCROLL)
@@ -143,6 +141,8 @@ library MainnetChainConstants {
       return "Unichain";
     if (chainId == CHAIN_ID_WORLDCHAIN)
       return "Worldchain";
+    if (chainId == CHAIN_ID_INK)
+      return "Ink";
     revert UnsupportedChainId(chainId);
   }
 
@@ -154,37 +154,35 @@ library MainnetChainConstants {
     if (chainId == CHAIN_ID_AURORA)
       return "";
     if (chainId == CHAIN_ID_AVALANCHE)
-      return "https://rpc.ankr.com/avalanche";
+      return "https://avalanche-c-chain-rpc.publicnode.com";
     if (chainId == CHAIN_ID_BASE)
       return "https://mainnet.base.org";
     if (chainId == CHAIN_ID_BSC)
-      return "https://bscrpc.com";
+      return "https://bsc-rpc.publicnode.com";
     if (chainId == CHAIN_ID_CELO)
-      return "https://rpc.ankr.com/celo";
+      return "https://celo-rpc.publicnode.com";
     if (chainId == CHAIN_ID_ETHEREUM)
-      return "https://rpc.ankr.com/eth";
+      return "https://ethereum-rpc.publicnode.com";
     if (chainId == CHAIN_ID_FANTOM)
       return "https://rpcapi.fantom.network";
     if (chainId == CHAIN_ID_GNOSIS)
-      return "https://rpc.ankr.com/gnosis";
+      return "https://gnosis-rpc.publicnode.com";
     if (chainId == CHAIN_ID_KARURA)
       return "https://eth-rpc-karura.aca-api.network";
     if (chainId == CHAIN_ID_KLAYTN)
-      return "https://rpc.ankr.com/klaytn";
+      return "https://public-en.node.kaia.io";
     if (chainId == CHAIN_ID_MOONBEAM)
-      return "https://rpc.ankr.com/moonbeam";
+      return "https://moonbeam-rpc.publicnode.com";
     if (chainId == CHAIN_ID_OASIS)
       return "https://emerald.oasis.dev";
     if (chainId == CHAIN_ID_OPTIMISM)
       return "https://mainnet.optimism.io";
     if (chainId == CHAIN_ID_POLYGON)
-      return "https://rpc.ankr.com/polygon";
-    if (chainId == CHAIN_ID_ROOTSTOCK)
-      return "https://public-node.rsk.co";
+      return "https://polygon-bor-rpc.publicnode.com";
     if (chainId == CHAIN_ID_MANTLE)
       return "https://rpc.mantle.xyz";
     if (chainId == CHAIN_ID_SCROLL)
-      return "https://rpc.ankr.com/scroll";
+      return "https://scroll-rpc.publicnode.com";
     if (chainId == CHAIN_ID_BLAST)
       return "https://rpc.blast.io";
     if (chainId == CHAIN_ID_XLAYER)
@@ -197,6 +195,8 @@ library MainnetChainConstants {
       return "https://mainnet.unichain.org";
     if (chainId == CHAIN_ID_WORLDCHAIN)
       return "https://worldchain-mainnet.g.alchemy.com/public";
+    if (chainId == CHAIN_ID_INK)
+      return "https://rpc-qnd.inkonchain.com";
     revert UnsupportedChainId(chainId);
   }
 
@@ -233,8 +233,6 @@ library MainnetChainConstants {
       return 0xEe91C335eab126dF5fDB3797EA9d6aD93aeC9722;
     if (chainId == CHAIN_ID_POLYGON)
       return 0x7A4B5a56256163F07b2C80A7cA55aBE66c4ec4d7;
-    if (chainId == CHAIN_ID_ROOTSTOCK)
-      return 0xbebdb6C8ddC678FfA9f8748f85C815C556Dd8ac6;
     if (chainId == CHAIN_ID_MANTLE)
       return 0xbebdb6C8ddC678FfA9f8748f85C815C556Dd8ac6;
     if (chainId == CHAIN_ID_SCROLL)
@@ -251,6 +249,8 @@ library MainnetChainConstants {
       return 0xCa1D5a146B03f6303baF59e5AD5615ae0b9d146D;
     if (chainId == CHAIN_ID_WORLDCHAIN)
       return 0xcbcEe4e081464A15d8Ad5f58BB493954421eB506;
+    if (chainId == CHAIN_ID_INK)
+      return 0xCa1D5a146B03f6303baF59e5AD5615ae0b9d146D;
     revert UnsupportedChainId(chainId);
   }
 
@@ -287,8 +287,6 @@ library MainnetChainConstants {
       return 0x1D68124e65faFC907325e3EDbF8c4d84499DAa8b;
     if (chainId == CHAIN_ID_POLYGON)
       return 0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE;
-    if (chainId == CHAIN_ID_ROOTSTOCK)
-      return address(0);
     if (chainId == CHAIN_ID_MANTLE)
       return 0x24850c6f61C438823F01B7A3BF2B89B72174Fa9d;
     if (chainId == CHAIN_ID_SCROLL)
@@ -305,6 +303,8 @@ library MainnetChainConstants {
       return 0x3Ff72741fd67D6AD0668d93B41a09248F4700560;
     if (chainId == CHAIN_ID_WORLDCHAIN)
       return 0xc309275443519adca74c9136b02A38eF96E3a1f6;
+    if (chainId == CHAIN_ID_INK)
+      return 0x3Ff72741fd67D6AD0668d93B41a09248F4700560;
     revert UnsupportedChainId(chainId);
   }
 
@@ -341,8 +341,6 @@ library MainnetChainConstants {
       return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
     if (chainId == CHAIN_ID_POLYGON)
       return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
-    if (chainId == CHAIN_ID_ROOTSTOCK)
-      return address(0);
     if (chainId == CHAIN_ID_MANTLE)
       return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
     if (chainId == CHAIN_ID_SCROLL)
@@ -352,13 +350,15 @@ library MainnetChainConstants {
     if (chainId == CHAIN_ID_XLAYER)
       return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
     if (chainId == CHAIN_ID_BERACHAIN)
-      return address(0);
+      return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
     if (chainId == CHAIN_ID_SNAXCHAIN)
       return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
     if (chainId == CHAIN_ID_UNICHAIN)
-      return address(0);
+      return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
     if (chainId == CHAIN_ID_WORLDCHAIN)
       return 0x1520cC9e779c56dab5866BEbFb885C86840c33d3;
+    if (chainId == CHAIN_ID_INK)
+      return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
     revert UnsupportedChainId(chainId);
   }
 
@@ -395,8 +395,6 @@ library MainnetChainConstants {
       return CCTP_DOMAIN_OPTIMISM;
     if (chainId == CHAIN_ID_POLYGON)
       return CCTP_DOMAIN_POLYGON;
-    if (chainId == CHAIN_ID_ROOTSTOCK)
-      return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_MANTLE)
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_SCROLL)
@@ -412,6 +410,8 @@ library MainnetChainConstants {
     if (chainId == CHAIN_ID_UNICHAIN)
       return CCTP_DOMAIN_UNICHAIN;
     if (chainId == CHAIN_ID_WORLDCHAIN)
+      return INVALID_CCTP_DOMAIN;
+    if (chainId == CHAIN_ID_INK)
       return INVALID_CCTP_DOMAIN;
     revert UnsupportedChainId(chainId);
   }
@@ -449,8 +449,6 @@ library MainnetChainConstants {
       return 0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85;
     if (chainId == CHAIN_ID_POLYGON)
       return 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359;
-    if (chainId == CHAIN_ID_ROOTSTOCK)
-      return address(0);
     if (chainId == CHAIN_ID_MANTLE)
       return address(0);
     if (chainId == CHAIN_ID_SCROLL)
@@ -466,6 +464,8 @@ library MainnetChainConstants {
     if (chainId == CHAIN_ID_UNICHAIN)
       return 0x078D782b760474a361dDA0AF3839290b0EF57AD6;
     if (chainId == CHAIN_ID_WORLDCHAIN)
+      return address(0);
+    if (chainId == CHAIN_ID_INK)
       return address(0);
     revert UnsupportedChainId(chainId);
   }
@@ -503,8 +503,6 @@ library MainnetChainConstants {
       return 0x4D41f22c5a0e5c74090899E5a8Fb597a8842b3e8;
     if (chainId == CHAIN_ID_POLYGON)
       return 0xF3be9355363857F3e001be68856A2f96b4C39Ba9;
-    if (chainId == CHAIN_ID_ROOTSTOCK)
-      return address(0);
     if (chainId == CHAIN_ID_MANTLE)
       return address(0);
     if (chainId == CHAIN_ID_SCROLL)
@@ -520,6 +518,8 @@ library MainnetChainConstants {
     if (chainId == CHAIN_ID_UNICHAIN)
       return 0x353bE9E2E38AB1D19104534e4edC21c643Df86f4;
     if (chainId == CHAIN_ID_WORLDCHAIN)
+      return address(0);
+    if (chainId == CHAIN_ID_INK)
       return address(0);
     revert UnsupportedChainId(chainId);
   }
@@ -557,8 +557,6 @@ library MainnetChainConstants {
       return 0x2B4069517957735bE00ceE0fadAE88a26365528f;
     if (chainId == CHAIN_ID_POLYGON)
       return 0x9daF8c91AEFAE50b9c0E69629D3F6Ca40cA3B3FE;
-    if (chainId == CHAIN_ID_ROOTSTOCK)
-      return address(0);
     if (chainId == CHAIN_ID_MANTLE)
       return address(0);
     if (chainId == CHAIN_ID_SCROLL)
@@ -574,6 +572,8 @@ library MainnetChainConstants {
     if (chainId == CHAIN_ID_UNICHAIN)
       return 0x4e744b28E787c3aD0e810eD65A24461D4ac5a762;
     if (chainId == CHAIN_ID_WORLDCHAIN)
+      return address(0);
+    if (chainId == CHAIN_ID_INK)
       return address(0);
     revert UnsupportedChainId(chainId);
   }
@@ -605,8 +605,6 @@ library TestnetChainConstants {
       return "Neon";
     if (chainId == CHAIN_ID_OASIS)
       return "Oasis";
-    if (chainId == CHAIN_ID_ROOTSTOCK)
-      return "Rootstock";
     if (chainId == CHAIN_ID_SEPOLIA)
       return "Sepolia";
     if (chainId == CHAIN_ID_ARBITRUM_SEPOLIA)
@@ -645,6 +643,8 @@ library TestnetChainConstants {
       return "HyperEVM";
     if (chainId == CHAIN_ID_MONAD)
       return "Monad";
+    if (chainId == CHAIN_ID_MEZO)
+      return "Mezo";
     revert UnsupportedChainId(chainId);
   }
 
@@ -666,15 +666,13 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_KARURA)
       return "https://eth-rpc-karura-testnet.aca-staging.network";
     if (chainId == CHAIN_ID_KLAYTN)
-      return "https://rpc.ankr.com/klaytn_testnet";
+      return "https://public-en-kairos.node.kaia.io";
     if (chainId == CHAIN_ID_MOONBEAM)
       return "https://rpc.api.moonbase.moonbeam.network";
     if (chainId == CHAIN_ID_NEON)
       return "";
     if (chainId == CHAIN_ID_OASIS)
       return "https://testnet.emerald.oasis.io";
-    if (chainId == CHAIN_ID_ROOTSTOCK)
-      return "https://public-node.testnet.rsk.co";
     if (chainId == CHAIN_ID_SEPOLIA)
       return "https://ethereum-sepolia.publicnode.com";
     if (chainId == CHAIN_ID_ARBITRUM_SEPOLIA)
@@ -688,9 +686,9 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_POLYGON_SEPOLIA)
       return "https://rpc-amoy.polygon.technology/";
     if (chainId == CHAIN_ID_MANTLE)
-      return "https://mantle-sepolia.drpc.org";
+      return "https://rpc.testnet.mantle.xyz";
     if (chainId == CHAIN_ID_SCROLL)
-      return "https://rpc.ankr.com/scroll_sepolia_testnet";
+      return "https://scroll-sepolia-rpc.publicnode.com";
     if (chainId == CHAIN_ID_BLAST)
       return "https://sepolia.blast.io";
     if (chainId == CHAIN_ID_XLAYER)
@@ -698,7 +696,7 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_LINEA)
       return "https://rpc.sepolia.linea.build";
     if (chainId == CHAIN_ID_BERACHAIN)
-      return "https://artio.rpc.berachain.com";
+      return "https://bepolia.rpc.berachain.com/";
     if (chainId == CHAIN_ID_SEIEVM)
       return "https://evm-rpc-testnet.sei-apis.com/";
     if (chainId == CHAIN_ID_SNAXCHAIN)
@@ -713,6 +711,8 @@ library TestnetChainConstants {
       return "https://api.hyperliquid-testnet.xyz/evm";
     if (chainId == CHAIN_ID_MONAD)
       return "https://testnet-rpc.monad.xyz";
+    if (chainId == CHAIN_ID_MEZO)
+      return "https://rpc.test.mezo.org";
     revert UnsupportedChainId(chainId);
   }
 
@@ -741,8 +741,6 @@ library TestnetChainConstants {
       return 0x268557122Ffd64c85750d630b716471118F323c8;
     if (chainId == CHAIN_ID_OASIS)
       return 0xc1C338397ffA53a2Eb12A7038b4eeb34791F8aCb;
-    if (chainId == CHAIN_ID_ROOTSTOCK)
-      return 0xbebdb6C8ddC678FfA9f8748f85C815C556Dd8ac6;
     if (chainId == CHAIN_ID_SEPOLIA)
       return 0x4a8bc80Ed5a4067f1CCf107057b8270E0cC11A78;
     if (chainId == CHAIN_ID_ARBITRUM_SEPOLIA)
@@ -781,6 +779,8 @@ library TestnetChainConstants {
       return 0xBB73cB66C26740F31d1FabDC6b7A46a038A300dd;
     if (chainId == CHAIN_ID_MONAD)
       return 0xBB73cB66C26740F31d1FabDC6b7A46a038A300dd;
+    if (chainId == CHAIN_ID_MEZO)
+      return 0x268557122Ffd64c85750d630b716471118F323c8;
     revert UnsupportedChainId(chainId);
   }
 
@@ -809,8 +809,6 @@ library TestnetChainConstants {
       return 0xEe3dB83916Ccdc3593b734F7F2d16D630F39F1D0;
     if (chainId == CHAIN_ID_OASIS)
       return 0x88d8004A9BdbfD9D28090A02010C19897a29605c;
-    if (chainId == CHAIN_ID_ROOTSTOCK)
-      return address(0);
     if (chainId == CHAIN_ID_SEPOLIA)
       return 0xDB5492265f6038831E89f495670FF909aDe94bd9;
     if (chainId == CHAIN_ID_ARBITRUM_SEPOLIA)
@@ -849,6 +847,8 @@ library TestnetChainConstants {
       return 0x4a8bc80Ed5a4067f1CCf107057b8270E0cC11A78;
     if (chainId == CHAIN_ID_MONAD)
       return 0xF323dcDe4d33efe83cf455F78F9F6cc656e6B659;
+    if (chainId == CHAIN_ID_MEZO)
+      return 0xA31aa3FDb7aF7Db93d18DDA4e19F811342EDF780;
     revert UnsupportedChainId(chainId);
   }
 
@@ -864,7 +864,7 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_CELO)
       return 0x306B68267Deb7c5DfCDa3619E22E9Ca39C374f84;
     if (chainId == CHAIN_ID_FANTOM)
-      return 0x9563a59C15842a6f322B10f69d1dD88b41f2E97B;
+      return 0x7B1bD7a6b4E61c2a123AC6BC2cbfC614437D0470;
     if (chainId == CHAIN_ID_GNOSIS)
       return address(0);
     if (chainId == CHAIN_ID_KARURA)
@@ -876,8 +876,6 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_NEON)
       return address(0);
     if (chainId == CHAIN_ID_OASIS)
-      return address(0);
-    if (chainId == CHAIN_ID_ROOTSTOCK)
       return address(0);
     if (chainId == CHAIN_ID_SEPOLIA)
       return 0x7B1bD7a6b4E61c2a123AC6BC2cbfC614437D0470;
@@ -917,6 +915,8 @@ library TestnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_MONAD)
       return 0x362fca37E45fe1096b42021b543f462D49a5C8df;
+    if (chainId == CHAIN_ID_MEZO)
+      return address(0);
     revert UnsupportedChainId(chainId);
   }
 
@@ -944,8 +944,6 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_NEON)
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_OASIS)
-      return INVALID_CCTP_DOMAIN;
-    if (chainId == CHAIN_ID_ROOTSTOCK)
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_SEPOLIA)
       return CCTP_DOMAIN_SEPOLIA;
@@ -985,6 +983,8 @@ library TestnetChainConstants {
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_MONAD)
       return INVALID_CCTP_DOMAIN;
+    if (chainId == CHAIN_ID_MEZO)
+      return INVALID_CCTP_DOMAIN;
     revert UnsupportedChainId(chainId);
   }
 
@@ -1012,8 +1012,6 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_NEON)
       return address(0);
     if (chainId == CHAIN_ID_OASIS)
-      return address(0);
-    if (chainId == CHAIN_ID_ROOTSTOCK)
       return address(0);
     if (chainId == CHAIN_ID_SEPOLIA)
       return 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
@@ -1053,6 +1051,8 @@ library TestnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_MONAD)
       return address(0);
+    if (chainId == CHAIN_ID_MEZO)
+      return address(0);
     revert UnsupportedChainId(chainId);
   }
 
@@ -1080,8 +1080,6 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_NEON)
       return address(0);
     if (chainId == CHAIN_ID_OASIS)
-      return address(0);
-    if (chainId == CHAIN_ID_ROOTSTOCK)
       return address(0);
     if (chainId == CHAIN_ID_SEPOLIA)
       return 0x7865fAfC2db2093669d92c0F33AeEF291086BEFD;
@@ -1121,6 +1119,8 @@ library TestnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_MONAD)
       return address(0);
+    if (chainId == CHAIN_ID_MEZO)
+      return address(0);
     revert UnsupportedChainId(chainId);
   }
 
@@ -1148,8 +1148,6 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_NEON)
       return address(0);
     if (chainId == CHAIN_ID_OASIS)
-      return address(0);
-    if (chainId == CHAIN_ID_ROOTSTOCK)
       return address(0);
     if (chainId == CHAIN_ID_SEPOLIA)
       return 0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5;
@@ -1188,6 +1186,8 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_HYPER_E_V_M)
       return address(0);
     if (chainId == CHAIN_ID_MONAD)
+      return address(0);
+    if (chainId == CHAIN_ID_MEZO)
       return address(0);
     revert UnsupportedChainId(chainId);
   }

@@ -30,8 +30,9 @@ library WormholeRelayerSend {
     uint256 nativePriceQuote,
     uint256 targetChainRefundPerGasUnused
   ) {
-    return IWormholeRelayerSend(wormholeRelayer)
-      .quoteEVMDeliveryPrice(targetChain, receiverValue, gasLimit);
+    return IWormholeRelayerSend(wormholeRelayer).quoteEVMDeliveryPrice(
+      targetChain, receiverValue, gasLimit
+    );
   }
 
   function quoteDeliveryPrice(
@@ -44,24 +45,28 @@ library WormholeRelayerSend {
     uint256 nativePriceQuote,
     uint256 targetChainRefundPerGasUnused
   ) {
-    return IWormholeRelayerSend(wormholeRelayer)
-      .quoteEVMDeliveryPrice(targetChain, receiverValue, gasLimit, deliveryProvider);
+    return IWormholeRelayerSend(wormholeRelayer).quoteEVMDeliveryPrice(
+      targetChain, receiverValue, gasLimit, deliveryProvider
+    );
   }
 
   function send(
     address wormholeRelayer,
+    uint256 deliveryPrice,
     uint16  targetChain,
     address targetAddress,
     bytes memory payload,
     uint256 receiverValue,
     uint256 gasLimit
   ) internal returns (uint64 sequence) {
-    return IWormholeRelayerSend(wormholeRelayer)
-      .sendPayloadToEvm(targetChain, targetAddress, payload, receiverValue, gasLimit);
+    return IWormholeRelayerSend(wormholeRelayer).sendPayloadToEvm{value: deliveryPrice}(
+      targetChain, targetAddress, payload, receiverValue, gasLimit
+    );
   }
 
   function send(
     address wormholeRelayer,
+    uint256 deliveryPrice,
     uint16  targetChain,
     address targetAddress,
     bytes memory payload,
@@ -70,7 +75,7 @@ library WormholeRelayerSend {
     uint16  refundChain,
     address refundAddress
   ) internal returns (uint64 sequence) {
-    return IWormholeRelayerSend(wormholeRelayer).sendPayloadToEvm(
+    return IWormholeRelayerSend(wormholeRelayer).sendPayloadToEvm{value: deliveryPrice}(
       targetChain,
       targetAddress,
       payload,
@@ -83,6 +88,7 @@ library WormholeRelayerSend {
 
   function send(
     address wormholeRelayer,
+    uint256 deliveryPrice,
     uint16  targetChain,
     address targetAddress,
     bytes memory payload,
@@ -90,12 +96,14 @@ library WormholeRelayerSend {
     uint256 gasLimit,
     VaaKey[] memory vaaKeys
   ) internal returns (uint64 sequence) {
-    return IWormholeRelayerSend(wormholeRelayer)
-      .sendVaasToEvm(targetChain, targetAddress, payload, receiverValue, gasLimit, vaaKeys);
+    return IWormholeRelayerSend(wormholeRelayer).sendVaasToEvm{value: deliveryPrice}(
+      targetChain, targetAddress, payload, receiverValue, gasLimit, vaaKeys
+    );
   }
 
   function send(
     address wormholeRelayer,
+    uint256 deliveryPrice,
     uint16  targetChain,
     address targetAddress,
     bytes memory payload,
@@ -103,7 +111,7 @@ library WormholeRelayerSend {
     uint256 gasLimit,
     MessageKey[] memory messageKeys
   ) internal returns (uint64 sequence) {
-    return IWormholeRelayerSend(wormholeRelayer).sendToEvm(
+    return IWormholeRelayerSend(wormholeRelayer).sendToEvm{value: deliveryPrice}(
       targetChain,
       targetAddress,
       payload,
@@ -120,6 +128,7 @@ library WormholeRelayerSend {
 
   function send(
     address wormholeRelayer,
+    uint256 deliveryPrice,
     uint16  targetChain,
     address targetAddress,
     bytes memory payload,
@@ -128,7 +137,7 @@ library WormholeRelayerSend {
     VaaKey[] memory vaaKeys,
     uint256 paymentForExtraReceiverValue
   ) internal returns (uint64 sequence) {
-    return IWormholeRelayerSend(wormholeRelayer).sendToEvm(
+    return IWormholeRelayerSend(wormholeRelayer).sendToEvm{value: deliveryPrice}(
       targetChain,
       targetAddress,
       payload,
@@ -145,6 +154,7 @@ library WormholeRelayerSend {
 
   function send(
     address wormholeRelayer,
+    uint256 deliveryPrice,
     uint16  targetChain,
     address targetAddress,
     bytes memory payload,
@@ -153,7 +163,7 @@ library WormholeRelayerSend {
     MessageKey[] memory messageKeys,
     uint256 paymentForExtraReceiverValue
   ) internal returns (uint64 sequence) {
-    return IWormholeRelayerSend(wormholeRelayer).sendToEvm(
+    return IWormholeRelayerSend(wormholeRelayer).sendToEvm{value: deliveryPrice}(
       targetChain,
       targetAddress,
       payload,
@@ -170,6 +180,7 @@ library WormholeRelayerSend {
 
   function send(
     address wormholeRelayer,
+    uint256 deliveryPrice,
     uint16  targetChain,
     address targetAddress,
     bytes memory payload,
@@ -179,7 +190,7 @@ library WormholeRelayerSend {
     uint16  refundChain,
     address refundAddress
   ) internal returns (uint64 sequence) {
-    return IWormholeRelayerSend(wormholeRelayer).sendVaasToEvm(
+    return IWormholeRelayerSend(wormholeRelayer).sendVaasToEvm{value: deliveryPrice}(
       targetChain,
       targetAddress,
       payload,
@@ -193,6 +204,7 @@ library WormholeRelayerSend {
 
   function send(
     address wormholeRelayer,
+    uint256 deliveryPrice,
     uint16  targetChain,
     address targetAddress,
     bytes memory payload,
@@ -205,7 +217,7 @@ library WormholeRelayerSend {
     address deliveryProvider,
     uint8 consistencyLevel
   ) internal returns (uint64 sequence) {
-    return IWormholeRelayerSend(wormholeRelayer).sendToEvm(
+    return IWormholeRelayerSend(wormholeRelayer).sendToEvm{value: deliveryPrice}(
       targetChain,
       targetAddress,
       payload,
@@ -222,6 +234,7 @@ library WormholeRelayerSend {
 
   function send(
     address wormholeRelayer,
+    uint256 deliveryPrice,
     uint16  targetChain,
     address targetAddress,
     bytes memory payload,
@@ -234,7 +247,7 @@ library WormholeRelayerSend {
     MessageKey[] memory messageKeys,
     uint8 consistencyLevel
   ) internal returns (uint64 sequence) {
-    return IWormholeRelayerSend(wormholeRelayer).sendToEvm(
+    return IWormholeRelayerSend(wormholeRelayer).sendToEvm{value: deliveryPrice}(
       targetChain,
       targetAddress,
       payload,
