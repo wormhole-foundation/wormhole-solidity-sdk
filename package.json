@@ -1,0 +1,31 @@
+{
+  "name": "wormhole-solidity-sdk",
+  "version": "0.9.0",
+  "description": "Wormhole Solidity SDK",
+  "scripts": {
+    "test": "forge test",
+    "format": "forge fmt",
+    "prepublishOnly": "echo 'Error: Please run 'scripts/publish.sh' to publish.' && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wormhole-foundation/wormhole-solidity-sdk.git"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "solidity",
+    "ethereum",
+    "smart-contracts",
+    "bridge",
+    "wormhole"
+  ],
+  "dependencies": {
+    "@nomicfoundation/hardhat-foundry": "^1.1.3",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.15"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}

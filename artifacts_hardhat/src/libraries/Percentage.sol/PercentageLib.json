@@ -1,0 +1,38 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "PercentageLib",
+  "sourceName": "src/libraries/Percentage.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "mantissa",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "fractionalDigits",
+          "type": "uint256"
+        }
+      ],
+      "name": "InvalidArguments",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint16",
+          "name": "percentage",
+          "type": "uint16"
+        }
+      ],
+      "name": "InvalidPercentage",
+      "type": "error"
+    }
+  ],
+  "bytecode": "0x60808060405234601757603a9081601d823930815050f35b600080fdfe600080fdfea2646970667358221220b4f83fe37bb72e06f106780389867c4dc5a6747bf07567824c2266ca0c3ed52764736f6c63430008180033",
+  "deployedBytecode": "0x600080fdfea2646970667358221220b4f83fe37bb72e06f106780389867c4dc5a6747bf07567824c2266ca0c3ed52764736f6c63430008180033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

@@ -1,0 +1,10 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "UsdcDealer",
+  "sourceName": "src/testing/UsdcDealer.sol",
+  "abi": [],
+  "bytecode": "0x60808060405234601757603a9081601d823930815050f35b600080fdfe600080fdfea26469706673582212200af5999831b63e037c06c3c3cfa60e09568515d4ebbf880bc92064834e8fac3364736f6c63430008180033",
+  "deployedBytecode": "0x600080fdfea26469706673582212200af5999831b63e037c06c3c3cfa60e09568515d4ebbf880bc92064834e8fac3364736f6c63430008180033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

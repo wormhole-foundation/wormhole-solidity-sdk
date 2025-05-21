@@ -1,0 +1,88 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "CCTPReceiver",
+  "sourceName": "src/WormholeRelayer/CCTPBase.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "bytes",
+          "name": "payload",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes[]",
+          "name": "additionalMessages",
+          "type": "bytes[]"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "sourceAddress",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint16",
+          "name": "sourceChain",
+          "type": "uint16"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "deliveryHash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "receiveWormholeMessages",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint16",
+          "name": "sourceChain",
+          "type": "uint16"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "sourceAddress",
+          "type": "bytes32"
+        }
+      ],
+      "name": "setRegisteredSender",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "wormhole",
+      "outputs": [
+        {
+          "internalType": "contract IWormhole",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "wormholeRelayer",
+      "outputs": [
+        {
+          "internalType": "contract IWormholeRelayer",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

@@ -1,0 +1,39 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "ProxyBase",
+  "sourceName": "src/proxy/ProxyBase.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "InvalidData",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidMsgValue",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidSender",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes",
+          "name": "data",
+          "type": "bytes"
+        }
+      ],
+      "name": "checkedUpgrade",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

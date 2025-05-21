@@ -1,0 +1,10 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "GasLib",
+  "sourceName": "src/TypedUnits.sol",
+  "abi": [],
+  "bytecode": "0x60808060405234601757603a9081601d823930815050f35b600080fdfe600080fdfea2646970667358221220a5721b69c33b4afaea1eeca8b00032273a4a6cc410baf31723b9005bcc4bff4464736f6c63430008180033",
+  "deployedBytecode": "0x600080fdfea2646970667358221220a5721b69c33b4afaea1eeca8b00032273a4a6cc410baf31723b9005bcc4bff4464736f6c63430008180033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
