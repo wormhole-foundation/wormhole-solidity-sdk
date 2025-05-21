@@ -3,21 +3,21 @@ pragma solidity ^0.8.24;
 
 import {Vm} from "forge-std/Vm.sol";
 
-import {WORD_SIZE, WORD_SIZE_MINUS_ONE}          from "wormhole-sdk/constants/Common.sol";
-import {IWormhole}                               from "wormhole-sdk/interfaces/IWormhole.sol";
-import {BytesParsing}                            from "wormhole-sdk/libraries/BytesParsing.sol";
-import {VaaLib}                                  from "wormhole-sdk/libraries/VaaLib.sol";
-import {CoreBridgeLib}                           from "wormhole-sdk/libraries/CoreBridge.sol";
-import {toUniversalAddress}                      from "wormhole-sdk/Utils.sol";
-import {VM_ADDRESS, DEVNET_GUARDIAN_PRIVATE_KEY} from "wormhole-sdk/testing/Constants.sol";
-import {LogUtils}                                from "wormhole-sdk/testing/LogUtils.sol";
+import {WORD_SIZE, WORD_SIZE_MINUS_ONE} from "../constants/Common.sol";
+import {IWormhole} from "../interfaces/IWormhole.sol";
+import {BytesParsing} from "../libraries/BytesParsing.sol";
+import {VaaLib} from "../libraries/VaaLib.sol";
+import {CoreBridgeLib} from "../libraries/CoreBridge.sol";
+import {toUniversalAddress} from "../Utils.sol";
+import {VM_ADDRESS, DEVNET_GUARDIAN_PRIVATE_KEY} from "./Constants.sol";
+import {LogUtils} from "./LogUtils.sol";
 import {
   VaaLib,
   GuardianSignature,
   Vaa,
   VaaEnvelope,
   VaaBody as PublishedMessage
-} from "wormhole-sdk/libraries/VaaLib.sol";
+} from "../libraries/VaaLib.sol";
 
 //┌────────────────────────────────────────────────────────────────────────────────────────────────┐
 //│ take control of the core bridge in forge fork tests to generate VAAs and test message emission │

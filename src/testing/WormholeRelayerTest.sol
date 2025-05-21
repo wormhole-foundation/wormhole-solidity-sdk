@@ -3,14 +3,14 @@ pragma solidity ^0.8.19;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
-import "wormhole-sdk/interfaces/IWormholeRelayer.sol";
-import "wormhole-sdk/interfaces/IWormhole.sol";
-import "wormhole-sdk/interfaces/ITokenBridge.sol";
-import "wormhole-sdk/interfaces/cctp/IMessageTransmitter.sol";
-import "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol";
-import "wormhole-sdk/constants/Chains.sol";
-import "wormhole-sdk/Utils.sol";
-import "wormhole-sdk/libraries/VaaLib.sol";
+import "../interfaces/IWormholeRelayer.sol";
+import "../interfaces/IWormhole.sol";
+import "../interfaces/ITokenBridge.sol";
+import "../interfaces/cctp/IMessageTransmitter.sol";
+import "../interfaces/cctp/ITokenMessenger.sol";
+import "../constants/Chains.sol";
+import "../Utils.sol";
+import "../libraries/VaaLib.sol";
 
 import "./UsdcDealer.sol";
 import "./WormholeOverride.sol";

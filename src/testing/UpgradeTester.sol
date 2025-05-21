@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.24;
 
-import {ProxyBase} from "wormhole-sdk/proxy/ProxyBase.sol";
+import {ProxyBase} from "../proxy/ProxyBase.sol";
 
 contract UpgradeTester is ProxyBase {
   event Constructed(bytes data);

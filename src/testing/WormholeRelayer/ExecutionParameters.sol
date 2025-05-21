@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.19;
 
-import "wormhole-sdk/libraries/BytesParsing.sol";
+import "../../libraries/BytesParsing.sol";
 
 error UnexpectedExecutionParamsVersion(uint8 version, uint8 expectedVersion);
 error UnsupportedExecutionParamsVersion(uint8 version);

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.4;
 
-import {IERC20} from "IERC20/IERC20.sol";
-import {WORD_SIZE, SCRATCH_SPACE_PTR} from "wormhole-sdk/constants/Common.sol";
+import {IERC20} from "../interfaces/token/IERC20.sol";
+import {WORD_SIZE, SCRATCH_SPACE_PTR} from "../constants/Common.sol";
 
 //Like OpenZeppelin's SafeERC20.sol, but slimmed down and more gas efficient.
 //

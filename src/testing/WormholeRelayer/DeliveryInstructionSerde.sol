@@ -1,9 +1,9 @@
 
 pragma solidity ^0.8.19;
 
-import "wormhole-sdk/interfaces/IWormholeRelayer.sol";
-import "wormhole-sdk/libraries/BytesParsing.sol";
-import {CCTPMessageLib} from "wormhole-sdk/WormholeRelayer/CCTPBase.sol";
+import "../../interfaces/IWormholeRelayer.sol";
+import "../../libraries/BytesParsing.sol";
+import {CCTPMessageLib} from "../../WormholeRelayer/CCTPBase.sol";
 
 uint8 constant VERSION_VAAKEY = 1;
 uint8 constant VERSION_DELIVERY_OVERRIDE = 1;

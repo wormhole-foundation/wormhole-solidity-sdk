@@ -1,7 +1,7 @@
 
 pragma solidity ^0.8.19;
 
-import "IERC20/IERC20.sol";
+import "../interfaces/token/IERC20.sol";
 
 /*
  * ERC20 impl from solmate

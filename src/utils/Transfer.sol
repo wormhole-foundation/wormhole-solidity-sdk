@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.19;
 
-import {IERC20} from "IERC20/IERC20.sol";
+import {IERC20} from "../interfaces/token/IERC20.sol";
 import {SafeERC20} from "SafeERC20/SafeERC20.sol";
 
 error PaymentFailure(address target);

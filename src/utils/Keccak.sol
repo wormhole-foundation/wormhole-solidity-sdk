@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.4;
 
-import {WORD_SIZE, SCRATCH_SPACE_PTR, FREE_MEMORY_PTR} from "wormhole-sdk/constants/Common.sol";
+import {WORD_SIZE, SCRATCH_SPACE_PTR, FREE_MEMORY_PTR} from "../constants/Common.sol";
 
 function keccak256Word(bytes32 word) pure returns (bytes32 hash) {
   /// @solidity memory-safe-assembly
