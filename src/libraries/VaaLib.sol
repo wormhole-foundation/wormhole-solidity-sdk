@@ -41,11 +41,11 @@ import {
 //   This means that when verifying guardian signatures of a VAA, the hash that must be passed to
 //     ecrecover is the doubly-hashed body.
 //
-// ╭──────────────────────────────────────── WARNING ────────────────────────────────────────╮
-// │ There is an unfortunate inconsistency between the implementation of the CoreBridge on   │
+// ╭─────────────────────────────────────── WARNING ───────────────────────────────────────╮
+// │ There is an unfortunate inconsistency between the implementation of the CoreBridge on │
 // │   EVM, where CoreBridgeVM.hash is the *doubly* hashed body [1], while everything else │
-// │   only uses the singly-hashed body (see Solana CoreBridge [2] and Typescript SDK [3])   │
-// ╰─────────────────────────────────────────────────────────────────────────────────────────╯
+// │   only uses the singly-hashed body (see Solana CoreBridge [2] and Typescript SDK [3]) │
+// ╰───────────────────────────────────────────────────────────────────────────────────────╯
 // [1] https://github.com/wormhole-foundation/wormhole/blob/1dbe8459b96e182932d0dd5ae4b6bbce6f48cb09/ethereum/contracts/Messages.sol#L178-L186
 // [2] https://github.com/wormhole-foundation/wormhole/blob/1dbe8459b96e182932d0dd5ae4b6bbce6f48cb09/solana/bridge/program/src/api/post_vaa.rs#L214C4-L244
 // [3] https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/3cd10030b5e924f0621c7231e24410b8a0946a07/core/definitions/src/vaa/functions.ts#L189
