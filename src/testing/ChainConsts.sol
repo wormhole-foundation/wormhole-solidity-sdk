@@ -135,6 +135,8 @@ library MainnetChainConstants {
       return "Xlayer";
     if (chainId == CHAIN_ID_BERACHAIN)
       return "Berachain";
+    if (chainId == CHAIN_ID_SEIEVM)
+      return "Seievm";
     if (chainId == CHAIN_ID_SNAXCHAIN)
       return "Snaxchain";
     if (chainId == CHAIN_ID_UNICHAIN)
@@ -189,6 +191,8 @@ library MainnetChainConstants {
       return "https://xlayerrpc.okx.com/";
     if (chainId == CHAIN_ID_BERACHAIN)
       return "https://rpc.berachain.com";
+    if (chainId == CHAIN_ID_SEIEVM)
+      return "";
     if (chainId == CHAIN_ID_SNAXCHAIN)
       return "https://mainnet.snaxchain.io";
     if (chainId == CHAIN_ID_UNICHAIN)
@@ -242,6 +246,8 @@ library MainnetChainConstants {
     if (chainId == CHAIN_ID_XLAYER)
       return 0x194B123c5E96B9b2E49763619985790Dc241CAC0;
     if (chainId == CHAIN_ID_BERACHAIN)
+      return 0xCa1D5a146B03f6303baF59e5AD5615ae0b9d146D;
+    if (chainId == CHAIN_ID_SEIEVM)
       return 0xCa1D5a146B03f6303baF59e5AD5615ae0b9d146D;
     if (chainId == CHAIN_ID_SNAXCHAIN)
       return 0xc1BA3CC4bFE724A08FbbFbF64F8db196738665f4;
@@ -297,6 +303,8 @@ library MainnetChainConstants {
       return 0x5537857664B0f9eFe38C9f320F75fEf23234D904;
     if (chainId == CHAIN_ID_BERACHAIN)
       return 0x3Ff72741fd67D6AD0668d93B41a09248F4700560;
+    if (chainId == CHAIN_ID_SEIEVM)
+      return 0x3Ff72741fd67D6AD0668d93B41a09248F4700560;
     if (chainId == CHAIN_ID_SNAXCHAIN)
       return 0x8B94bfE456B48a6025b92E11Be393BAa86e68410;
     if (chainId == CHAIN_ID_UNICHAIN)
@@ -351,6 +359,8 @@ library MainnetChainConstants {
       return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
     if (chainId == CHAIN_ID_BERACHAIN)
       return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
+    if (chainId == CHAIN_ID_SEIEVM)
+      return address(0);
     if (chainId == CHAIN_ID_SNAXCHAIN)
       return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
     if (chainId == CHAIN_ID_UNICHAIN)
@@ -404,6 +414,8 @@ library MainnetChainConstants {
     if (chainId == CHAIN_ID_XLAYER)
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_BERACHAIN)
+      return INVALID_CCTP_DOMAIN;
+    if (chainId == CHAIN_ID_SEIEVM)
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_SNAXCHAIN)
       return INVALID_CCTP_DOMAIN;
@@ -459,6 +471,8 @@ library MainnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_BERACHAIN)
       return address(0);
+    if (chainId == CHAIN_ID_SEIEVM)
+      return address(0);
     if (chainId == CHAIN_ID_SNAXCHAIN)
       return address(0);
     if (chainId == CHAIN_ID_UNICHAIN)
@@ -513,6 +527,8 @@ library MainnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_BERACHAIN)
       return address(0);
+    if (chainId == CHAIN_ID_SEIEVM)
+      return address(0);
     if (chainId == CHAIN_ID_SNAXCHAIN)
       return address(0);
     if (chainId == CHAIN_ID_UNICHAIN)
@@ -566,6 +582,8 @@ library MainnetChainConstants {
     if (chainId == CHAIN_ID_XLAYER)
       return address(0);
     if (chainId == CHAIN_ID_BERACHAIN)
+      return address(0);
+    if (chainId == CHAIN_ID_SEIEVM)
       return address(0);
     if (chainId == CHAIN_ID_SNAXCHAIN)
       return address(0);
