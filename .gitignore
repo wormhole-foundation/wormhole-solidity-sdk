@@ -12,4 +12,5 @@ out/
 
 /node_modules
 /artifacts_hardhat
-/cache
+/cache_hardhat
+/typechain-types

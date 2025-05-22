@@ -26,11 +26,6 @@ The `main` branch is considered the nightly version of the SDK. Stick to tagged 
 forge install wormhole-foundation/wormhole-solidity-sdk@v0.1.0
 ```
 
-**Hardhat**
-```bash
-npm install wormhole-solidity-sdk
-```
-
 **EVM Version**
 
 One hazard of developing EVM contracts in a cross-chain environment is that different chains have varying levels of "EVM-equivalence". This means you have to ensure that all chains that you are planning to deploy to support all EIPs/opcodes that you rely on.
