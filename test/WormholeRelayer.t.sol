@@ -43,7 +43,7 @@ contract WormholeRelayerDemoIntegration is WormholeRelayerReceiver {
   address private immutable _cctpTokenMessenger;
   address private immutable _coreBridge;
   IMessageTransmitter private immutable _cctpMsgTransmitter;
-  
+
   uint16 private immutable _chainId;
   uint32 private immutable _domain;
 
@@ -220,6 +220,8 @@ contract WormholeRelayerDemoIntegrationTest is WormholeRelayerTest {
   ERC20Mock private _sourceToken;
   IERC20Metadata private _targetWrappedToken;
 
+  address private user;
+
   function setUp() public override {
     //set up forks
     setUpFork(SOURCE_CHAIN_ID);
@@ -244,7 +246,7 @@ contract WormholeRelayerDemoIntegrationTest is WormholeRelayerTest {
       address(usdc()),
       address(cctpTokenMessenger())
     );
-    
+
     selectFork(TARGET_CHAIN_ID);
     uint32 targetCctpDomain = cctpDomain();
     _targetDemoIntegration = new WormholeRelayerDemoIntegration(
@@ -293,33 +295,37 @@ contract WormholeRelayerDemoIntegrationTest is WormholeRelayerTest {
       address(_sourceDeliveryProviderStub),
       sourcePrice,
       sourceGasPrice
-    );    
+    );
+
+    selectFork(SOURCE_CHAIN_ID);
+    user = makeAddr("user");
   }
 
-  function test_bulkTransfer() public {
-    selectFork(SOURCE_CHAIN_ID);
-    uint usdcAmount = 10e6;
-    uint tokenAmount = 5e18;
-    uint receiverValue = 1e18; //request 1 target gas token
+  function bulkTransferTestTemplate(
+    uint usdcAmount,
+    uint tokenAmount,
+    uint receiverValue
+  ) public {
+    uint requestedGasLimit = GAS_COST_BASE;
+    if (usdcAmount > 0) {
+      dealUsdc(user, usdcAmount);
+      hoax(user);
+      usdc().approve(address(_sourceDemoIntegration), usdcAmount);
+      requestedGasLimit += GAS_COST_CCTP_TRANSFER;
+    }
+    if (tokenAmount > 0) {
+      _sourceToken.mint(user, tokenAmount);
+      hoax(user);
+      _sourceToken.approve(address(_sourceDemoIntegration), tokenAmount);
+      requestedGasLimit += GAS_COST_TOKEN_TRANSFER;
+    }
 
-    address user = makeAddr("user");
-    dealUsdc(user, usdcAmount);
-    _sourceToken.mint(user, tokenAmount);
-    
-    hoax(user);
-    usdc().approve(address(_sourceDemoIntegration), usdcAmount);
-    hoax(user);
-    _sourceToken.approve(address(_sourceDemoIntegration), tokenAmount);
-
-    (uint256 deliveryPrice, ) = wormholeRelayer().quoteEVMDeliveryPrice(
-      TARGET_CHAIN_ID,
-      receiverValue,
-      GAS_COST_BASE + GAS_COST_TOKEN_TRANSFER + GAS_COST_CCTP_TRANSFER
-    );
+    (uint256 expectedDeliveryPrice, ) =
+      wormholeRelayer().quoteEVMDeliveryPrice(TARGET_CHAIN_ID, receiverValue, requestedGasLimit);
 
     hoax(user);
     vm.recordLogs();
-    _sourceDemoIntegration.bulkTransfer{value: deliveryPrice}(
+    _sourceDemoIntegration.bulkTransfer{value: expectedDeliveryPrice}(
       TARGET_CHAIN_ID,
       user,
       receiverValue,
@@ -330,8 +336,31 @@ contract WormholeRelayerDemoIntegrationTest is WormholeRelayerTest {
     deliver();
 
     selectFork(TARGET_CHAIN_ID);
+    DeliveryResult memory deliveryResult = getLastDeliveryResult();
+    assertEq(deliveryResult.recipientContract, address(_targetDemoIntegration));
+    assertEq(
+      uint8(deliveryResult.status),
+      uint8(IWormholeRelayerDelivery.DeliveryStatus.SUCCESS)
+    );
+
     assertEq(user.balance, receiverValue);
     assertEq(_targetWrappedToken.balanceOf(user), tokenAmount);
     assertEq(usdc().balanceOf(user), usdcAmount);
+  }
+
+  function test_all() public {
+    bulkTransferTestTemplate(10e6, 5e18, 1e18);
+  }
+
+  function test_tokenOnly() public {
+    bulkTransferTestTemplate(0, 5e18, 0);
+  }
+
+  function test_usdcOnly() public {
+    bulkTransferTestTemplate(10e6, 0, 0);
+  }
+
+  function test_receiverValueOnly() public {
+    bulkTransferTestTemplate(0, 0, 1e18);
   }
 }

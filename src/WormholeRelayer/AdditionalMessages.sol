@@ -25,11 +25,11 @@ function unpackAdditionalCctpMessage(
     // First word is offset to cctpMessage bytes (always 0x40)
     // Second word is offset to attestation bytes
     let attestationRelativeOffset := calldataload(add(message.offset, WORD_SIZE))
-    
+
     let cctpMessageLengthOffset := add(message.offset, 0x40)
     cctpMessage.offset := add(cctpMessageLengthOffset, WORD_SIZE)
     cctpMessage.length := calldataload(cctpMessageLengthOffset)
-    
+
     let attestationLengthOffset := add(message.offset, attestationRelativeOffset)
     attestation.offset := add(attestationLengthOffset, WORD_SIZE)
     attestation.length := calldataload(attestationLengthOffset)

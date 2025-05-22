@@ -1,16 +1,30 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.19;
 
+import "wormhole-sdk/interfaces/IWormholeRelayer.sol";
 import "wormhole-sdk/libraries/BytesParsing.sol";
 import "wormhole-sdk/libraries/VaaLib.sol";
 import "wormhole-sdk/libraries/CctpMessages.sol";
 import "wormhole-sdk/testing/WormholeForkTest.sol";
 import "wormhole-sdk/testing/WormholeRelayer/Structs.sol";
+import "wormhole-sdk/testing/LogUtils.sol";
 
 //everything is stored without signatures and only gets signed before delivery
 struct Delivery {
   PublishedMessage deliveryPm;
   bytes[] additionalMessages; //stored as pointers to the structs
+}
+
+struct DeliveryResult {
+  address recipientContract;
+  uint16 sourceChain;
+  uint64 sequence;
+  bytes32 deliveryVaaHash;
+  IWormholeRelayerDelivery.DeliveryStatus status;
+  uint256 gasUsed;
+  IWormholeRelayerDelivery.RefundStatus refundStatus;
+  bytes additionalStatusInfo;
+  bytes overridesInfo;
 }
 
 abstract contract WormholeRelayerTest is WormholeForkTest {
@@ -20,7 +34,7 @@ abstract contract WormholeRelayerTest is WormholeForkTest {
   using VaaLib for bytes;
   using CctpMessageLib for bytes;
   using WormholeRelayerStructsLib for bytes;
-
+  using LogUtils for Vm.Log[];
   using { toUniversalAddress } for address;
 
   //Right shifted ascii encoding of "WormholeRelayer"
@@ -33,6 +47,12 @@ abstract contract WormholeRelayerTest is WormholeForkTest {
 
   //source chain -> sequence number -> delivery
   mapping(uint16 => mapping(uint64 => Delivery)) private _pastDeliveries;
+  mapping(uint16 => mapping(uint64 => DeliveryResult)) private _pastDeliveryResults;
+  DeliveryResult[] internal _deliveryResults;
+
+  function getLastDeliveryResult() internal view returns (DeliveryResult memory) {
+    return _deliveryResults[_deliveryResults.length - 1];
+  }
 
   function deliver() internal {
     deliver(vm.getRecordedLogs());
@@ -105,7 +125,7 @@ abstract contract WormholeRelayerTest is WormholeForkTest {
   function getDelivery() internal returns (Delivery memory) {
     (Delivery[] memory deliveries, RedeliveryInstruction[] memory redeliveries) =
       logsToDeliveries(vm.getRecordedLogs());
-    
+
     require(deliveries.length == 1, "Expected exactly one delivery");
     require(redeliveries.length == 0, "Expected no redeliveries");
 
@@ -285,14 +305,51 @@ abstract contract WormholeRelayerTest is WormholeForkTest {
     bytes[] memory attestedMessages,
     uint256 deliverValue,
     bytes memory deliveryOverrides
-  ) private preserveFork() {
+  ) private preserveFork() returns (Vm.Log[] memory logs) {
     selectFork(deliveryIx.targetChain);
+
+    vm.recordLogs();
+
     wormholeRelayer().deliver{value: deliverValue}(
       attestedMessages,
       deliveryVaa,
       payable(address(this)),
       deliveryOverrides
     );
-    _pastDeliveries[deliveryIx.targetChain][delivery.deliveryPm.envelope.sequence] = delivery;
+
+    logs = vm.getRecordedLogs();
+
+    Vm.Log[] memory deliveryResultLogs = logs.filter(
+      address(wormholeRelayer()),
+      keccak256("Delivery(address,uint16,uint64,bytes32,uint8,uint256,uint8,bytes,bytes)")
+    );
+
+    address recipientContract = fromUniversalAddress(deliveryResultLogs[0].topics[1]);
+    uint16 sourceChain = uint16(uint256(deliveryResultLogs[0].topics[2]));
+    uint64 sequence = uint64(uint256(deliveryResultLogs[0].topics[3]));
+
+    ( bytes32 deliveryVaaHash,
+      uint8 status,
+      uint256 gasUsed,
+      uint8 refundStatus,
+      bytes memory additionalStatusInfo,
+      bytes memory overridesInfo
+    ) = abi.decode(deliveryResultLogs[0].data, (bytes32, uint8, uint256, uint8, bytes, bytes));
+
+    DeliveryResult memory deliveryResult = DeliveryResult({
+      recipientContract: recipientContract,
+      sourceChain: sourceChain,
+      sequence: sequence,
+      deliveryVaaHash: deliveryVaaHash,
+      status: IWormholeRelayerDelivery.DeliveryStatus(status),
+      gasUsed: gasUsed,
+      refundStatus: IWormholeRelayerDelivery.RefundStatus(refundStatus),
+      additionalStatusInfo: additionalStatusInfo,
+      overridesInfo: overridesInfo
+    });
+
+    _deliveryResults.push(deliveryResult);
+    _pastDeliveryResults[sourceChain][sequence] = deliveryResult;
+    _pastDeliveries[sourceChain][sequence] = delivery;
   }
 }
