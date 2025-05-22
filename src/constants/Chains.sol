@@ -49,6 +49,7 @@ uint16 constant CHAIN_ID_INK = 46;
 uint16 constant CHAIN_ID_HYPER_E_V_M = 47;
 uint16 constant CHAIN_ID_MONAD = 48;
 uint16 constant CHAIN_ID_MEZO = 50;
+uint16 constant CHAIN_ID_SONIC = 52;
 uint16 constant CHAIN_ID_WORMCHAIN = 3104;
 uint16 constant CHAIN_ID_COSMOSHUB = 4000;
 uint16 constant CHAIN_ID_EVMOS = 4001;

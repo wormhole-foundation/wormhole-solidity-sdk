@@ -10,7 +10,7 @@ import {DispatcherTestBase} from "./utils/DispatcherTestBase.sol";
 contract SweepTokensTest is DispatcherTestBase {
   ERC20Mock token;
 
-  function _setUp1() internal override { 
+  function _setUp1() internal override {
     token = new ERC20Mock("FakeToken", "FT");
   }
 

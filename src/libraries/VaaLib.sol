@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.14; //for (bugfixed) support of `using ... global;` syntax for libraries
 
-import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
+import {CoreBridgeVM, GuardianSignature} from "wormhole-sdk/interfaces/ICoreBridge.sol";
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 import {
   toUniversalAddress,
@@ -17,7 +17,7 @@ import {
 // # VAA Format
 //
 // see:
-//  * ../interfaces/IWormhole.sol VM struct (VM = Verified Message)
+//  * ../interfaces/ICoreBridge.sol CoreBridgeVM struct (VM = Verified Message)
 //  * [CoreBridge](https://github.com/wormhole-foundation/wormhole/blob/c35940ae9689f6df9e983d51425763509b74a80f/ethereum/contracts/Messages.sol#L147)
 //  * [Typescript SDK](https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/3cd10030b5e924f0621c7231e24410b8a0946a07/core/definitions/src/vaa/vaa.ts#L32-L51)
 //
@@ -43,7 +43,7 @@ import {
 //
 // ╭─────────────────────────────────────── WARNING ───────────────────────────────────────╮
 // │ There is an unfortunate inconsistency between the implementation of the CoreBridge on │
-// │   EVM, where IWormhole.VM.hash is the *doubly* hashed body [1], while everything else │
+// │   EVM, where CoreBridgeVM.hash is the *doubly* hashed body [1], while everything else │
 // │   only uses the singly-hashed body (see Solana CoreBridge [2] and Typescript SDK [3]) │
 // ╰───────────────────────────────────────────────────────────────────────────────────────╯
 // [1] https://github.com/wormhole-foundation/wormhole/blob/1dbe8459b96e182932d0dd5ae4b6bbce6f48cb09/ethereum/contracts/Messages.sol#L178-L186
@@ -129,23 +129,6 @@ import {
 //   * encodeVaaEnvelope
 //   * encodeVaaBody
 //   * encodeVaa
-//
-// other functions:
-//   * asIWormholeSignatures (casting between GuardianSignature and IWormhole.Signature)
-//   * asGuardianSignatures (casting between GuardianSignature and IWormhole.Signature)
-
-//Annoyingly, Solidity only allows aliasing of types that are exported on the file level, but not
-//  of nested types, see [language grammar](https://docs.soliditylang.org/en/v0.8.28/grammar.html#a4.SolidityParser.importDirective)
-//So we (re)define GuardianSignature identically to IWormhole.Signature to avoid the explicit
-//  dependency and to provide a better name and do the necessary casts manually using assembly.
-//Without the alias, users who want to reference the GuardianSignature type would have to import
-//  IWormhole themselves, which breaks the intended encapsulation of this library.
-struct GuardianSignature {
-  bytes32 r;
-  bytes32 s;
-  uint8 v;
-  uint8 guardianIndex;
-}
 
 struct VaaHeader {
   //uint8 version;
@@ -252,15 +235,13 @@ library VaaLib {
 
   // ------------ Convenience Decoding Functions ------------
 
-  //legacy decoder for IWormhole.VM
+  //legacy decoder for CoreBridgeVM
   function decodeVmStructCd(
     bytes calldata encodedVaa
-  ) internal pure returns (IWormhole.VM memory vm) {
+  ) internal pure returns (CoreBridgeVM memory vm) {
     vm.version = HEADER_VERSION;
     uint envelopeOffset;
-    GuardianSignature[] memory signatures;
-    (vm.guardianSetIndex, signatures, envelopeOffset) = decodeVaaHeaderCdUnchecked(encodedVaa);
-    vm.signatures = asIWormholeSignatures(signatures);
+    (vm.guardianSetIndex, vm.signatures, envelopeOffset) = decodeVaaHeaderCdUnchecked(encodedVaa);
     vm.hash = calcVaaDoubleHashCd(encodedVaa, envelopeOffset);
     ( vm.timestamp,
       vm.nonce,
@@ -274,7 +255,7 @@ library VaaLib {
 
   function decodeVmStructMem(
     bytes memory encodedVaa
-  ) internal pure returns (IWormhole.VM memory vm) {
+  ) internal pure returns (CoreBridgeVM memory vm) {
     (vm, ) = decodeVmStructMemUnchecked(encodedVaa, 0, encodedVaa.length);
   }
 
@@ -283,7 +264,6 @@ library VaaLib {
   ) internal pure returns (Vaa memory vaa) {
     uint envelopeOffset;
     (vaa.header, envelopeOffset) = decodeVaaHeaderStructCdUnchecked(encodedVaa);
-
     uint payloadOffset;
     (vaa.envelope, payloadOffset) = decodeVaaEnvelopeStructCdUnchecked(encodedVaa, envelopeOffset);
     vaa.payload = decodeVaaPayloadCd(encodedVaa, payloadOffset);
@@ -303,9 +283,9 @@ library VaaLib {
     uint64  sequence,
     bytes calldata payload
   ) { unchecked {
-    checkVaaVersionCd(encodedVaa);
+    checkVaaVersionCdUnchecked(encodedVaa);
 
-    uint envelopeOffset = skipVaaHeaderCd(encodedVaa);
+    uint envelopeOffset = skipVaaHeaderCdUnchecked(encodedVaa);
     uint offset = envelopeOffset + ENVELOPE_EMITTER_CHAIN_ID_OFFSET;
     (emitterChainId, offset) = encodedVaa.asUint16CdUnchecked(offset);
     (emitterAddress, offset) = encodedVaa.asBytes32CdUnchecked(offset);
@@ -388,9 +368,9 @@ library VaaLib {
     uint8   consistencyLevel,
     bytes calldata payload
   ) {
-    checkVaaVersionCd(encodedVaa);
+    checkVaaVersionCdUnchecked(encodedVaa);
     (timestamp, nonce, emitterChainId, emitterAddress, sequence, consistencyLevel, payload) =
-      decodeVaaBodyCd(encodedVaa, skipVaaHeaderCd(encodedVaa));
+      decodeVaaBodyCd(encodedVaa, skipVaaHeaderCdUnchecked(encodedVaa));
   }
 
   function decodeVaaBodyStructCd(
@@ -440,11 +420,12 @@ library VaaLib {
   function decodeEmitterChainAndPayloadCdUnchecked(
     bytes calldata encodedVaa
   ) internal pure returns (uint16 emitterChainId, bytes calldata payload) { unchecked {
-    checkVaaVersionCd(encodedVaa);
-    uint envelopeOffset = skipVaaHeaderCd(encodedVaa);
+    checkVaaVersionCdUnchecked(encodedVaa);
+    uint envelopeOffset = skipVaaHeaderCdUnchecked(encodedVaa);
     uint offset = envelopeOffset + ENVELOPE_EMITTER_CHAIN_ID_OFFSET;
     (emitterChainId, offset) = encodedVaa.asUint16CdUnchecked(offset);
-    offset += ENVELOPE_EMITTER_ADDRESS_SIZE + ENVELOPE_SEQUENCE_SIZE + ENVELOPE_CONSISTENCY_LEVEL_SIZE;
+    offset +=
+      ENVELOPE_EMITTER_ADDRESS_SIZE + ENVELOPE_SEQUENCE_SIZE + ENVELOPE_CONSISTENCY_LEVEL_SIZE;
     payload = decodeVaaPayloadCd(encodedVaa, offset);
   }}
 
@@ -455,29 +436,16 @@ library VaaLib {
     uint envelopeOffset = skipVaaHeaderMemUnchecked(encodedVaa, 0);
     uint offset = envelopeOffset + ENVELOPE_EMITTER_CHAIN_ID_OFFSET;
     (emitterChainId, offset) = encodedVaa.asUint16MemUnchecked(offset);
-    offset += ENVELOPE_EMITTER_ADDRESS_SIZE + ENVELOPE_SEQUENCE_SIZE + ENVELOPE_CONSISTENCY_LEVEL_SIZE;
+    offset +=
+      ENVELOPE_EMITTER_ADDRESS_SIZE + ENVELOPE_SEQUENCE_SIZE + ENVELOPE_CONSISTENCY_LEVEL_SIZE;
     (payload, ) = decodeVaaPayloadMemUnchecked(encodedVaa, offset, encodedVaa.length);
   }}
 
   // ------------ Advanced Decoding Functions ------------
 
-  function asIWormholeSignatures(
-    GuardianSignature[] memory signatures
-  ) internal pure returns (IWormhole.Signature[] memory vmSignatures) {
-    assembly ("memory-safe") {
-      vmSignatures := signatures
-    }
-  }
-
-  function asGuardianSignatures(
-    IWormhole.Signature[] memory vmSignatures
-  ) internal pure returns (GuardianSignature[] memory signatures) {
-    assembly ("memory-safe") {
-      signatures := vmSignatures
-    }
-  }
-
-  function checkVaaVersionCd(bytes calldata encodedVaa) internal pure returns (uint newOffset) {
+  function checkVaaVersionCdUnchecked(
+    bytes calldata encodedVaa
+  ) internal pure returns (uint newOffset) {
     uint8 version;
     (version, newOffset) = encodedVaa.asUint8CdUnchecked(0);
     checkVaaVersion(version);
@@ -498,7 +466,7 @@ library VaaLib {
   }
 
   //return the offset to the start of the envelope/body
-  function skipVaaHeaderCd(
+  function skipVaaHeaderCdUnchecked(
     bytes calldata encodedVaa
   ) internal pure returns (uint envelopeOffset) { unchecked {
     (uint sigCount, uint offset) = encodedVaa.asUint8CdUnchecked(HEADER_SIGNATURE_COUNT_OFFSET);
@@ -544,7 +512,7 @@ library VaaLib {
   }
 
   //see WARNING box at the top
-  //this function matches IWormhole.VM.hash and is what's been used for (legacy) replay protection
+  //this function matches CoreBridgeVM.hash and is what's been used for (legacy) replay protection
   function calcVaaDoubleHashCd(
     bytes calldata encodedVaa,
     uint envelopeOffset
@@ -575,13 +543,11 @@ library VaaLib {
     bytes memory encoded,
     uint headerOffset,
     uint vaaLength
-  ) internal pure returns (IWormhole.VM memory vm, uint newOffset) {
+  ) internal pure returns (CoreBridgeVM memory vm, uint newOffset) {
     vm.version = HEADER_VERSION;
     uint envelopeOffset;
-    GuardianSignature[] memory signatures;
-    (vm.guardianSetIndex, signatures, envelopeOffset) =
+    (vm.guardianSetIndex, vm.signatures, envelopeOffset) =
       decodeVaaHeaderMemUnchecked(encoded, headerOffset);
-    vm.signatures = asIWormholeSignatures(signatures);
     vm.hash = calcVaaDoubleHashMem(encoded, envelopeOffset, vaaLength);
     ( vm.timestamp,
       vm.nonce,
@@ -602,7 +568,6 @@ library VaaLib {
     uint envelopeOffset;
     (vaa.header.guardianSetIndex, vaa.header.signatures, envelopeOffset) =
       decodeVaaHeaderMemUnchecked(encoded, headerOffset);
-
     uint payloadOffset;
     (vaa.envelope, payloadOffset) = decodeVaaEnvelopeStructMemUnchecked(encoded, envelopeOffset);
 
@@ -756,7 +721,7 @@ library VaaLib {
     GuardianSignature[] memory signatures,
     uint envelopeOffset
   ) { unchecked {
-    checkVaaVersionCd(encodedVaa);
+    checkVaaVersionCdUnchecked(encodedVaa);
     uint offset = HEADER_GUARDIAN_SET_INDEX_OFFSET;
     (guardianSetIndex, offset) = encodedVaa.asUint32CdUnchecked(offset);
 
@@ -881,10 +846,10 @@ library VaaLib {
 
   // ------------ Encoding ------------
 
-  function encode(IWormhole.VM memory vm) internal pure returns (bytes memory) { unchecked {
+  function encode(CoreBridgeVM memory vm) internal pure returns (bytes memory) { unchecked {
     require(vm.version == HEADER_VERSION, "Invalid version");
     return abi.encodePacked(
-      encodeVaaHeader(vm.guardianSetIndex, asGuardianSignatures(vm.signatures)),
+      encodeVaaHeader(vm.guardianSetIndex, vm.signatures),
       vm.timestamp,
       vm.nonce,
       vm.emitterChainId,

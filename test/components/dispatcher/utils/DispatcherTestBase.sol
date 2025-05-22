@@ -27,10 +27,10 @@ contract DispatcherTestBase is Test {
 
   function setUp() public {
     uint8 adminCount = 1;
-    
+
     dispatcherImplementation = address(new Dispatcher());
     dispatcher = Dispatcher(address(new Proxy(
-        dispatcherImplementation, 
+        dispatcherImplementation,
         abi.encodePacked(
           owner,
           adminCount,

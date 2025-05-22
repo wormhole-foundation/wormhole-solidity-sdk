@@ -101,7 +101,7 @@ abstract contract AccessControl {
     _proposeOwnershipTransfer(state, newOwner);
   }
 
-  //selector: 23452b9c 
+  //selector: 23452b9c
   function cancelOwnershipTransfer() external {
     AccessControlState storage state = accessControlState();
     if (msg.sender != state.owner)
@@ -270,8 +270,8 @@ abstract contract AccessControl {
   }
 
   function _updateAdmins(
-    AccessControlState storage state, 
-    address admin, 
+    AccessControlState storage state,
+    address admin,
     bool authorization
   ) private { unchecked {
     if ((state.isAdmin[admin] != 0) == authorization)
