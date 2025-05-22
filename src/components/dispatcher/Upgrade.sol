@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.4;
 
-import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
-import {ProxyBase} from "wormhole-sdk/proxy/ProxyBase.sol";
-import {Role, senderRole, failAuthIf} from "wormhole-sdk/components/dispatcher/AccessControl.sol";
-import {UPGRADE_CONTRACT_ID, IMPLEMENTATION_ID} from "wormhole-sdk/components/dispatcher/Ids.sol";
+import {BytesParsing} from "../../libraries/BytesParsing.sol";
+import {ProxyBase} from "../../proxy/ProxyBase.sol";
+import {Role, senderRole, failAuthIf} from "./AccessControl.sol";
+import {UPGRADE_CONTRACT_ID, IMPLEMENTATION_ID} from "./Ids.sol";
 
 error InvalidGovernanceCommand(uint8 command);
 error InvalidGovernanceQuery(uint8 query);

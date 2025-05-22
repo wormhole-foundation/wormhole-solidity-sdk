@@ -3,21 +3,21 @@ pragma solidity ^0.8.4;
 
 import {
   tokenOrNativeTransfer
-} from "wormhole-sdk/utils/Transfer.sol";
+} from "./utils/Transfer.sol";
 import {
   reRevert
-} from "wormhole-sdk/utils/Revert.sol";
+} from "./utils/Revert.sol";
 import {
   NotAnEvmAddress,
   toUniversalAddress,
   fromUniversalAddress
-} from "wormhole-sdk/utils/UniversalAddress.sol";
+} from "./utils/UniversalAddress.sol";
 import {
   keccak256Word,
   keccak256SliceUnchecked,
   keccak256Cd
-} from "wormhole-sdk/utils/Keccak.sol";
+} from "./utils/Keccak.sol";
 import {
   eagerAnd,
   eagerOr
-} from "wormhole-sdk/utils/EagerOps.sol";
+} from "./utils/EagerOps.sol";

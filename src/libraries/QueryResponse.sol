@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.4;
 
-import {BytesParsing}                   from "wormhole-sdk/libraries/BytesParsing.sol";
-import {CoreBridgeLib}                  from "wormhole-sdk/libraries/CoreBridge.sol";
-import {GuardianSignature}              from "wormhole-sdk/libraries/VaaLib.sol";
-import {eagerAnd, eagerOr, keccak256Cd} from "wormhole-sdk/Utils.sol";
+import {BytesParsing} from "./BytesParsing.sol";
+import {CoreBridgeLib} from "./CoreBridge.sol";
+import {GuardianSignature} from "./VaaLib.sol";
+import {eagerAnd, eagerOr, keccak256Cd} from "../Utils.sol";
 
 library QueryType {
   error UnsupportedQueryType(uint8 received);

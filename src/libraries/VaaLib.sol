@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.14; //for (bugfixed) support of `using ... global;` syntax for libraries
 
-import {IWormhole} from "wormhole-sdk/interfaces/IWormhole.sol";
-import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
+import {IWormhole} from "../interfaces/IWormhole.sol";
+import {BytesParsing} from "./BytesParsing.sol";
 import {
   toUniversalAddress,
   keccak256Cd,
   keccak256Word,
   keccak256SliceUnchecked
-} from "wormhole-sdk/Utils.sol";
+} from "../Utils.sol";
 
 // ╭─────────────────────────────────────────────────╮
 // │ Library for encoding and decoding Wormhole VAAs │

@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.4;
 
-import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
+import {BytesParsing} from "../../libraries/BytesParsing.sol";
 import {
   ACCESS_CONTROL_ID,
   ACCESS_CONTROL_QUERIES_ID,
@@ -16,7 +16,7 @@ import {
   ACQUIRE_OWNERSHIP_ID,
   RELINQUISH_OWNERSHIP_ID,
   CANCEL_OWNERSHIP_TRANSFER_ID
-} from "wormhole-sdk/components/dispatcher/Ids.sol";
+} from "./Ids.sol";
 
 //rationale for different roles (owner, admin):
 // * owner should be a mulit-sig / ultra cold wallet that is only activated in exceptional

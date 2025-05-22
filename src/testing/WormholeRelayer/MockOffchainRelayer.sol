@@ -5,18 +5,18 @@ pragma solidity ^0.8.0;
 import "forge-std/Vm.sol";
 import "forge-std/console.sol";
 
-import "wormhole-sdk/interfaces/IWormhole.sol";
-import "wormhole-sdk/interfaces/IWormholeRelayer.sol";
-import {toUniversalAddress, fromUniversalAddress} from "wormhole-sdk/Utils.sol";
-import "wormhole-sdk/libraries/BytesParsing.sol";
-import {CCTPMessageLib} from "wormhole-sdk/WormholeRelayer/CCTPBase.sol";
+import "../../interfaces/IWormhole.sol";
+import "../../interfaces/IWormholeRelayer.sol";
+import {toUniversalAddress, fromUniversalAddress} from "../../Utils.sol";
+import "../../libraries/BytesParsing.sol";
+import {CCTPMessageLib} from "../../WormholeRelayer/CCTPBase.sol";
 
-import {VM_ADDRESS} from "wormhole-sdk/testing/Constants.sol";
-import "wormhole-sdk/libraries/VaaLib.sol";
-import "wormhole-sdk/testing/WormholeOverride.sol";
-import "wormhole-sdk/testing/CctpOverride.sol";
-import "wormhole-sdk/testing/WormholeRelayer/DeliveryInstructionSerde.sol";
-import "wormhole-sdk/testing/WormholeRelayer/ExecutionParameters.sol";
+import {VM_ADDRESS} from "../Constants.sol";
+import "../../libraries/VaaLib.sol";
+import "../WormholeOverride.sol";
+import "../CctpOverride.sol";
+import "./DeliveryInstructionSerde.sol";
+import "./ExecutionParameters.sol";
 
 using BytesParsing for bytes;
 

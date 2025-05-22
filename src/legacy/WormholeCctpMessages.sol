@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.19;
 
-import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
+import {BytesParsing} from "../libraries/BytesParsing.sol";
 
 // ╭───────────────────────────────────────────────────────────────────────╮
 // │ Library for encoding and decoding WormholeCctpTokenMessenger messages │

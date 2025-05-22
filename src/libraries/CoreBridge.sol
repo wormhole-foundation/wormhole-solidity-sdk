@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.14;
 
-import {IWormhole}                          from "wormhole-sdk/interfaces/IWormhole.sol";
-import {WORD_SIZE}                          from "wormhole-sdk/constants/Common.sol";
-import {BytesParsing}                       from "wormhole-sdk/libraries/BytesParsing.sol";
-import {UncheckedIndexing}                  from "wormhole-sdk/libraries/UncheckedIndexing.sol";
-import {GuardianSignature, VaaBody, VaaLib} from "wormhole-sdk/libraries/VaaLib.sol";
-import {eagerAnd, eagerOr}                  from "wormhole-sdk/Utils.sol";
+import {IWormhole} from "../interfaces/IWormhole.sol";
+import {WORD_SIZE} from "../constants/Common.sol";
+import {BytesParsing} from "./BytesParsing.sol";
+import {UncheckedIndexing} from "./UncheckedIndexing.sol";
+import {GuardianSignature, VaaBody, VaaLib} from "./VaaLib.sol";
+import {eagerAnd, eagerOr} from "../Utils.sol";
 
 // ╭────────────────────────────────────────────────────────────────────────────────────────╮
 // │ Library for "client-side" parsing and verification of VAAs / Guardian signed messages. │

@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.19;
 
-import {IERC20} from "IERC20/IERC20.sol";
+import {IERC20} from "../interfaces/token/IERC20.sol";
 
-import {IWormhole}           from "wormhole-sdk/interfaces/IWormhole.sol";
-import {IMessageTransmitter} from "wormhole-sdk/interfaces/cctp/IMessageTransmitter.sol";
-import {ITokenMessenger}     from "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol";
-import {ITokenMinter}        from "wormhole-sdk/interfaces/cctp/ITokenMinter.sol";
+import {IWormhole} from "../interfaces/IWormhole.sol";
+import {IMessageTransmitter} from "../interfaces/cctp/IMessageTransmitter.sol";
+import {ITokenMessenger} from "../interfaces/cctp/ITokenMessenger.sol";
+import {ITokenMinter} from "../interfaces/cctp/ITokenMinter.sol";
 
 import {toUniversalAddress,
         eagerAnd,
-        eagerOr}                     from "wormhole-sdk/Utils.sol";
-import {WormholeCctpMessageLib}      from "wormhole-sdk/legacy/WormholeCctpMessages.sol";
-import {CONSISTENCY_LEVEL_FINALIZED} from "wormhole-sdk/constants/ConsistencyLevel.sol";
+        eagerOr} from "../Utils.sol";
+import {WormholeCctpMessageLib} from "./WormholeCctpMessages.sol";
+import {CONSISTENCY_LEVEL_FINALIZED} from "../constants/ConsistencyLevel.sol";
 
 /**
  * @notice A way to associate a CCTP token burn message with a Wormhole message.

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.14; //for (bugfixed) support of `using ... global;` syntax for libraries
 
-import {WORD_SIZE} from "wormhole-sdk/constants/Common.sol";
+import {WORD_SIZE} from "../constants/Common.sol";
 
 // ╭──────────────────────────────────────────────────────────────────────╮
 // │ Library for [reading from/writing to] memory without bounds checking │

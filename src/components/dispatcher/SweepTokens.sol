@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.4;
 
-import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
-import {tokenOrNativeTransfer} from "wormhole-sdk/Utils.sol";
-import {senderAtLeastAdmin} from "wormhole-sdk/components/dispatcher/AccessControl.sol";
-import {SWEEP_TOKENS_ID} from "wormhole-sdk/components/dispatcher/Ids.sol";
+import {BytesParsing} from "../../libraries/BytesParsing.sol";
+import {tokenOrNativeTransfer} from "../../Utils.sol";
+import {senderAtLeastAdmin} from "./AccessControl.sol";
+import {SWEEP_TOKENS_ID} from "./Ids.sol";
 
 abstract contract SweepTokens {
   using BytesParsing for bytes;

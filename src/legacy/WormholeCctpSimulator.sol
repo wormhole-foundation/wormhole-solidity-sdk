@@ -3,20 +3,20 @@ pragma solidity ^0.8.19;
 
 import {Vm} from "forge-std/Vm.sol";
 
-import {IWormhole}              from "wormhole-sdk/interfaces/IWormhole.sol";
-import {IMessageTransmitter}    from "wormhole-sdk/interfaces/cctp/IMessageTransmitter.sol";
-import {ITokenMessenger}        from "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol";
-import {ITokenMinter}           from "wormhole-sdk/interfaces/cctp/ITokenMinter.sol";
+import {IWormhole} from "../interfaces/IWormhole.sol";
+import {IMessageTransmitter} from "../interfaces/cctp/IMessageTransmitter.sol";
+import {ITokenMessenger} from "../interfaces/cctp/ITokenMessenger.sol";
+import {ITokenMinter} from "../interfaces/cctp/ITokenMinter.sol";
 
 import {
   CctpMessageLib,
   CctpTokenBurnMessage
-}                               from "wormhole-sdk/libraries/CctpMessages.sol";
-import {WormholeCctpMessageLib} from "wormhole-sdk/legacy/WormholeCctpMessages.sol";
-import {toUniversalAddress}     from "wormhole-sdk/Utils.sol";
-import {VM_ADDRESS}             from "wormhole-sdk/testing/Constants.sol";
-import {CctpOverride}           from "wormhole-sdk/testing/CctpOverride.sol";
-import {WormholeOverride}       from "wormhole-sdk/testing/WormholeOverride.sol";
+} from "../libraries/CctpMessages.sol";
+import {WormholeCctpMessageLib} from "./WormholeCctpMessages.sol";
+import {toUniversalAddress} from "../Utils.sol";
+import {VM_ADDRESS} from "../testing/Constants.sol";
+import {CctpOverride} from "../testing/CctpOverride.sol";
+import {WormholeOverride} from "../testing/WormholeOverride.sol";
 
 //faked foreign call chain:
 //  foreignCaller -> foreignSender -> FOREIGN_TOKEN_MESSENGER -> foreign MessageTransmitter

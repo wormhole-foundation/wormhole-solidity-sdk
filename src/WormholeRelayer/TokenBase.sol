@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.19;
 
-import "IERC20/IERC20.sol";
-import "wormhole-sdk/interfaces/IWormholeReceiver.sol";
-import "wormhole-sdk/interfaces/IWormholeRelayer.sol";
-import "wormhole-sdk/interfaces/ITokenBridge.sol";
-import "wormhole-sdk/Utils.sol";
+import "../interfaces/token/IERC20.sol";
+import "../interfaces/IWormholeReceiver.sol";
+import "../interfaces/IWormholeRelayer.sol";
+import "../interfaces/ITokenBridge.sol";
+import "../Utils.sol";
 
 import {Base} from "./Base.sol";
 

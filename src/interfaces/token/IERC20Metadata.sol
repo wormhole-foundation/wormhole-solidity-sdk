@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "IERC20/IERC20.sol";
+import "./IERC20.sol";
 
 //https://eips.ethereum.org/EIPS/eip-20
 interface IERC20Metadata is IERC20 {
