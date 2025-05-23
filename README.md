@@ -4,8 +4,6 @@ The purpose of this SDK is to make on-chain integrations with Wormhole on EVM co
 
 For off-chain code, please refer to the [TypeScript SDK](https://github.com/wormhole-foundation/wormhole-sdk-ts) and in particular the [EVM platform implementation](https://github.com/wormhole-foundation/wormhole-sdk-ts/tree/main/platforms/evm).
 
-This SDK was originally created for integrations with the WormholeRelayer and then expanded to cover all integration.
-
 ## Releases
 
 > License Reminder
@@ -40,9 +38,9 @@ It is strongly recommended that you run the forge test suite of this SDK with yo
 
 This SDK comes with its own IERC20 interface and SafeERC20 implementation. Given that projects tend to combine different SDKs, there's often this annoying issue of clashes of IERC20 interfaces, even though they are effectively the same. We handle this issue by importing `IERC20/IERC20.sol` which allows remapping the `IERC20/` prefix to whatever directory contains `IERC20.sol` in your project, thus providing an override mechanism that should allow dealing with this problem seamlessly until forge allows remapping of individual files. The same approach is used for SafeERC20.
 
-## Components
+## Components & Testing
 
-For additional documentation of components, see the docs directory.
+For additional documentation of components and how to test integrations, see the docs directory.
 
 ## Style
 
