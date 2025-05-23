@@ -18,7 +18,6 @@ compiler:
 ```
 solc_version = "0.8.23"
 optimizer = true
-optimizer_runs = 20000
 via_ir = true
 ```
 
