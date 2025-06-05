@@ -1,0 +1,4 @@
+forge-std/=lib/forge-std/src/
+wormhole-sdk/=src/
+IERC20/=src/interfaces/token/
+SafeERC20/=src/libraries/
