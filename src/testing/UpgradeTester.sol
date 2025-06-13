@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: Apache 2
-
 pragma solidity ^0.8.24;
 
 import {ProxyBase} from "wormhole-sdk/proxy/ProxyBase.sol";

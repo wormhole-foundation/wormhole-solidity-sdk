@@ -93,12 +93,8 @@ function cctpTokenMessenger(bool mainnet, uint16 chainId) pure returns (address)
 
 library MainnetChainConstants {
   function _chainName(uint16 chainId) internal pure returns (string memory) {
-    if (chainId == CHAIN_ID_ACALA)
-      return "Acala";
     if (chainId == CHAIN_ID_ARBITRUM)
       return "Arbitrum";
-    if (chainId == CHAIN_ID_AURORA)
-      return "Aurora";
     if (chainId == CHAIN_ID_AVALANCHE)
       return "Avalanche";
     if (chainId == CHAIN_ID_BASE)
@@ -113,14 +109,10 @@ library MainnetChainConstants {
       return "Fantom";
     if (chainId == CHAIN_ID_GNOSIS)
       return "Gnosis";
-    if (chainId == CHAIN_ID_KARURA)
-      return "Karura";
     if (chainId == CHAIN_ID_KLAYTN)
       return "Klaytn";
     if (chainId == CHAIN_ID_MOONBEAM)
       return "Moonbeam";
-    if (chainId == CHAIN_ID_OASIS)
-      return "Oasis";
     if (chainId == CHAIN_ID_OPTIMISM)
       return "Optimism";
     if (chainId == CHAIN_ID_POLYGON)
@@ -145,16 +137,14 @@ library MainnetChainConstants {
       return "Worldchain";
     if (chainId == CHAIN_ID_INK)
       return "Ink";
+    if (chainId == CHAIN_ID_HYPER_EVM)
+      return "HyperEVM";
     revert UnsupportedChainId(chainId);
   }
 
   function _defaultRPC(uint16 chainId) internal pure returns (string memory) {
-    if (chainId == CHAIN_ID_ACALA)
-      return "https://eth-rpc-acala.aca-api.network";
     if (chainId == CHAIN_ID_ARBITRUM)
       return "https://arb1.arbitrum.io/rpc";
-    if (chainId == CHAIN_ID_AURORA)
-      return "";
     if (chainId == CHAIN_ID_AVALANCHE)
       return "https://avalanche-c-chain-rpc.publicnode.com";
     if (chainId == CHAIN_ID_BASE)
@@ -169,14 +159,10 @@ library MainnetChainConstants {
       return "https://rpcapi.fantom.network";
     if (chainId == CHAIN_ID_GNOSIS)
       return "https://gnosis-rpc.publicnode.com";
-    if (chainId == CHAIN_ID_KARURA)
-      return "https://eth-rpc-karura.aca-api.network";
     if (chainId == CHAIN_ID_KLAYTN)
       return "https://public-en.node.kaia.io";
     if (chainId == CHAIN_ID_MOONBEAM)
       return "https://moonbeam-rpc.publicnode.com";
-    if (chainId == CHAIN_ID_OASIS)
-      return "https://emerald.oasis.dev";
     if (chainId == CHAIN_ID_OPTIMISM)
       return "https://mainnet.optimism.io";
     if (chainId == CHAIN_ID_POLYGON)
@@ -201,16 +187,14 @@ library MainnetChainConstants {
       return "https://worldchain-mainnet.g.alchemy.com/public";
     if (chainId == CHAIN_ID_INK)
       return "https://rpc-qnd.inkonchain.com";
+    if (chainId == CHAIN_ID_HYPER_EVM)
+      return "https://rpc.hyperliquid.xyz/evm";
     revert UnsupportedChainId(chainId);
   }
 
   function _coreBridge(uint16 chainId) internal pure returns (address) {
-    if (chainId == CHAIN_ID_ACALA)
-      return 0xa321448d90d4e5b0A732867c18eA198e75CAC48E;
     if (chainId == CHAIN_ID_ARBITRUM)
       return 0xa5f208e072434bC67592E4C49C1B991BA79BCA46;
-    if (chainId == CHAIN_ID_AURORA)
-      return 0xa321448d90d4e5b0A732867c18eA198e75CAC48E;
     if (chainId == CHAIN_ID_AVALANCHE)
       return 0x54a8e5f9c4CbA08F9943965859F6c34eAF03E26c;
     if (chainId == CHAIN_ID_BASE)
@@ -225,14 +209,10 @@ library MainnetChainConstants {
       return 0x126783A6Cb203a3E35344528B26ca3a0489a1485;
     if (chainId == CHAIN_ID_GNOSIS)
       return 0xa321448d90d4e5b0A732867c18eA198e75CAC48E;
-    if (chainId == CHAIN_ID_KARURA)
-      return 0xa321448d90d4e5b0A732867c18eA198e75CAC48E;
     if (chainId == CHAIN_ID_KLAYTN)
       return 0x0C21603c4f3a6387e241c0091A7EA39E43E90bb7;
     if (chainId == CHAIN_ID_MOONBEAM)
       return 0xC8e2b0cD52Cf01b0Ce87d389Daa3d414d4cE29f3;
-    if (chainId == CHAIN_ID_OASIS)
-      return 0xfE8cD454b4A1CA468B57D79c0cc77Ef5B6f64585;
     if (chainId == CHAIN_ID_OPTIMISM)
       return 0xEe91C335eab126dF5fDB3797EA9d6aD93aeC9722;
     if (chainId == CHAIN_ID_POLYGON)
@@ -257,16 +237,14 @@ library MainnetChainConstants {
       return 0xcbcEe4e081464A15d8Ad5f58BB493954421eB506;
     if (chainId == CHAIN_ID_INK)
       return 0xCa1D5a146B03f6303baF59e5AD5615ae0b9d146D;
+    if (chainId == CHAIN_ID_HYPER_EVM)
+      return 0x7C0faFc4384551f063e05aee704ab943b8B53aB3;
     revert UnsupportedChainId(chainId);
   }
 
   function _tokenBridge(uint16 chainId) internal pure returns (address) {
-    if (chainId == CHAIN_ID_ACALA)
-      return 0xae9d7fe007b3327AA64A32824Aaac52C42a6E624;
     if (chainId == CHAIN_ID_ARBITRUM)
       return 0x0b2402144Bb366A632D14B83F244D2e0e21bD39c;
-    if (chainId == CHAIN_ID_AURORA)
-      return 0x51b5123a7b0F9b2bA265f9c4C8de7D78D52f510F;
     if (chainId == CHAIN_ID_AVALANCHE)
       return 0x0e082F06FF657D94310cB8cE8B0D9a04541d8052;
     if (chainId == CHAIN_ID_BASE)
@@ -281,14 +259,10 @@ library MainnetChainConstants {
       return 0x7C9Fc5741288cDFdD83CeB07f3ea7e22618D79D2;
     if (chainId == CHAIN_ID_GNOSIS)
       return address(0);
-    if (chainId == CHAIN_ID_KARURA)
-      return 0xae9d7fe007b3327AA64A32824Aaac52C42a6E624;
     if (chainId == CHAIN_ID_KLAYTN)
       return 0x5b08ac39EAED75c0439FC750d9FE7E1F9dD0193F;
     if (chainId == CHAIN_ID_MOONBEAM)
       return 0xB1731c586ca89a23809861c6103F0b96B3F57D92;
-    if (chainId == CHAIN_ID_OASIS)
-      return 0x5848C791e09901b40A9Ef749f2a6735b418d7564;
     if (chainId == CHAIN_ID_OPTIMISM)
       return 0x1D68124e65faFC907325e3EDbF8c4d84499DAa8b;
     if (chainId == CHAIN_ID_POLYGON)
@@ -313,16 +287,14 @@ library MainnetChainConstants {
       return 0xc309275443519adca74c9136b02A38eF96E3a1f6;
     if (chainId == CHAIN_ID_INK)
       return 0x3Ff72741fd67D6AD0668d93B41a09248F4700560;
+    if (chainId == CHAIN_ID_HYPER_EVM)
+      return address(0);
     revert UnsupportedChainId(chainId);
   }
 
   function _wormholeRelayer(uint16 chainId) internal pure returns (address) {
-    if (chainId == CHAIN_ID_ACALA)
-      return address(0);
     if (chainId == CHAIN_ID_ARBITRUM)
       return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
-    if (chainId == CHAIN_ID_AURORA)
-      return address(0);
     if (chainId == CHAIN_ID_AVALANCHE)
       return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
     if (chainId == CHAIN_ID_BASE)
@@ -337,14 +309,10 @@ library MainnetChainConstants {
       return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
     if (chainId == CHAIN_ID_GNOSIS)
       return address(0);
-    if (chainId == CHAIN_ID_KARURA)
-      return address(0);
     if (chainId == CHAIN_ID_KLAYTN)
       return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
     if (chainId == CHAIN_ID_MOONBEAM)
       return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
-    if (chainId == CHAIN_ID_OASIS)
-      return address(0);
     if (chainId == CHAIN_ID_OPTIMISM)
       return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
     if (chainId == CHAIN_ID_POLYGON)
@@ -360,7 +328,7 @@ library MainnetChainConstants {
     if (chainId == CHAIN_ID_BERACHAIN)
       return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
     if (chainId == CHAIN_ID_SEIEVM)
-      return address(0);
+      return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
     if (chainId == CHAIN_ID_SNAXCHAIN)
       return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
     if (chainId == CHAIN_ID_UNICHAIN)
@@ -369,16 +337,14 @@ library MainnetChainConstants {
       return 0x1520cC9e779c56dab5866BEbFb885C86840c33d3;
     if (chainId == CHAIN_ID_INK)
       return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
+    if (chainId == CHAIN_ID_HYPER_EVM)
+      return address(0);
     revert UnsupportedChainId(chainId);
   }
 
   function _cctpDomain(uint16 chainId) internal pure returns (uint32) {
-    if (chainId == CHAIN_ID_ACALA)
-      return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_ARBITRUM)
       return CCTP_DOMAIN_ARBITRUM;
-    if (chainId == CHAIN_ID_AURORA)
-      return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_AVALANCHE)
       return CCTP_DOMAIN_AVALANCHE;
     if (chainId == CHAIN_ID_BASE)
@@ -393,13 +359,9 @@ library MainnetChainConstants {
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_GNOSIS)
       return INVALID_CCTP_DOMAIN;
-    if (chainId == CHAIN_ID_KARURA)
-      return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_KLAYTN)
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_MOONBEAM)
-      return INVALID_CCTP_DOMAIN;
-    if (chainId == CHAIN_ID_OASIS)
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_OPTIMISM)
       return CCTP_DOMAIN_OPTIMISM;
@@ -425,16 +387,14 @@ library MainnetChainConstants {
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_INK)
       return INVALID_CCTP_DOMAIN;
+    if (chainId == CHAIN_ID_HYPER_EVM)
+      return INVALID_CCTP_DOMAIN;
     revert UnsupportedChainId(chainId);
   }
 
   function _usdc(uint16 chainId) internal pure returns (address) {
-    if (chainId == CHAIN_ID_ACALA)
-      return address(0);
     if (chainId == CHAIN_ID_ARBITRUM)
       return 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
-    if (chainId == CHAIN_ID_AURORA)
-      return address(0);
     if (chainId == CHAIN_ID_AVALANCHE)
       return 0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E;
     if (chainId == CHAIN_ID_BASE)
@@ -449,13 +409,9 @@ library MainnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_GNOSIS)
       return address(0);
-    if (chainId == CHAIN_ID_KARURA)
-      return address(0);
     if (chainId == CHAIN_ID_KLAYTN)
       return address(0);
     if (chainId == CHAIN_ID_MOONBEAM)
-      return address(0);
-    if (chainId == CHAIN_ID_OASIS)
       return address(0);
     if (chainId == CHAIN_ID_OPTIMISM)
       return 0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85;
@@ -478,19 +434,17 @@ library MainnetChainConstants {
     if (chainId == CHAIN_ID_UNICHAIN)
       return 0x078D782b760474a361dDA0AF3839290b0EF57AD6;
     if (chainId == CHAIN_ID_WORLDCHAIN)
-      return address(0);
+      return 0x79A02482A880bCE3F13e09Da970dC34db4CD24d1;
     if (chainId == CHAIN_ID_INK)
+      return address(0);
+    if (chainId == CHAIN_ID_HYPER_EVM)
       return address(0);
     revert UnsupportedChainId(chainId);
   }
 
   function _cctpMessageTransmitter(uint16 chainId) internal pure returns (address) {
-    if (chainId == CHAIN_ID_ACALA)
-      return address(0);
     if (chainId == CHAIN_ID_ARBITRUM)
       return 0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca;
-    if (chainId == CHAIN_ID_AURORA)
-      return address(0);
     if (chainId == CHAIN_ID_AVALANCHE)
       return 0x8186359aF5F57FbB40c6b14A588d2A59C0C29880;
     if (chainId == CHAIN_ID_BASE)
@@ -505,13 +459,9 @@ library MainnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_GNOSIS)
       return address(0);
-    if (chainId == CHAIN_ID_KARURA)
-      return address(0);
     if (chainId == CHAIN_ID_KLAYTN)
       return address(0);
     if (chainId == CHAIN_ID_MOONBEAM)
-      return address(0);
-    if (chainId == CHAIN_ID_OASIS)
       return address(0);
     if (chainId == CHAIN_ID_OPTIMISM)
       return 0x4D41f22c5a0e5c74090899E5a8Fb597a8842b3e8;
@@ -537,16 +487,14 @@ library MainnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_INK)
       return address(0);
+    if (chainId == CHAIN_ID_HYPER_EVM)
+      return address(0);
     revert UnsupportedChainId(chainId);
   }
 
   function _cctpTokenMessenger(uint16 chainId) internal pure returns (address) {
-    if (chainId == CHAIN_ID_ACALA)
-      return address(0);
     if (chainId == CHAIN_ID_ARBITRUM)
       return 0x19330d10D9Cc8751218eaf51E8885D058642E08A;
-    if (chainId == CHAIN_ID_AURORA)
-      return address(0);
     if (chainId == CHAIN_ID_AVALANCHE)
       return 0x6B25532e1060CE10cc3B0A99e5683b91BFDe6982;
     if (chainId == CHAIN_ID_BASE)
@@ -561,13 +509,9 @@ library MainnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_GNOSIS)
       return address(0);
-    if (chainId == CHAIN_ID_KARURA)
-      return address(0);
     if (chainId == CHAIN_ID_KLAYTN)
       return address(0);
     if (chainId == CHAIN_ID_MOONBEAM)
-      return address(0);
-    if (chainId == CHAIN_ID_OASIS)
       return address(0);
     if (chainId == CHAIN_ID_OPTIMISM)
       return 0x2B4069517957735bE00ceE0fadAE88a26365528f;
@@ -593,16 +537,14 @@ library MainnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_INK)
       return address(0);
+    if (chainId == CHAIN_ID_HYPER_EVM)
+      return address(0);
     revert UnsupportedChainId(chainId);
   }
 }
 
 library TestnetChainConstants {
   function _chainName(uint16 chainId) internal pure returns (string memory) {
-    if (chainId == CHAIN_ID_ACALA)
-      return "Acala";
-    if (chainId == CHAIN_ID_AURORA)
-      return "Aurora";
     if (chainId == CHAIN_ID_AVALANCHE)
       return "Avalanche";
     if (chainId == CHAIN_ID_BSC)
@@ -613,16 +555,12 @@ library TestnetChainConstants {
       return "Fantom";
     if (chainId == CHAIN_ID_GNOSIS)
       return "Gnosis";
-    if (chainId == CHAIN_ID_KARURA)
-      return "Karura";
     if (chainId == CHAIN_ID_KLAYTN)
       return "Klaytn";
     if (chainId == CHAIN_ID_MOONBEAM)
       return "Moonbeam";
     if (chainId == CHAIN_ID_NEON)
       return "Neon";
-    if (chainId == CHAIN_ID_OASIS)
-      return "Oasis";
     if (chainId == CHAIN_ID_SEPOLIA)
       return "Sepolia";
     if (chainId == CHAIN_ID_ARBITRUM_SEPOLIA)
@@ -657,7 +595,7 @@ library TestnetChainConstants {
       return "Worldchain";
     if (chainId == CHAIN_ID_INK)
       return "Ink";
-    if (chainId == CHAIN_ID_HYPER_E_V_M)
+    if (chainId == CHAIN_ID_HYPER_EVM)
       return "HyperEVM";
     if (chainId == CHAIN_ID_MONAD)
       return "Monad";
@@ -667,10 +605,6 @@ library TestnetChainConstants {
   }
 
   function _defaultRPC(uint16 chainId) internal pure returns (string memory) {
-    if (chainId == CHAIN_ID_ACALA)
-      return "https://eth-rpc-acala-testnet.aca-staging.network";
-    if (chainId == CHAIN_ID_AURORA)
-      return "";
     if (chainId == CHAIN_ID_AVALANCHE)
       return "https://api.avax-test.network/ext/bc/C/rpc";
     if (chainId == CHAIN_ID_BSC)
@@ -681,16 +615,12 @@ library TestnetChainConstants {
       return "https://rpc.testnet.fantom.network";
     if (chainId == CHAIN_ID_GNOSIS)
       return "https://rpc.chiadochain.net";
-    if (chainId == CHAIN_ID_KARURA)
-      return "https://eth-rpc-karura-testnet.aca-staging.network";
     if (chainId == CHAIN_ID_KLAYTN)
       return "https://public-en-kairos.node.kaia.io";
     if (chainId == CHAIN_ID_MOONBEAM)
       return "https://rpc.api.moonbase.moonbeam.network";
     if (chainId == CHAIN_ID_NEON)
       return "";
-    if (chainId == CHAIN_ID_OASIS)
-      return "https://testnet.emerald.oasis.io";
     if (chainId == CHAIN_ID_SEPOLIA)
       return "https://ethereum-sepolia.publicnode.com";
     if (chainId == CHAIN_ID_ARBITRUM_SEPOLIA)
@@ -725,7 +655,7 @@ library TestnetChainConstants {
       return "https://worldchain-sepolia.g.alchemy.com/public";
     if (chainId == CHAIN_ID_INK)
       return "https://rpc-qnd-sepolia.inkonchain.com";
-    if (chainId == CHAIN_ID_HYPER_E_V_M)
+    if (chainId == CHAIN_ID_HYPER_EVM)
       return "https://api.hyperliquid-testnet.xyz/evm";
     if (chainId == CHAIN_ID_MONAD)
       return "https://testnet-rpc.monad.xyz";
@@ -735,10 +665,6 @@ library TestnetChainConstants {
   }
 
   function _coreBridge(uint16 chainId) internal pure returns (address) {
-    if (chainId == CHAIN_ID_ACALA)
-      return 0x64fb09E405D2043ed7785a29E296C766D56F2056;
-    if (chainId == CHAIN_ID_AURORA)
-      return 0xBd07292de7b505a4E803CEe286184f7Acf908F5e;
     if (chainId == CHAIN_ID_AVALANCHE)
       return 0x7bbcE28e64B3F8b84d876Ab298393c38ad7aac4C;
     if (chainId == CHAIN_ID_BSC)
@@ -749,16 +675,12 @@ library TestnetChainConstants {
       return 0x1BB3B4119b7BA9dfad76B0545fb3F531383c3bB7;
     if (chainId == CHAIN_ID_GNOSIS)
       return 0xBB73cB66C26740F31d1FabDC6b7A46a038A300dd;
-    if (chainId == CHAIN_ID_KARURA)
-      return 0x64fb09E405D2043ed7785a29E296C766D56F2056;
     if (chainId == CHAIN_ID_KLAYTN)
       return 0x1830CC6eE66c84D2F177B94D544967c774E624cA;
     if (chainId == CHAIN_ID_MOONBEAM)
       return 0xa5B7D85a8f27dd7907dc8FdC21FA5657D5E2F901;
     if (chainId == CHAIN_ID_NEON)
       return 0x268557122Ffd64c85750d630b716471118F323c8;
-    if (chainId == CHAIN_ID_OASIS)
-      return 0xc1C338397ffA53a2Eb12A7038b4eeb34791F8aCb;
     if (chainId == CHAIN_ID_SEPOLIA)
       return 0x4a8bc80Ed5a4067f1CCf107057b8270E0cC11A78;
     if (chainId == CHAIN_ID_ARBITRUM_SEPOLIA)
@@ -793,7 +715,7 @@ library TestnetChainConstants {
       return 0xe5E02cD12B6FcA153b0d7fF4bF55730AE7B3C93A;
     if (chainId == CHAIN_ID_INK)
       return 0xBB73cB66C26740F31d1FabDC6b7A46a038A300dd;
-    if (chainId == CHAIN_ID_HYPER_E_V_M)
+    if (chainId == CHAIN_ID_HYPER_EVM)
       return 0xBB73cB66C26740F31d1FabDC6b7A46a038A300dd;
     if (chainId == CHAIN_ID_MONAD)
       return 0xBB73cB66C26740F31d1FabDC6b7A46a038A300dd;
@@ -803,10 +725,6 @@ library TestnetChainConstants {
   }
 
   function _tokenBridge(uint16 chainId) internal pure returns (address) {
-    if (chainId == CHAIN_ID_ACALA)
-      return 0xe157115ef34c93145Fec2FE53706846853B07F42;
-    if (chainId == CHAIN_ID_AURORA)
-      return 0xD05eD3ad637b890D68a854d607eEAF11aF456fba;
     if (chainId == CHAIN_ID_AVALANCHE)
       return 0x61E44E506Ca5659E6c0bba9b678586fA2d729756;
     if (chainId == CHAIN_ID_BSC)
@@ -817,16 +735,12 @@ library TestnetChainConstants {
       return 0x599CEa2204B4FaECd584Ab1F2b6aCA137a0afbE8;
     if (chainId == CHAIN_ID_GNOSIS)
       return address(0);
-    if (chainId == CHAIN_ID_KARURA)
-      return 0xe157115ef34c93145Fec2FE53706846853B07F42;
     if (chainId == CHAIN_ID_KLAYTN)
       return 0xC7A13BE098720840dEa132D860fDfa030884b09A;
     if (chainId == CHAIN_ID_MOONBEAM)
       return 0xbc976D4b9D57E57c3cA52e1Fd136C45FF7955A96;
     if (chainId == CHAIN_ID_NEON)
       return 0xEe3dB83916Ccdc3593b734F7F2d16D630F39F1D0;
-    if (chainId == CHAIN_ID_OASIS)
-      return 0x88d8004A9BdbfD9D28090A02010C19897a29605c;
     if (chainId == CHAIN_ID_SEPOLIA)
       return 0xDB5492265f6038831E89f495670FF909aDe94bd9;
     if (chainId == CHAIN_ID_ARBITRUM_SEPOLIA)
@@ -861,7 +775,7 @@ library TestnetChainConstants {
       return 0x430855B4D43b8AEB9D2B9869B74d58dda79C0dB2;
     if (chainId == CHAIN_ID_INK)
       return 0x376428e7f26D5867e69201b275553C45B09EE090;
-    if (chainId == CHAIN_ID_HYPER_E_V_M)
+    if (chainId == CHAIN_ID_HYPER_EVM)
       return 0x4a8bc80Ed5a4067f1CCf107057b8270E0cC11A78;
     if (chainId == CHAIN_ID_MONAD)
       return 0xF323dcDe4d33efe83cf455F78F9F6cc656e6B659;
@@ -871,10 +785,6 @@ library TestnetChainConstants {
   }
 
   function _wormholeRelayer(uint16 chainId) internal pure returns (address) {
-    if (chainId == CHAIN_ID_ACALA)
-      return address(0);
-    if (chainId == CHAIN_ID_AURORA)
-      return address(0);
     if (chainId == CHAIN_ID_AVALANCHE)
       return 0xA3cF45939bD6260bcFe3D66bc73d60f19e49a8BB;
     if (chainId == CHAIN_ID_BSC)
@@ -885,15 +795,11 @@ library TestnetChainConstants {
       return 0x7B1bD7a6b4E61c2a123AC6BC2cbfC614437D0470;
     if (chainId == CHAIN_ID_GNOSIS)
       return address(0);
-    if (chainId == CHAIN_ID_KARURA)
-      return address(0);
     if (chainId == CHAIN_ID_KLAYTN)
       return address(0);
     if (chainId == CHAIN_ID_MOONBEAM)
       return 0x0591C25ebd0580E0d4F27A82Fc2e24E7489CB5e0;
     if (chainId == CHAIN_ID_NEON)
-      return address(0);
-    if (chainId == CHAIN_ID_OASIS)
       return address(0);
     if (chainId == CHAIN_ID_SEPOLIA)
       return 0x7B1bD7a6b4E61c2a123AC6BC2cbfC614437D0470;
@@ -906,7 +812,7 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_HOLESKY)
       return address(0);
     if (chainId == CHAIN_ID_POLYGON_SEPOLIA)
-      return address(0);
+      return 0x362fca37E45fe1096b42021b543f462D49a5C8df;
     if (chainId == CHAIN_ID_MANTLE)
       return address(0);
     if (chainId == CHAIN_ID_SCROLL)
@@ -929,7 +835,7 @@ library TestnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_INK)
       return 0x362fca37E45fe1096b42021b543f462D49a5C8df;
-    if (chainId == CHAIN_ID_HYPER_E_V_M)
+    if (chainId == CHAIN_ID_HYPER_EVM)
       return address(0);
     if (chainId == CHAIN_ID_MONAD)
       return 0x362fca37E45fe1096b42021b543f462D49a5C8df;
@@ -939,10 +845,6 @@ library TestnetChainConstants {
   }
 
   function _cctpDomain(uint16 chainId) internal pure returns (uint32) {
-    if (chainId == CHAIN_ID_ACALA)
-      return INVALID_CCTP_DOMAIN;
-    if (chainId == CHAIN_ID_AURORA)
-      return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_AVALANCHE)
       return CCTP_DOMAIN_AVALANCHE;
     if (chainId == CHAIN_ID_BSC)
@@ -953,15 +855,11 @@ library TestnetChainConstants {
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_GNOSIS)
       return INVALID_CCTP_DOMAIN;
-    if (chainId == CHAIN_ID_KARURA)
-      return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_KLAYTN)
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_MOONBEAM)
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_NEON)
-      return INVALID_CCTP_DOMAIN;
-    if (chainId == CHAIN_ID_OASIS)
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_SEPOLIA)
       return CCTP_DOMAIN_SEPOLIA;
@@ -997,7 +895,7 @@ library TestnetChainConstants {
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_INK)
       return INVALID_CCTP_DOMAIN;
-    if (chainId == CHAIN_ID_HYPER_E_V_M)
+    if (chainId == CHAIN_ID_HYPER_EVM)
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_MONAD)
       return INVALID_CCTP_DOMAIN;
@@ -1007,10 +905,6 @@ library TestnetChainConstants {
   }
 
   function _usdc(uint16 chainId) internal pure returns (address) {
-    if (chainId == CHAIN_ID_ACALA)
-      return address(0);
-    if (chainId == CHAIN_ID_AURORA)
-      return address(0);
     if (chainId == CHAIN_ID_AVALANCHE)
       return 0x5425890298aed601595a70AB815c96711a31Bc65;
     if (chainId == CHAIN_ID_BSC)
@@ -1021,15 +915,11 @@ library TestnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_GNOSIS)
       return address(0);
-    if (chainId == CHAIN_ID_KARURA)
-      return address(0);
     if (chainId == CHAIN_ID_KLAYTN)
       return address(0);
     if (chainId == CHAIN_ID_MOONBEAM)
       return address(0);
     if (chainId == CHAIN_ID_NEON)
-      return address(0);
-    if (chainId == CHAIN_ID_OASIS)
       return address(0);
     if (chainId == CHAIN_ID_SEPOLIA)
       return 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
@@ -1052,7 +942,7 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_XLAYER)
       return address(0);
     if (chainId == CHAIN_ID_LINEA)
-      return address(0);
+      return 0xFEce4462D57bD51A6A552365A011b95f0E16d9B7;
     if (chainId == CHAIN_ID_BERACHAIN)
       return address(0);
     if (chainId == CHAIN_ID_SEIEVM)
@@ -1065,7 +955,7 @@ library TestnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_INK)
       return address(0);
-    if (chainId == CHAIN_ID_HYPER_E_V_M)
+    if (chainId == CHAIN_ID_HYPER_EVM)
       return address(0);
     if (chainId == CHAIN_ID_MONAD)
       return address(0);
@@ -1075,10 +965,6 @@ library TestnetChainConstants {
   }
 
   function _cctpMessageTransmitter(uint16 chainId) internal pure returns (address) {
-    if (chainId == CHAIN_ID_ACALA)
-      return address(0);
-    if (chainId == CHAIN_ID_AURORA)
-      return address(0);
     if (chainId == CHAIN_ID_AVALANCHE)
       return 0xa9fB1b3009DCb79E2fe346c16a604B8Fa8aE0a79;
     if (chainId == CHAIN_ID_BSC)
@@ -1089,15 +975,11 @@ library TestnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_GNOSIS)
       return address(0);
-    if (chainId == CHAIN_ID_KARURA)
-      return address(0);
     if (chainId == CHAIN_ID_KLAYTN)
       return address(0);
     if (chainId == CHAIN_ID_MOONBEAM)
       return address(0);
     if (chainId == CHAIN_ID_NEON)
-      return address(0);
-    if (chainId == CHAIN_ID_OASIS)
       return address(0);
     if (chainId == CHAIN_ID_SEPOLIA)
       return 0x7865fAfC2db2093669d92c0F33AeEF291086BEFD;
@@ -1133,7 +1015,7 @@ library TestnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_INK)
       return address(0);
-    if (chainId == CHAIN_ID_HYPER_E_V_M)
+    if (chainId == CHAIN_ID_HYPER_EVM)
       return address(0);
     if (chainId == CHAIN_ID_MONAD)
       return address(0);
@@ -1143,10 +1025,6 @@ library TestnetChainConstants {
   }
 
   function _cctpTokenMessenger(uint16 chainId) internal pure returns (address) {
-    if (chainId == CHAIN_ID_ACALA)
-      return address(0);
-    if (chainId == CHAIN_ID_AURORA)
-      return address(0);
     if (chainId == CHAIN_ID_AVALANCHE)
       return 0xeb08f243E5d3FCFF26A9E38Ae5520A669f4019d0;
     if (chainId == CHAIN_ID_BSC)
@@ -1157,15 +1035,11 @@ library TestnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_GNOSIS)
       return address(0);
-    if (chainId == CHAIN_ID_KARURA)
-      return address(0);
     if (chainId == CHAIN_ID_KLAYTN)
       return address(0);
     if (chainId == CHAIN_ID_MOONBEAM)
       return address(0);
     if (chainId == CHAIN_ID_NEON)
-      return address(0);
-    if (chainId == CHAIN_ID_OASIS)
       return address(0);
     if (chainId == CHAIN_ID_SEPOLIA)
       return 0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5;
@@ -1201,7 +1075,7 @@ library TestnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_INK)
       return address(0);
-    if (chainId == CHAIN_ID_HYPER_E_V_M)
+    if (chainId == CHAIN_ID_HYPER_EVM)
       return address(0);
     if (chainId == CHAIN_ID_MONAD)
       return address(0);

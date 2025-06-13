@@ -24,14 +24,14 @@ import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 // ├─────────┬─────────────┬───────────────────────────────────────────────────┤
 // │ uint160 │ amount      │ amount of tokens to approve                       │
 // │ uint48  │ expiration  │ unix timestamp until which the approval is valid  │
-// │ uint48  │ nonce       │ akin to EVM transaction nonce (must count up)     │
+// │ uint48  │ nonce       │ invalidates all permits with a lower nonce        │
 // │ uint256 │ sigDeadline │ timestamp until which the signature is valid      │
 // │ bytes   │ signature   │ ECDSA signature (r,s,v packed into 65 bytes)      │
 // ┝━━━━━━━━━┷━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┥
 // │       Permit2 Transfer                                                    │
 // ├─────────┬─────────────┬───────────────────────────────────────────────────┤
 // │ uint256 │ amount      │ amount of tokens to transfer                      │
-// │ uint256 │ nonce       │ akin to EVM transaction nonce (must count up)     │
+// │ uint256 │ nonce       │ unordered, but using a counter saves gas          │
 // │ uint256 │ sigDeadline │ unix timestamp until which the signature is valid │
 // │ bytes   │ signature   │ ECDSA signature (r,s,v packed into 65 bytes)      │
 // ╰─────────┴─────────────┴───────────────────────────────────────────────────╯

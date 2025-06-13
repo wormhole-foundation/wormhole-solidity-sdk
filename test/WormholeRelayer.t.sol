@@ -42,7 +42,7 @@ contract WormholeRelayerDemoIntegration is WormholeRelayerReceiver {
   address private immutable _usdc;
   address private immutable _cctpTokenMessenger;
   address private immutable _coreBridge;
-  IMessageTransmitter private immutable _cctpMsgTransmitter;
+  address private immutable _cctpMsgTransmitter;
 
   uint16 private immutable _chainId;
   uint32 private immutable _domain;
@@ -64,9 +64,9 @@ contract WormholeRelayerDemoIntegration is WormholeRelayerReceiver {
     _usdc               = usdc;
     _cctpTokenMessenger = cctpTokenMessenger;
     _coreBridge         = ITokenBridge(_tokenBridge).wormhole();
-    _cctpMsgTransmitter = ITokenMessenger(_cctpTokenMessenger).localMessageTransmitter();
+    _cctpMsgTransmitter = address(ITokenMessenger(_cctpTokenMessenger).localMessageTransmitter());
     _chainId = ICoreBridge(_coreBridge).chainId();
-    _domain = _cctpMsgTransmitter.localDomain();
+    _domain = IMessageTransmitter(_cctpMsgTransmitter).localDomain();
     owner = msg.sender;
 
     //more gas efficient to approve only once
@@ -200,7 +200,7 @@ contract WormholeRelayerDemoIntegration is WormholeRelayerReceiver {
     if (usdcAmount > 0) {
       (bytes calldata cctpMessage, bytes calldata attestation) =
         unpackAdditionalCctpMessage(additionalMessages[normalizedTokenAmount > 0 ? 1 : 0]);
-      _cctpMsgTransmitter.receiveMessage(cctpMessage, attestation);
+      IMessageTransmitter(_cctpMsgTransmitter).receiveMessage(cctpMessage, attestation);
       //transfers usdc directly to recipient
     }
 
@@ -321,7 +321,7 @@ contract WormholeRelayerDemoIntegrationTest is WormholeRelayerTest {
     }
 
     (uint256 expectedDeliveryPrice, ) =
-      wormholeRelayer().quoteEVMDeliveryPrice(TARGET_CHAIN_ID, receiverValue, requestedGasLimit);
+      quoteDeliveryPrice(TARGET_CHAIN_ID, receiverValue, requestedGasLimit);
 
     hoax(user);
     vm.recordLogs();

@@ -13,8 +13,7 @@ interface IUSDC is IERC20 {
   function configureMinter(address minter, uint256 minterAllowedAmount) external;
 }
 
-//for some reason, using forge's `deal()` to mint usdc does not work reliably
-//  hence this workaround
+//workaround because forge's `deal()` does not work reliably to mint usdc (for some reason)
 library UsdcDealer {
   Vm constant vm = Vm(VM_ADDRESS);
 

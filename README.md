@@ -48,7 +48,7 @@ This SDK largely follows [the Solidity style guide](https://docs.soliditylang.or
 * indentation uses 2 instead of 4 spaces
 * maximum line length where feasible is 100 characters (urls in comments are an exception)
 * [order of functions](https://docs.soliditylang.org/en/latest/style-guide.html) is roughly followed but more important functions might be sorted to the top.
-* additional whitespace are at times added to create more compelling visual blocks (e.g. for a block of related assignments)
+* additional whitespace is at times added to create more compelling visual blocks (e.g. for a block of related assignments)
 * function modifiers do not get a separate line each once line length is exceeded
 * NatSpec is avoided because it favors a "box-checking" approach towards documentation rather than focusing on essentials and rationales
 

@@ -50,6 +50,14 @@ abstract contract WormholeRelayerTest is WormholeForkTest {
   mapping(uint16 => mapping(uint64 => DeliveryResult)) private _pastDeliveryResults;
   DeliveryResult[] internal _deliveryResults;
 
+  function quoteDeliveryPrice(
+    uint16 targetChain,
+    uint256 receiverValue,
+    uint256 gasLimit
+  ) internal view returns (uint256 nativePriceQuote, uint256 targetChainRefundPerGasUnused) {
+    return wormholeRelayer().quoteEVMDeliveryPrice(targetChain, receiverValue, gasLimit);
+  }
+
   function getLastDeliveryResult() internal view returns (DeliveryResult memory) {
     return _deliveryResults[_deliveryResults.length - 1];
   }

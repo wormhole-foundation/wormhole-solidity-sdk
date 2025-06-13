@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.0;
 
+// ╭──────────────────────────────────────────────────────────────╮
+// │ Prefer using WormholeRelayer.sol over the raw interface here │
+// ╰──────────────────────────────────────────────────────────────╯
+
 struct MessageKey {
   uint8 keyType; // 0-127 are reserved for standardized KeyTypes, 128-255 are for custom use
   bytes encodedKey; //all key types except VaaKeys are encoded with a 4 byte length prefix
