@@ -152,6 +152,10 @@ abstract contract WormholeForkTest is Test {
 
   // -- convenience functions --
 
+  function setMessageFee(uint256 msgFee) internal {
+    coreBridge().setMessageFee(msgFee);
+  }
+
   function attestToken(address token) internal preserveFork {
     uint originalChainId = chainId();
     vm.recordLogs();
