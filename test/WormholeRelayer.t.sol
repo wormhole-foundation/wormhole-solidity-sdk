@@ -42,7 +42,7 @@ contract WormholeRelayerDemoIntegration is WormholeRelayerReceiver {
   address private immutable _usdc;
   address private immutable _cctpTokenMessenger;
   address private immutable _coreBridge;
-  IMessageTransmitter private immutable _cctpMsgTransmitter;
+  address private immutable _cctpMsgTransmitter;
 
   uint16 private immutable _chainId;
   uint32 private immutable _domain;
@@ -64,9 +64,11 @@ contract WormholeRelayerDemoIntegration is WormholeRelayerReceiver {
     _usdc               = usdc;
     _cctpTokenMessenger = cctpTokenMessenger;
     _coreBridge         = ITokenBridge(_tokenBridge).wormhole();
-    _cctpMsgTransmitter = ITokenMessenger(_cctpTokenMessenger).localMessageTransmitter();
+    _cctpMsgTransmitter = address(ITokenMessenger(_cctpTokenMessenger).localMessageTransmitter());
+
     _chainId = ICoreBridge(_coreBridge).chainId();
-    _domain = _cctpMsgTransmitter.localDomain();
+    _domain  = IMessageTransmitter(_cctpMsgTransmitter).localDomain();
+
     owner = msg.sender;
 
     //more gas efficient to approve only once
@@ -101,10 +103,8 @@ contract WormholeRelayerDemoIntegration is WormholeRelayerReceiver {
       receiverValue,
       gasLimit
     );
-    uint256 wormholeMessageFee = ICoreBridge(_coreBridge).messageFee();
-    uint256 totalCost = deliveryPrice + wormholeMessageFee;
-    require(msg.value >= totalCost, "Insufficient msg.value");
-    uint256 extraReceiverValue = msg.value - totalCost;
+    require(msg.value >= deliveryPrice, "Insufficient msg.value");
+    uint256 extraReceiverValue = msg.value - deliveryPrice;
 
     uint additionalMessagesCount = (tokenAmount > 0 ? 1 : 0) + (usdcAmount > 0 ? 1 : 0);
     MessageKey[] memory messageKeys = new MessageKey[](additionalMessagesCount);
@@ -116,6 +116,9 @@ contract WormholeRelayerDemoIntegration is WormholeRelayerReceiver {
       uint dustFreeTokenAmount = deNormalizeAmount(normalizedTokenAmount, decimals);
       SafeERC20.safeTransferFrom(IERC20(_token), msg.sender, address(this), dustFreeTokenAmount);
 
+      uint256 wormholeMessageFee = ICoreBridge(_coreBridge).messageFee();
+      require(extraReceiverValue >= wormholeMessageFee, "Insufficient msg.value");
+      extraReceiverValue -= wormholeMessageFee;
       //use a transfer with payload to enforce that only our peer can redeem the transfer
       uint64 sequence =
         ITokenBridge(_tokenBridge).transferTokensWithPayload{value: wormholeMessageFee}(
@@ -153,7 +156,7 @@ contract WormholeRelayerDemoIntegration is WormholeRelayerReceiver {
     }
 
     return _wormholeRelayer.send(
-      totalCost,
+      deliveryPrice,
       targetChain,
       _peers[targetChain].peer,
       abi.encode(recipient, receiverValue, extraReceiverValue, normalizedTokenAmount, usdcAmount),
@@ -200,7 +203,7 @@ contract WormholeRelayerDemoIntegration is WormholeRelayerReceiver {
     if (usdcAmount > 0) {
       (bytes calldata cctpMessage, bytes calldata attestation) =
         unpackAdditionalCctpMessage(additionalMessages[normalizedTokenAmount > 0 ? 1 : 0]);
-      _cctpMsgTransmitter.receiveMessage(cctpMessage, attestation);
+      IMessageTransmitter(_cctpMsgTransmitter).receiveMessage(cctpMessage, attestation);
       //transfers usdc directly to recipient
     }
 
@@ -229,6 +232,7 @@ contract WormholeRelayerDemoIntegrationTest is WormholeRelayerTest {
 
     //deploy tokens
     selectFork(SOURCE_CHAIN_ID);
+    setMessageFee(10 gwei);
     _sourceToken = new ERC20Mock("TestToken", "TEST");
     attestToken(address(_sourceToken)); //automatically attests on all forks
     selectFork(TARGET_CHAIN_ID);
@@ -321,11 +325,13 @@ contract WormholeRelayerDemoIntegrationTest is WormholeRelayerTest {
     }
 
     (uint256 expectedDeliveryPrice, ) =
-      wormholeRelayer().quoteEVMDeliveryPrice(TARGET_CHAIN_ID, receiverValue, requestedGasLimit);
+      quoteDeliveryPrice(TARGET_CHAIN_ID, receiverValue, requestedGasLimit);
+
+    uint msgValue = expectedDeliveryPrice + (tokenAmount > 0 ? coreBridge().messageFee() : 0);
 
     hoax(user);
     vm.recordLogs();
-    _sourceDemoIntegration.bulkTransfer{value: expectedDeliveryPrice}(
+    _sourceDemoIntegration.bulkTransfer{value: msgValue}(
       TARGET_CHAIN_ID,
       user,
       receiverValue,
