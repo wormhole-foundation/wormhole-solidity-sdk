@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.0;
 
+// ╭──────────────────────────────────────────────────────────────╮
+// │ Prefer using WormholeRelayer.sol over the raw interface here │
+// ╰──────────────────────────────────────────────────────────────╯
+
 struct MessageKey {
   uint8 keyType; // 0-127 are reserved for standardized KeyTypes, 128-255 are for custom use
   bytes encodedKey; //all key types except VaaKeys are encoded with a 4 byte length prefix
@@ -44,8 +48,7 @@ interface IWormholeRelayerSend {
    *
    * `targetAddress` must implement the IWormholeReceiver interface
    *
-   * This function must be called with `msg.value` equal to wormholeMessageFee +
-   * `quoteEVMDeliveryPrice(targetChain, receiverValue, gasLimit)`
+   * This function must be called with `msg.value` equal to `quoteEVMDeliveryPrice(targetChain, receiverValue, gasLimit)`
    *
    * Any refunds (from leftover gas) will be paid to the delivery provider. In order to receive the refunds, use the `sendPayloadToEvm` function
    * with `refundChain` and `refundAddress` as parameters
@@ -73,8 +76,7 @@ interface IWormholeRelayerSend {
    * Any refunds (from leftover gas) will be sent to `refundAddress` on chain `refundChain`
    * `targetAddress` must implement the IWormholeReceiver interface
    *
-   * This function must be called with `msg.value` equal to wormholeMessageFee +
-   * `quoteEVMDeliveryPrice(targetChain, receiverValue, gasLimit)`
+   * This function must be called with `msg.value` equal to `quoteEVMDeliveryPrice(targetChain, receiverValue, gasLimit)`
    *
    * @param targetChain in Wormhole Chain ID format
    * @param targetAddress address to call on targetChain (that implements IWormholeReceiver)
@@ -103,8 +105,7 @@ interface IWormholeRelayerSend {
    *
    * `targetAddress` must implement the IWormholeReceiver interface
    *
-   * This function must be called with `msg.value` equal to wormholeMessageFee +
-   * `quoteEVMDeliveryPrice(targetChain, receiverValue, gasLimit)`
+   * This function must be called with `msg.value` equal to `quoteEVMDeliveryPrice(targetChain, receiverValue, gasLimit)`
    *
    * Any refunds (from leftover gas) will be paid to the delivery provider. In order to receive the refunds, use the `sendVaasToEvm` function
    * with `refundChain` and `refundAddress` as parameters
@@ -134,8 +135,7 @@ interface IWormholeRelayerSend {
    * Any refunds (from leftover gas) will be sent to `refundAddress` on chain `refundChain`
    * `targetAddress` must implement the IWormholeReceiver interface
    *
-   * This function must be called with `msg.value` equal to wormholeMessageFee +
-   * `quoteEVMDeliveryPrice(targetChain, receiverValue, gasLimit)`
+   * This function must be called with `msg.value` equal to `quoteEVMDeliveryPrice(targetChain, receiverValue, gasLimit)`
    *
    * @param targetChain in Wormhole Chain ID format
    * @param targetAddress address to call on targetChain (that implements IWormholeReceiver)
@@ -168,7 +168,7 @@ interface IWormholeRelayerSend {
    * Any refunds (from leftover gas) will be sent to `refundAddress` on chain `refundChain`
    * `targetAddress` must implement the IWormholeReceiver interface
    *
-   * This function must be called with `msg.value` equal to wormholeMessageFee +
+   * This function must be called with `msg.value` equal to
    * quoteEVMDeliveryPrice(targetChain, receiverValue, gasLimit, deliveryProviderAddress) + paymentForExtraReceiverValue
    *
    * @param targetChain in Wormhole Chain ID format
@@ -210,7 +210,7 @@ interface IWormholeRelayerSend {
    * Any refunds (from leftover gas) will be sent to `refundAddress` on chain `refundChain`
    * `targetAddress` must implement the IWormholeReceiver interface
    *
-   * This function must be called with `msg.value` equal to wormholeMessageFee +
+   * This function must be called with `msg.value` equal to
    * quoteEVMDeliveryPrice(targetChain, receiverValue, gasLimit, deliveryProviderAddress) + paymentForExtraReceiverValue
    *
    * Note: MessageKeys can specify wormhole messages (VaaKeys) or other types of messages (ex. USDC CCTP attestations). Ensure the selected
@@ -255,7 +255,7 @@ interface IWormholeRelayerSend {
    * Any refunds (from leftover gas) will be sent to `refundAddress` on chain `refundChain`
    * `targetAddress` must implement the IWormholeReceiver interface
    *
-   * This function must be called with `msg.value` equal to wormholeMessageFee +
+   * This function must be called with `msg.value` equal to
    * quoteDeliveryPrice(targetChain, receiverValue, encodedExecutionParameters, deliveryProviderAddress) + paymentForExtraReceiverValue
    *
    * @param targetChain in Wormhole Chain ID format
@@ -297,7 +297,7 @@ interface IWormholeRelayerSend {
    * Any refunds (from leftover gas) will be sent to `refundAddress` on chain `refundChain`
    * `targetAddress` must implement the IWormholeReceiver interface
    *
-   * This function must be called with `msg.value` equal to wormholeMessageFee +
+   * This function must be called with `msg.value` equal to
    * quoteDeliveryPrice(targetChain, receiverValue, encodedExecutionParameters, deliveryProviderAddress) + paymentForExtraReceiverValue
    *
    * Note: MessageKeys can specify wormhole messages (VaaKeys) or other types of messages (ex. USDC CCTP attestations). Ensure the selected
@@ -337,7 +337,7 @@ interface IWormholeRelayerSend {
    * @notice Requests a previously published delivery instruction to be redelivered
    * (e.g. with a different delivery provider)
    *
-   * This function must be called with `msg.value` equal to wormholeMessageFee +
+   * This function must be called with `msg.value` equal to
    * quoteEVMDeliveryPrice(targetChain, newReceiverValue, newGasLimit, newDeliveryProviderAddress)
    *
    *  @notice *** This will only be able to succeed if the following is true **
@@ -370,7 +370,7 @@ interface IWormholeRelayerSend {
    * @notice Requests a previously published delivery instruction to be redelivered
    *
    *
-   * This function must be called with `msg.value` equal to wormholeMessageFee +
+   * This function must be called with `msg.value` equal to
    * quoteDeliveryPrice(targetChain, newReceiverValue, newEncodedExecutionParameters, newDeliveryProviderAddress)
    *
    * @param deliveryVaaKey VaaKey identifying the wormhole message containing the

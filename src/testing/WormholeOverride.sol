@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {Vm} from "forge-std/Vm.sol";
 
 import {WORD_SIZE, WORD_SIZE_MINUS_ONE}          from "wormhole-sdk/constants/Common.sol";
-import {ICoreBridge}                               from "wormhole-sdk/interfaces/ICoreBridge.sol";
+import {ICoreBridge}                             from "wormhole-sdk/interfaces/ICoreBridge.sol";
 import {BytesParsing}                            from "wormhole-sdk/libraries/BytesParsing.sol";
 import {CoreBridgeLib}                           from "wormhole-sdk/libraries/CoreBridge.sol";
 import {toUniversalAddress}                      from "wormhole-sdk/Utils.sol";
