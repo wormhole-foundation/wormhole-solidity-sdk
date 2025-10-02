@@ -81,7 +81,7 @@ tag_3:
   calldataload [0x80, encodedPO, 2^64-1, 0, encode.length]
   dup3         [0x80, encodedPO, 2^64-1, 0, encode.length, 2^64-1]
   dup2         [0x80, encodedPO, 2^64-1, 0, encode.length, 2^64-1, encode.length]
-  gt           
+  gt
   tag_11
   jumpi        /*revert if encode.length is larger than 2^64-1*/
   0x24         [0x80, encodedPO, 2^64-1, 0, encode.length, 0x24 (=36)]
@@ -98,7 +98,7 @@ tag_3:
   dup5         [0x80, 36, 2^64-1, 0, encode.length, encodedPO, 36]
   calldataload [0x80, 36, 2^64-1, 0, encode.length, encodedPO, offset]
   swap1        [0x80, 36, 2^64-1, 0, encode.length, offset, encodedPO]
-  0x44         
+  0x44
   calldataload [0x80, 36, 2^64-1, 0, encode.length, offset, encodedPO, length]
   dup3         [0x80, 36, 2^64-1, 0, encode.length, offset, encodedPO, length, offset]
   add          [0x80, 36, 2^64-1, 0, encode.length, offset, encodedPO, length+offset]

@@ -85,7 +85,7 @@ const returnParam = (aliasType: AliasType) =>
 const toReturnValue = (value: string, returnType: AliasType) => {
   if (returnType === AliasType.Address && value)
     return new EvmAddress(value).toString(); //ensures checksum format
-  
+
   const ret = value || emptyValue[returnType];
   return returnType === AliasType.String
     ? `\"${ret}\"`
