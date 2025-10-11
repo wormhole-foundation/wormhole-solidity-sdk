@@ -780,11 +780,22 @@ library VaaLib {
 
   //see WARNING box at the top
   function calcVaaSingleHashCd(
-    bytes calldata encodedVaa,
+    bytes calldata encodedVaa
+  ) internal pure returns (bytes32) {
+    return calcVaaSingleHashCd(encodedVaa, skipVaaHeaderCdUnchecked(encodedVaa));
+  }
+  function calcVaaSingleHashCd(
+    bytes calldata encoded,
     uint envelopeOffset
   ) internal pure returns (bytes32) {
-    return keccak256Cd(_decodeRemainderCd(encodedVaa, envelopeOffset));
+    return keccak256Cd(_decodeRemainderCd(encoded, envelopeOffset));
   }
+  function calcVaaSingleHashMem(
+    bytes memory encodedVaa
+  ) internal pure returns (bytes32) { unchecked {
+    uint envelopeOffset = skipVaaHeaderMemUnchecked(encodedVaa, 0);
+    return keccak256SliceUnchecked(encodedVaa, envelopeOffset, encodedVaa.length);
+  }}
   function calcVaaSingleHashMem(
     bytes memory encoded,
     uint envelopeOffset,
@@ -812,10 +823,20 @@ library VaaLib {
   //see WARNING box at the top
   //these functions match CoreBridgeVM.hash and are what's been used for (legacy) replay protection
   function calcVaaDoubleHashCd(
+    bytes calldata encodedVaa
+  ) internal pure returns (bytes32) {
+    return keccak256Word(calcVaaSingleHashCd(encodedVaa));
+  }
+  function calcVaaDoubleHashCd(
     bytes calldata encodedVaa,
     uint envelopeOffset
   ) internal pure returns (bytes32) {
     return keccak256Word(calcVaaSingleHashCd(encodedVaa, envelopeOffset));
+  }
+  function calcVaaDoubleHashMem(
+    bytes memory encodedVaa
+  ) internal pure returns (bytes32) {
+    return keccak256Word(calcVaaSingleHashMem(encodedVaa));
   }
   function calcVaaDoubleHashMem(
     bytes memory encoded,

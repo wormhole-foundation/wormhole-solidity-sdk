@@ -234,8 +234,16 @@ contract VaaLibTestWrapper {
     return VaaLib.skipVaaHeaderMemUnchecked(encoded, headerOffset);
   }
 
-  function calcVaaSingleHashCd(bytes calldata encodedVaa, uint envelopeOffset) external pure returns (bytes32) {
-    return VaaLib.calcVaaSingleHashCd(encodedVaa, envelopeOffset);
+  function calcVaaSingleHashCd(bytes calldata encodedVaa) external pure returns (bytes32) {
+    return VaaLib.calcVaaSingleHashCd(encodedVaa);
+  }
+
+  function calcVaaSingleHashCd(bytes calldata encoded, uint envelopeOffset) external pure returns (bytes32) {
+    return VaaLib.calcVaaSingleHashCd(encoded, envelopeOffset);
+  }
+
+  function calcVaaSingleHashMem(bytes calldata encodedVaa) external pure returns (bytes32) {
+    return VaaLib.calcVaaSingleHashMem(encodedVaa);
   }
 
   function calcVaaSingleHashMem(
@@ -266,8 +274,16 @@ contract VaaLibTestWrapper {
     return VaaLib.calcSingleHash(body);
   }
 
+  function calcVaaDoubleHashCd(bytes calldata encodedVaa) external pure returns (bytes32) {
+    return VaaLib.calcVaaDoubleHashCd(encodedVaa);
+  }
+
   function calcVaaDoubleHashCd(bytes calldata encodedVaa, uint envelopeOffset) external pure returns (bytes32) {
     return VaaLib.calcVaaDoubleHashCd(encodedVaa, envelopeOffset);
+  }
+
+  function calcVaaDoubleHashMem(bytes calldata encodedVaa) external pure returns (bytes32) {
+    return VaaLib.calcVaaDoubleHashMem(encodedVaa);
   }
 
   function calcVaaDoubleHashMem(
