@@ -152,7 +152,8 @@ library CoreBridgeLib {
     uint8   consistencyLevel,
     bytes calldata payload
   ) { unchecked {
-    uint offset = VaaLib.checkVaaVersionCdUnchecked(encodedVaa);
+    uint offset = VaaLib.checkVaaVersionCdUnchecked(VaaLib.VERSION_MULTISIG, encodedVaa);
+
     uint32 guardianSetIndex;
     (guardianSetIndex, offset) = encodedVaa.asUint32CdUnchecked(offset);
 
@@ -165,7 +166,7 @@ library CoreBridgeLib {
     if (signatureCount < minSigsForQuorum(guardianCount))
       revert VerificationFailed();
 
-    uint envelopeOffset = offset + signatureCount * VaaLib.GUARDIAN_SIGNATURE_SIZE;
+    uint envelopeOffset = offset + signatureCount * VaaLib.MULTISIG_GUARDIAN_SIGNATURE_SIZE;
     bytes32 vaaHash = encodedVaa.calcVaaDoubleHashCd(envelopeOffset);
 
     bool isFirstSignature = true; //optimization instead of always checking i == 0
@@ -222,7 +223,8 @@ library CoreBridgeLib {
     bytes memory payload,
     uint    newOffset
   ) { unchecked {
-    offset = VaaLib.checkVaaVersionMemUnchecked(encodedVaa, offset);
+    offset = VaaLib.checkVaaVersionMemUnchecked(VaaLib.VERSION_MULTISIG, encodedVaa, offset);
+
     uint32 guardianSetIndex;
     (guardianSetIndex, offset) = encodedVaa.asUint32MemUnchecked(offset);
 
@@ -236,7 +238,7 @@ library CoreBridgeLib {
     if (signatureCount < minSigsForQuorum(guardianCount))
       revert VerificationFailed();
 
-    uint envelopeOffset = offset + signatureCount * VaaLib.GUARDIAN_SIGNATURE_SIZE;
+    uint envelopeOffset = offset + signatureCount * VaaLib.MULTISIG_GUARDIAN_SIGNATURE_SIZE;
     bytes32 vaaHash = encodedVaa.calcVaaDoubleHashMem(envelopeOffset, vaaLength);
 
     bool isFirstSignature = true; //optimization instead of always checking i == 0
