@@ -16,7 +16,7 @@ import {
 
 // # VAA Format
 //
-// see:
+// for MultiSig (= original) VAAs, see:
 //  * ../interfaces/ICoreBridge.sol CoreBridgeVM struct (VM = Verified Message)
 //  * [CoreBridge](https://github.com/wormhole-foundation/wormhole/blob/c35940ae9689f6df9e983d51425763509b74a80f/ethereum/contracts/Messages.sol#L147)
 //  * [Typescript SDK](https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/3cd10030b5e924f0621c7231e24410b8a0946a07/core/definitions/src/vaa/vaa.ts#L32-L51)
@@ -24,11 +24,12 @@ import {
 // ╭──────────┬──────────────────────────────────────────────────────────────────────────────╮
 // │ Section  │ Description                                                                  │
 // ├──────────┼──────────────────────────────────────────────────────────────────────────────┤
-// │ Header   │ version, guardian signature info required to verify the VAA                  │
+// │ Header   │ version + attestation required to verify the VAA                             │
 // │ Envelope │ contains metadata of the emitted message, such as emitter or timestamp       │
 // │ Payload  │ the emitted message, raw bytes, no length prefix, consumes remainder of data │
 // ╰──────────┴──────────────────────────────────────────────────────────────────────────────╯
-// Body = Envelope + Payload
+// Header = Version  + Attestation
+// Body   = Envelope + Payload
 // The VAA body is exactly the information that goes into a published message of the CoreBridge
 //   and is what gets keccak256-hashed when calculating the VAA hash (i.e. the header is excluded).
 //
@@ -52,16 +53,18 @@ import {
 //
 // ## Format in Detail
 //
+// ### VAA Headers
+//
 // ╭─────────────┬──────────────────┬──────────────────────────────────────────────────────────────╮
 // │    Type     │       Name       │     Description                                              │
 // ┝━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┥
-// │           Header                                                                              │
+// │     MultiSig Header                                                                           │
 // ├─────────────┬──────────────────┬──────────────────────────────────────────────────────────────┤
-// │    uint8    │ version          │ fixed value of 1 (see HEADER_VERSION below)                  │
+// │    uint8    │ version          │ fixed value of 1 (see VERSION_MULTISIG)                      │
 // │    uint32   │ guardianSetIndex │ the guardian set that signed the VAA                         │
 // │    uint8    │ signatureCount   │ must be greater than guardian set size * 2 / 3 for quorum    │
-// │ Signature[] │ signatures       │ signatures of the guardians that signed the VAA              │
-// ┝━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┥
+// │ Signature[] │ signatures       │ signatures of the individual guardians that signed the VAA   │
+// ├─────────────┴──────────────────┴──────────────────────────────────────────────────────────────┤
 // │          Signature                                                                            │
 // ├─────────────┬──────────────────┬──────────────────────────────────────────────────────────────┤
 // │    uint8    │ guardianIndex    │ position of the signing guardian in the guardian set         │
@@ -69,6 +72,29 @@ import {
 // │   bytes32   │ s                │ ECDSA s value                                                │
 // │    uint8    │ v                │ encoded: 0/1, decoded: 27/28, see SIGNATURE_RECOVERY_MAGIC   │
 // ┝━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┥
+// │      Schnorr Header                                                                           │
+// ├─────────────┬──────────────────┬──────────────────────────────────────────────────────────────┤
+// │    uint8    │ version          │ fixed value of 2 (see VERSION_SCHNORR)                       │
+// │    uint32   │ schnorrKeyIndex  │ which (collective) Guardian Schnorr key signed the VAA       │
+// │   bytes20   │ r                │ Schnorr r value                                              │
+// │   bytes32   │ s                │ Schnorr s value                                              │
+// ┝━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┥
+// │        ECDSA Header                                                                           │
+// ├─────────────┬──────────────────┬──────────────────────────────────────────────────────────────┤
+// │    uint8    │ version          │ fixed value of 3 (see VERSION_ECDSA)                         │
+// │    uint32   │ ecdsaKeyIndex    │ which (collective) Guardian ECDSA key signed the VAA         │
+// │   bytes32   │ r                │ ECDSA r value                                                │
+// │   bytes32   │ s                │ ECDSA s value                                                │
+// │    uint8    │ v                │ encoded: 0/1, decoded: 27/28, see SIGNATURE_RECOVERY_MAGIC   │
+// ╰─────────────┴──────────────────┴──────────────────────────────────────────────────────────────╯
+//
+// ### VAA Body
+//
+// ╭─────────────┬──────────────────┬──────────────────────────────────────────────────────────────╮
+// │    Type     │       Name       │     Description                                              │
+// ┝━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┥
+// │           Header (MultiSig, Schnorr, or ECDSA)                                                │
+// ┝━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┥
 // │          Envelope                                                                             │
 // ├─────────────┬──────────────────┬──────────────────────────────────────────────────────────────┤
 // │    uint32   │ timestamp        │ unix timestamp of block containing the emitted message       │
@@ -100,8 +126,9 @@ import {
 // Additionally, most functions also have an additional struct flavor that returns the decoded
 //   values in the associated struct (in memory), rather than as individual values (on the stack).
 //
-// The parameter name `encodedVaa` is used for functions where the bytes are expected to contain
-//   a single, full VAA. Otherwise, i.e. for partials or multiple VAAs, the name `encoded` is used.
+// The parameter names `encodedVaa` and `encodedAttestation` are used for functions where the bytes
+//   are expected to contain a single, full VAA/attestation. Otherwise, i.e. for partials or
+//   multiple VAAs, the name `encoded` is used.
 //
 // Like in BytesParsing, the Unchecked function name suffix does not refer to Solidity's `unchecked`
 //   keyword, but rather to the fact that no bounds checking is performed. All math is done using
@@ -111,17 +138,21 @@ import {
 // Function names, somewhat redundantly, contain the tag "Vaa" to add clarity and avoid potential
 //   name collisions when using the library with a `using ... for bytes` directive.
 //
-//   Function Base Name  │     Description
-//  ─────────────────────┼────────────────────────────────────────────────────────────────────────
-//   decodeVmStruct      │ decodes a legacy VM struct (no non-struct flavor available)
-//   decodeVaaEssentials │ decodes the emitter, sequence, and payload
-//   decodeVaaBody       │ decodes the envelope and payload
-//   checkVaaVersion     │
-//   skipVaaHeader       │ returns the offset to the envelope
-//   calcVaaSingleHash   │ see explanation/WARNING box at the top
-//   calcVaaDoubleHash   │ see explanation/WARNING box at the top
-//   decodeVaaEnvelope   │
-//   decodeVaaPayload    │
+//   Function Base Name         │     Description
+//  ────────────────────────────┼───────────────────────────────────────────────────────────────────
+//   decodeVaaStruct            │ as expected (no non-struct flavor available)
+//   decodeVaaEssentials        │ decodes the emitter, sequence, and payload (see struct comment)
+//   decodeVaaHeader            │
+//   decodeVaaEnvelope          │
+//   decodeVaaPayload           │
+//   decodeVaaBody              │ decodes the envelope and payload
+//   decodeVaa<Type>            │ decodes the expected VAA type (Type = MultiSig, Schnorr, or ECDSA)
+//   decodeVaaAttestation<Type> │ decodes the attestation alone
+//   decodeVmStruct             │ decodes a legacy VM struct (no non-struct flavor available)
+//   checkVaaVersion            │
+//   skipVaaHeader              │ returns the offset to the envelope
+//   calcVaaSingleHash          │ see explanation/WARNING box at the top
+//   calcVaaDoubleHash          │ see explanation/WARNING box at the top
 //
 // encode functions (for testing, converts back into serialized byte array format):
 //   * encode (overloaded for each struct)
@@ -129,144 +160,207 @@ import {
 //   * encodeVaaEnvelope
 //   * encodeVaaBody
 //   * encodeVaa
+//   * encodeVaaAttestation<Type>
+
+struct Vaa {
+  VaaHeader   header;
+  VaaEnvelope envelope;
+  bytes       payload;
+}
 
 struct VaaHeader {
-  //uint8 version;
-  uint32 guardianSetIndex;
-  GuardianSignature[] signatures;
+  uint8 version;
+  bytes attestation;
 }
 
 struct VaaEnvelope {
-  uint32 timestamp;
-  uint32 nonce;
-  uint16 emitterChainId;
+  uint32  timestamp;
+  uint32  nonce;
+  uint16  emitterChainId;
   bytes32 emitterAddress;
-  uint64 sequence;
-  uint8 consistencyLevel;
+  uint64  sequence;
+  uint8   consistencyLevel;
+}
+
+//The values of VaaEssentials are considered essential because
+// 1. the emitter chain and address are critical to avoid peer/message spoofing
+// 2. messages that use finalized consistency levels (the vast majority) should leverage the
+//  sequence number (on a per emitter basis!) and a bitmap for replay protection (rather than the
+//  hashed body) because it is more gas efficient (storage slot is likely already dirty).
+//
+//In other words, they comprise the minimum viable set of values (for finalized VAAs only!)
+//  that are required to safely identify and handle a message emitted by a peer.
+struct VaaEssentials {
+  uint16  emitterChainId;
+  bytes32 emitterAddress;
+  uint64  sequence;
+  bytes   payload;
 }
 
 struct VaaBody {
   VaaEnvelope envelope;
-  bytes payload;
+  bytes       payload;
 }
 
-struct Vaa {
-  VaaHeader header;
-  VaaEnvelope envelope;
-  bytes payload;
+struct VaaAttestationMultiSig {
+  uint32              guardianSetIndex;
+  GuardianSignature[] signatures;
 }
 
-struct VaaEssentials {
-  uint16 emitterChainId;
-  bytes32 emitterAddress;
-  uint64 sequence;
-  bytes payload;
+struct VaaAttestationSchnorr {
+  uint32  schnorrKeyIndex;
+  bytes20 r;
+  bytes32 s;
+}
+
+struct VaaAttestationEcdsa {
+  uint32  ecdsaKeyIndex;
+  bytes32 r;
+  bytes32 s;
+  uint8   v;
+}
+
+struct VaaMultiSig {
+  VaaAttestationMultiSig attestation;
+  VaaEnvelope            envelope;
+  bytes                  payload;
+}
+
+struct VaaSchnorr {
+  VaaAttestationSchnorr  attestation;
+  VaaEnvelope            envelope;
+  bytes                  payload;
+}
+
+struct VaaEcdsa {
+  VaaAttestationEcdsa    attestation;
+  VaaEnvelope            envelope;
+  bytes                  payload;
 }
 
 library VaaLib {
   using BytesParsing for bytes;
-  using {BytesParsing.checkBound} for uint;
+  using {BytesParsing.checkBound, BytesParsing.checkLength} for uint;
 
-  error InvalidVersion(uint8 version);
+  error UnexpectedVersion(uint8 version);
 
-  uint8 internal constant HEADER_VERSION = 1;
   //see https://github.com/wormhole-foundation/wormhole/blob/c35940ae9689f6df9e983d51425763509b74a80f/ethereum/contracts/Messages.sol#L174
   //origin: https://bitcoin.stackexchange.com/a/102382
   uint8 internal constant SIGNATURE_RECOVERY_MAGIC = 27;
 
-  //the following offsets are provided for more eclectic, manual parsing
+  uint8 public constant VERSION_MULTISIG = 1;
+  uint8 public constant VERSION_SCHNORR  = 2;
+  uint8 public constant VERSION_ECDSA    = 3;
+
+  // ------------ Offsets (provided for more eclectic, manual parsing) ------------
+
+  //VAA Header
   uint internal constant HEADER_VERSION_OFFSET = 0;
-  uint internal constant HEADER_VERSION_SIZE = 1;
+  uint internal constant HEADER_VERSION_SIZE   = 1;
 
-  uint internal constant HEADER_GUARDIAN_SET_INDEX_OFFSET =
-    HEADER_VERSION_OFFSET + HEADER_VERSION_SIZE;
-  uint internal constant HEADER_GUARDIAN_SET_INDEX_SIZE = 4;
+  uint internal constant HEADER_ATTESTATION_OFFSET = HEADER_VERSION_OFFSET + HEADER_VERSION_SIZE;
 
-  uint internal constant HEADER_SIGNATURE_COUNT_OFFSET =
-    HEADER_GUARDIAN_SET_INDEX_OFFSET + HEADER_GUARDIAN_SET_INDEX_SIZE;
-  uint internal constant HEADER_SIGNATURE_COUNT_SIZE = 1;
+  //MultiSig Attestation
+  uint internal constant MULTISIG_GUARDIAN_SET_INDEX_OFFSET = HEADER_ATTESTATION_OFFSET;
+  uint internal constant MULTISIG_GUARDIAN_SET_INDEX_SIZE   = 4;
 
-  uint internal constant HEADER_SIGNATURE_ARRAY_OFFSET =
-    HEADER_SIGNATURE_COUNT_OFFSET + HEADER_SIGNATURE_COUNT_SIZE;
+  uint internal constant MULTISIG_SIGNATURE_COUNT_OFFSET =
+    MULTISIG_GUARDIAN_SET_INDEX_OFFSET + MULTISIG_GUARDIAN_SET_INDEX_SIZE;
+  uint internal constant MULTISIG_SIGNATURE_COUNT_SIZE   = 1;
 
-  uint internal constant GUARDIAN_SIGNATURE_GUARDIAN_INDEX_OFFSET = 0;
-  uint internal constant GUARDIAN_SIGNATURE_GUARDIAN_INDEX_SIZE = 1;
+  uint internal constant MULTISIG_SIGNATURE_ARRAY_OFFSET =
+    MULTISIG_SIGNATURE_COUNT_OFFSET + MULTISIG_SIGNATURE_COUNT_SIZE;
 
-  uint internal constant GUARDIAN_SIGNATURE_R_OFFSET =
-    GUARDIAN_SIGNATURE_GUARDIAN_INDEX_OFFSET + GUARDIAN_SIGNATURE_GUARDIAN_INDEX_SIZE;
-  uint internal constant GUARDIAN_SIGNATURE_R_SIZE = 32;
+  uint internal constant MULTISIG_SIGNATURE_GUARDIAN_INDEX_OFFSET = 0;
+  uint internal constant MULTISIG_SIGNATURE_GUARDIAN_INDEX_SIZE   = 1;
 
-  uint internal constant GUARDIAN_SIGNATURE_S_OFFSET =
-    GUARDIAN_SIGNATURE_R_OFFSET + GUARDIAN_SIGNATURE_R_SIZE;
-  uint internal constant GUARDIAN_SIGNATURE_S_SIZE = 32;
+  uint internal constant MULTISIG_SIGNATURE_R_OFFSET =
+    MULTISIG_SIGNATURE_GUARDIAN_INDEX_OFFSET + MULTISIG_SIGNATURE_GUARDIAN_INDEX_SIZE;
+  uint internal constant MULTISIG_SIGNATURE_R_SIZE   = 32;
 
-  uint internal constant GUARDIAN_SIGNATURE_V_OFFSET =
-    GUARDIAN_SIGNATURE_S_OFFSET + GUARDIAN_SIGNATURE_S_SIZE;
-  uint internal constant GUARDIAN_SIGNATURE_V_SIZE = 1;
+  uint internal constant MULTISIG_SIGNATURE_S_OFFSET =
+    MULTISIG_SIGNATURE_R_OFFSET + MULTISIG_SIGNATURE_R_SIZE;
+  uint internal constant MULTISIG_SIGNATURE_S_SIZE   = 32;
 
-  uint internal constant GUARDIAN_SIGNATURE_SIZE =
-    GUARDIAN_SIGNATURE_V_OFFSET + GUARDIAN_SIGNATURE_V_SIZE;
+  uint internal constant MULTISIG_SIGNATURE_V_OFFSET =
+    MULTISIG_SIGNATURE_S_OFFSET + MULTISIG_SIGNATURE_S_SIZE;
+  uint internal constant MULTISIG_SIGNATURE_V_SIZE   = 1;
 
+  uint internal constant MULTISIG_GUARDIAN_SIGNATURE_SIZE =
+    MULTISIG_SIGNATURE_GUARDIAN_INDEX_SIZE +
+    MULTISIG_SIGNATURE_R_SIZE +
+    MULTISIG_SIGNATURE_S_SIZE +
+    MULTISIG_SIGNATURE_V_SIZE;
+
+  //Schnorr Attestation
+  uint internal constant SCHNORR_KEY_INDEX_OFFSET = HEADER_ATTESTATION_OFFSET;
+  uint internal constant SCHNORR_KEY_INDEX_SIZE   = 4;
+
+  uint internal constant SCHNORR_R_OFFSET = SCHNORR_KEY_INDEX_OFFSET + SCHNORR_KEY_INDEX_SIZE;
+  uint internal constant SCHNORR_R_SIZE   = 32;
+
+  uint internal constant SCHNORR_S_OFFSET = SCHNORR_R_OFFSET + SCHNORR_R_SIZE;
+  uint internal constant SCHNORR_S_SIZE   = 32;
+
+  uint internal constant SCHNORR_SIZE =
+    SCHNORR_KEY_INDEX_SIZE + SCHNORR_R_SIZE + SCHNORR_S_SIZE;
+
+  uint internal constant SCHNORR_ENVELOPE_OFFSET = SCHNORR_S_OFFSET + SCHNORR_S_SIZE;
+
+  //ECDSA Attestation
+  uint internal constant ECDSA_KEY_INDEX_OFFSET = HEADER_ATTESTATION_OFFSET;
+  uint internal constant ECDSA_KEY_INDEX_SIZE   = 4;
+
+  uint internal constant ECDSA_R_OFFSET = ECDSA_KEY_INDEX_OFFSET + ECDSA_KEY_INDEX_SIZE;
+  uint internal constant ECDSA_R_SIZE   = 20;
+
+  uint internal constant ECDSA_S_OFFSET = ECDSA_R_OFFSET + ECDSA_R_SIZE;
+  uint internal constant ECDSA_S_SIZE   = 32;
+
+  uint internal constant ECDSA_V_OFFSET = ECDSA_S_OFFSET + ECDSA_S_SIZE;
+  uint internal constant ECDSA_V_SIZE   = 1;
+
+  uint internal constant ECDSA_SIZE =
+    ECDSA_KEY_INDEX_SIZE + ECDSA_R_SIZE + ECDSA_S_SIZE + ECDSA_V_SIZE;
+
+  uint internal constant ECDSA_ENVELOPE_OFFSET = ECDSA_V_OFFSET + ECDSA_V_SIZE;
+
+  //VAA Envelope/Body
   uint internal constant ENVELOPE_TIMESTAMP_OFFSET = 0;
-  uint internal constant ENVELOPE_TIMESTAMP_SIZE = 4;
+  uint internal constant ENVELOPE_TIMESTAMP_SIZE   = 4;
 
   uint internal constant ENVELOPE_NONCE_OFFSET =
     ENVELOPE_TIMESTAMP_OFFSET + ENVELOPE_TIMESTAMP_SIZE;
-  uint internal constant ENVELOPE_NONCE_SIZE = 4;
+  uint internal constant ENVELOPE_NONCE_SIZE   = 4;
 
   uint internal constant ENVELOPE_EMITTER_CHAIN_ID_OFFSET =
     ENVELOPE_NONCE_OFFSET + ENVELOPE_NONCE_SIZE;
-  uint internal constant ENVELOPE_EMITTER_CHAIN_ID_SIZE = 2;
+  uint internal constant ENVELOPE_EMITTER_CHAIN_ID_SIZE   = 2;
 
   uint internal constant ENVELOPE_EMITTER_ADDRESS_OFFSET =
     ENVELOPE_EMITTER_CHAIN_ID_OFFSET + ENVELOPE_EMITTER_CHAIN_ID_SIZE;
-  uint internal constant ENVELOPE_EMITTER_ADDRESS_SIZE = 32;
+  uint internal constant ENVELOPE_EMITTER_ADDRESS_SIZE   = 32;
 
   uint internal constant ENVELOPE_SEQUENCE_OFFSET =
     ENVELOPE_EMITTER_ADDRESS_OFFSET + ENVELOPE_EMITTER_ADDRESS_SIZE;
-  uint internal constant ENVELOPE_SEQUENCE_SIZE = 8;
+  uint internal constant ENVELOPE_SEQUENCE_SIZE   = 8;
 
   uint internal constant ENVELOPE_CONSISTENCY_LEVEL_OFFSET =
     ENVELOPE_SEQUENCE_OFFSET + ENVELOPE_SEQUENCE_SIZE;
-  uint internal constant ENVELOPE_CONSISTENCY_LEVEL_SIZE = 1;
+  uint internal constant ENVELOPE_CONSISTENCY_LEVEL_SIZE   = 1;
 
   uint internal constant ENVELOPE_SIZE =
     ENVELOPE_CONSISTENCY_LEVEL_OFFSET + ENVELOPE_CONSISTENCY_LEVEL_SIZE;
 
   // ------------ Convenience Decoding Functions ------------
 
-  //legacy decoder for CoreBridgeVM
-  function decodeVmStructCd(
-    bytes calldata encodedVaa
-  ) internal pure returns (CoreBridgeVM memory vm) {
-    vm.version = HEADER_VERSION;
-    uint envelopeOffset;
-    (vm.guardianSetIndex, vm.signatures, envelopeOffset) = decodeVaaHeaderCdUnchecked(encodedVaa);
-    vm.hash = calcVaaDoubleHashCd(encodedVaa, envelopeOffset);
-    ( vm.timestamp,
-      vm.nonce,
-      vm.emitterChainId,
-      vm.emitterAddress,
-      vm.sequence,
-      vm.consistencyLevel,
-      vm.payload
-    ) = decodeVaaBodyCd(encodedVaa, envelopeOffset);
-  }
-
-  function decodeVmStructMem(
-    bytes memory encodedVaa
-  ) internal pure returns (CoreBridgeVM memory vm) {
-    (vm, ) = decodeVmStructMemUnchecked(encodedVaa, 0, encodedVaa.length);
-  }
-
   function decodeVaaStructCd(
     bytes calldata encodedVaa
   ) internal pure returns (Vaa memory vaa) {
-    uint envelopeOffset;
-    (vaa.header, envelopeOffset) = decodeVaaHeaderStructCdUnchecked(encodedVaa);
-    uint payloadOffset;
-    (vaa.envelope, payloadOffset) = decodeVaaEnvelopeStructCdUnchecked(encodedVaa, envelopeOffset);
-    vaa.payload = decodeVaaPayloadCd(encodedVaa, payloadOffset);
+    uint offset;
+    (vaa.header,   offset) = decodeVaaHeaderStructCdUnchecked(encodedVaa);
+    (vaa.envelope, offset) = decodeVaaEnvelopeStructCdUnchecked(encodedVaa, offset);
+    vaa.payload            = decodeVaaPayloadCd(encodedVaa, offset);
   }
 
   function decodeVaaStructMem(
@@ -283,8 +377,6 @@ library VaaLib {
     uint64  sequence,
     bytes calldata payload
   ) { unchecked {
-    checkVaaVersionCdUnchecked(encodedVaa);
-
     uint envelopeOffset = skipVaaHeaderCdUnchecked(encodedVaa);
     uint offset = envelopeOffset + ENVELOPE_EMITTER_CHAIN_ID_OFFSET;
     (emitterChainId, offset) = encodedVaa.asUint16CdUnchecked(offset);
@@ -302,10 +394,6 @@ library VaaLib {
       decodeVaaEssentialsCd(encodedVaa);
   }
 
-  //The returned values are considered the essentials because it's important to check the emitter
-  //  to avoid spoofing. Also, VAAs that use finalized consistency levels should leverage the
-  //  sequence number (on a per emitter basis!) and a bitmap for replay protection rather than the
-  //  hashed body because it is more gas efficient (storage slot is likely already dirty).
   function decodeVaaEssentialsMem(
     bytes memory encodedVaa
   ) internal pure returns (
@@ -325,38 +413,6 @@ library VaaLib {
       decodeVaaEssentialsMem(encodedVaa, 0, encodedVaa.length);
   }
 
-  function decodeVaaEssentialsMem(
-    bytes memory encoded,
-    uint headerOffset,
-    uint vaaLength
-  ) internal pure returns (
-    uint16  emitterChainId,
-    bytes32 emitterAddress,
-    uint64  sequence,
-    bytes memory payload,
-    uint    newOffset
-  ) { unchecked {
-    uint offset = checkVaaVersionMemUnchecked(encoded, headerOffset);
-
-    uint envelopeOffset = skipVaaHeaderMemUnchecked(encoded, offset);
-    offset = envelopeOffset + ENVELOPE_EMITTER_CHAIN_ID_OFFSET;
-    (emitterChainId, offset) = encoded.asUint16MemUnchecked(offset);
-    (emitterAddress, offset) = encoded.asBytes32MemUnchecked(offset);
-    (sequence,             ) = encoded.asUint64MemUnchecked(offset);
-
-    uint payloadOffset = envelopeOffset + ENVELOPE_SIZE;
-    (payload, newOffset) = decodeVaaPayloadMemUnchecked(encoded, payloadOffset, vaaLength);
-  }}
-
-  function decodeVaaEssentialsStructMem(
-    bytes memory encodedVaa,
-    uint headerOffset,
-    uint vaaLength
-  ) internal pure returns (VaaEssentials memory ret, uint newOffset) {
-    (ret.emitterChainId, ret.emitterAddress, ret.sequence, ret.payload, newOffset) =
-      decodeVaaEssentialsMem(encodedVaa, headerOffset, vaaLength);
-  }
-
   function decodeVaaBodyCd(
     bytes calldata encodedVaa
   ) internal pure returns (
@@ -368,7 +424,6 @@ library VaaLib {
     uint8   consistencyLevel,
     bytes calldata payload
   ) {
-    checkVaaVersionCdUnchecked(encodedVaa);
     (timestamp, nonce, emitterChainId, emitterAddress, sequence, consistencyLevel, payload) =
       decodeVaaBodyCd(encodedVaa, skipVaaHeaderCdUnchecked(encodedVaa));
   }
@@ -397,7 +452,6 @@ library VaaLib {
     uint8   consistencyLevel,
     bytes memory payload
   ) {
-    checkVaaVersionMemUnchecked(encodedVaa, 0);
     uint envelopeOffset = skipVaaHeaderMemUnchecked(encodedVaa, 0);
     (timestamp, nonce, emitterChainId, emitterAddress, sequence, consistencyLevel, payload, ) =
       decodeVaaBodyMemUnchecked(encodedVaa, envelopeOffset, encodedVaa.length);
@@ -416,11 +470,39 @@ library VaaLib {
     ) = decodeVaaBodyMemUnchecked(encodedVaa, 0, encodedVaa.length);
   }
 
-  // Convinience decoding function for token bridge Vaas
+  //legacy decoder for CoreBridgeVM
+  function decodeVmStructCd(
+    bytes calldata encodedVaa
+  ) internal pure returns (CoreBridgeVM memory vm) {
+    uint attestationOffset = checkVaaVersionCdUnchecked(VERSION_MULTISIG, encodedVaa);
+    vm.version = VERSION_MULTISIG;
+
+    uint envelopeOffset;
+    (vm.guardianSetIndex, vm.signatures, envelopeOffset) =
+      decodeVaaAttestationMultiSigCdUnchecked(encodedVaa, attestationOffset);
+
+    vm.hash = calcVaaDoubleHashCd(encodedVaa, envelopeOffset);
+
+    ( vm.timestamp,
+      vm.nonce,
+      vm.emitterChainId,
+      vm.emitterAddress,
+      vm.sequence,
+      vm.consistencyLevel,
+      vm.payload
+    ) = decodeVaaBodyCd(encodedVaa, envelopeOffset);
+  }
+
+  function decodeVmStructMem(
+    bytes memory encodedVaa
+  ) internal pure returns (CoreBridgeVM memory vm) {
+    (vm, ) = decodeVmStructMemUnchecked(encodedVaa, 0, encodedVaa.length);
+  }
+
+  //convenience decoding function for TokenBridge VAAs
   function decodeEmitterChainAndPayloadCdUnchecked(
     bytes calldata encodedVaa
   ) internal pure returns (uint16 emitterChainId, bytes calldata payload) { unchecked {
-    checkVaaVersionCdUnchecked(encodedVaa);
     uint envelopeOffset = skipVaaHeaderCdUnchecked(encodedVaa);
     uint offset = envelopeOffset + ENVELOPE_EMITTER_CHAIN_ID_OFFSET;
     (emitterChainId, offset) = encodedVaa.asUint16CdUnchecked(offset);
@@ -432,7 +514,6 @@ library VaaLib {
   function decodeEmitterChainAndPayloadMemUnchecked(
     bytes memory encodedVaa
   ) internal pure returns (uint16 emitterChainId, bytes memory payload) { unchecked {
-    checkVaaVersionMemUnchecked(encodedVaa, 0);
     uint envelopeOffset = skipVaaHeaderMemUnchecked(encodedVaa, 0);
     uint offset = envelopeOffset + ENVELOPE_EMITTER_CHAIN_ID_OFFSET;
     (emitterChainId, offset) = encodedVaa.asUint16MemUnchecked(offset);
@@ -441,57 +522,281 @@ library VaaLib {
     (payload, ) = decodeVaaPayloadMemUnchecked(encodedVaa, offset, encodedVaa.length);
   }}
 
+  // - Attestations
+
+  function decodeVaaAttestationMultiSigCd(
+    bytes calldata encodedAttestation
+  ) internal pure returns (uint32 guardianSetIndex, GuardianSignature[] memory signatures) {
+    uint offset;
+    (guardianSetIndex, signatures, offset) =
+      decodeVaaAttestationMultiSigCdUnchecked(encodedAttestation, 0);
+
+    encodedAttestation.length.checkLength(offset);
+  }
+
+  function decodeVaaAttestationMultiSigMem(
+    bytes memory encodedAttestation
+  ) internal pure returns (uint32 guardianSetIndex, GuardianSignature[] memory signatures) {
+    uint offset;
+    (guardianSetIndex, signatures, offset) =
+      decodeVaaAttestationMultiSigMemUnchecked(encodedAttestation, 0);
+
+    encodedAttestation.length.checkLength(offset);
+  }
+
+  function decodeVaaAttestationMultiSigStructCd(
+    bytes calldata encodedAttestation
+  ) internal pure returns (VaaAttestationMultiSig memory attestation) {
+    (attestation.guardianSetIndex, attestation.signatures) =
+      decodeVaaAttestationMultiSigCd(encodedAttestation);
+  }
+
+  function decodeVaaAttestationMultiSigStructMem(
+    bytes memory encodedAttestation
+  ) internal pure returns (VaaAttestationMultiSig memory attestation) {
+    (attestation.guardianSetIndex, attestation.signatures) =
+      decodeVaaAttestationMultiSigMem(encodedAttestation);
+  }
+
+  function decodeVaaAttestationSchnorrCd(
+    bytes calldata encodedAttestation
+  ) internal pure returns (uint32 schnorrKeyIndex, bytes20 r, bytes32 s) {
+    uint offset;
+    (schnorrKeyIndex, r, s, offset) =
+      decodeVaaAttestationSchnorrCdUnchecked(encodedAttestation, 0);
+
+    encodedAttestation.length.checkLength(offset);
+  }
+
+  function decodeVaaAttestationSchnorrMem(
+    bytes memory encodedAttestation
+  ) internal pure returns (uint32 schnorrKeyIndex, bytes20 r, bytes32 s) {
+    uint offset;
+    (schnorrKeyIndex, r, s, offset) =
+      decodeVaaAttestationSchnorrMemUnchecked(encodedAttestation, 0);
+
+    encodedAttestation.length.checkLength(offset);
+  }
+
+  function decodeVaaAttestationSchnorrStructCd(
+    bytes calldata encodedAttestation
+  ) internal pure returns (VaaAttestationSchnorr memory attestation) {
+    (attestation.schnorrKeyIndex, attestation.r, attestation.s) =
+      decodeVaaAttestationSchnorrCd(encodedAttestation);
+  }
+
+  function decodeVaaAttestationSchnorrStructMem(
+    bytes memory encodedAttestation
+  ) internal pure returns (VaaAttestationSchnorr memory attestation) {
+    (attestation.schnorrKeyIndex, attestation.r, attestation.s) =
+      decodeVaaAttestationSchnorrMem(encodedAttestation);
+  }
+
+  function decodeVaaAttestationEcdsaCd(
+    bytes calldata encodedAttestation
+  ) internal pure returns (uint32 ecdsaKeyIndex, bytes32 r, bytes32 s, uint8 v) {
+    uint offset;
+    (ecdsaKeyIndex, r, s, v, offset) =
+      decodeVaaAttestationEcdsaCdUnchecked(encodedAttestation, 0);
+
+    encodedAttestation.length.checkLength(offset);
+  }
+
+  function decodeVaaAttestationEcdsaMem(
+    bytes memory encodedAttestation
+  ) internal pure returns (uint32 ecdsaKeyIndex, bytes32 r, bytes32 s, uint8 v) {
+    uint offset;
+    (ecdsaKeyIndex, r, s, v, offset) =
+      decodeVaaAttestationEcdsaMemUnchecked(encodedAttestation, 0);
+  }
+
+  function decodeVaaAttestationEcdsaStructCd(
+    bytes calldata encodedAttestation
+  ) internal pure returns (VaaAttestationEcdsa memory attestation) {
+    (attestation.ecdsaKeyIndex, attestation.r, attestation.s, attestation.v) =
+      decodeVaaAttestationEcdsaCd(encodedAttestation);
+  }
+
+  function decodeVaaAttestationEcdsaStructMem(
+    bytes memory encodedAttestation
+  ) internal pure returns (VaaAttestationEcdsa memory attestation) {
+    (attestation.ecdsaKeyIndex, attestation.r, attestation.s, attestation.v) =
+      decodeVaaAttestationEcdsaMem(encodedAttestation);
+  }
+
+  // - Attestation specific VAAs
+
+  function decodeVaaMultiSigStructCd(
+    bytes calldata encodedVaa
+  ) internal pure returns (VaaMultiSig memory vaa) {
+    uint offset = checkVaaVersionCdUnchecked(VERSION_MULTISIG, encodedVaa);
+    (vaa.attestation, offset) = decodeVaaAttestationMultiSigStructCdUnchecked(encodedVaa, offset);
+    (vaa.envelope,    offset) = decodeVaaEnvelopeStructCdUnchecked(encodedVaa, offset);
+    vaa.payload               = decodeVaaPayloadCd(encodedVaa, offset);
+  }
+
+  function decodeVaaMultiSigStructMem(
+    bytes memory encodedVaa
+  ) internal pure returns (VaaMultiSig memory vaa) {
+    (vaa, ) = decodeVaaMultiSigStructMemUnchecked(encodedVaa, 0, encodedVaa.length);
+  }
+
+  function decodeVaaSchnorrStructCd(
+    bytes calldata encodedVaa
+  ) internal pure returns (VaaSchnorr memory vaa) {
+    uint offset = checkVaaVersionCdUnchecked(VERSION_SCHNORR, encodedVaa);
+    (vaa.attestation, offset) = decodeVaaAttestationSchnorrStructCdUnchecked(encodedVaa, offset);
+    (vaa.envelope,    offset) = decodeVaaEnvelopeStructCdUnchecked(encodedVaa, offset);
+    vaa.payload               = decodeVaaPayloadCd(encodedVaa, offset);
+  }
+
+  function decodeVaaSchnorrStructMem(
+    bytes memory encodedVaa
+  ) internal pure returns (VaaSchnorr memory vaa) {
+    (vaa, ) = decodeVaaSchnorrStructMemUnchecked(encodedVaa, 0, encodedVaa.length);
+  }
+
+  function decodeVaaEcdsaStructCd(
+    bytes calldata encodedVaa
+  ) internal pure returns (VaaEcdsa memory vaa) {
+    uint offset = checkVaaVersionCdUnchecked(VERSION_ECDSA, encodedVaa);
+    (vaa.attestation, offset) = decodeVaaAttestationEcdsaStructCdUnchecked(encodedVaa, offset);
+    (vaa.envelope,    offset) = decodeVaaEnvelopeStructCdUnchecked(encodedVaa, offset);
+    vaa.payload               = decodeVaaPayloadCd(encodedVaa, offset);
+  }
+
+  function decodeVaaEcdsaStructMem(
+    bytes memory encodedVaa
+  ) internal pure returns (VaaEcdsa memory vaa) {
+    (vaa, ) = decodeVaaEcdsaStructMemUnchecked(encodedVaa, 0, encodedVaa.length);
+  }
+
   // ------------ Advanced Decoding Functions ------------
 
-  function checkVaaVersionCdUnchecked(
+  // - Header
+
+  function decodeVaaVersionCdUnchecked(
     bytes calldata encodedVaa
-  ) internal pure returns (uint newOffset) {
+  ) internal pure returns (uint8 version, uint attestationOffset) {
+    (version, attestationOffset) = encodedVaa.asUint8CdUnchecked(HEADER_VERSION_OFFSET);
+  }
+
+  function decodeVaaVersionMemUnchecked(
+    bytes memory encoded,
+    uint headerOffset
+  ) internal pure returns (uint8 version, uint attestationOffset) {
+    (version, attestationOffset) = encoded.asUint8MemUnchecked(headerOffset);
+  }
+
+  function checkVaaVersion(uint8 version, uint8 expected) internal pure {
+    if (version != expected)
+      revert UnexpectedVersion(version);
+  }
+
+  function checkVaaVersionCdUnchecked(
+    uint8 expectedVersion,
+    bytes calldata encodedVaa
+  ) internal pure returns (uint attestationOffset) {
     uint8 version;
-    (version, newOffset) = encodedVaa.asUint8CdUnchecked(0);
-    checkVaaVersion(version);
+    (version, attestationOffset) = decodeVaaVersionCdUnchecked(encodedVaa);
+    checkVaaVersion(version, expectedVersion);
   }
 
   function checkVaaVersionMemUnchecked(
+    uint8 expectedVersion,
     bytes memory encoded,
     uint offset
-  ) internal pure returns (uint newOffset) {
+  ) internal pure returns (uint attestationOffset) {
     uint8 version;
-    (version, newOffset) = encoded.asUint8MemUnchecked(offset);
-    checkVaaVersion(version);
+    (version, attestationOffset) = encoded.asUint8MemUnchecked(offset);
+    checkVaaVersion(version, expectedVersion);
   }
 
-  function checkVaaVersion(uint8 version) internal pure {
-    if (version != HEADER_VERSION)
-      revert InvalidVersion(version);
+  function decodeVaaHeaderCdUnchecked(
+    bytes calldata encodedVaa
+  ) internal pure returns (
+    uint8 version,
+    bytes calldata attestation,
+    uint envelopeOffset
+  ) {
+    uint attestationOffset; uint attestationSize;
+    (version, attestationOffset, attestationSize) = _getHeaderMetaCdUnchecked(encodedVaa);
+
+    (attestation, envelopeOffset) = encodedVaa.sliceCdUnchecked(attestationOffset, attestationSize);
   }
 
-  //return the offset to the start of the envelope/body
+  function decodeVaaHeaderStructCdUnchecked(
+    bytes calldata encodedVaa
+  ) internal pure returns (
+    VaaHeader memory header,
+    uint envelopeOffset
+  ) {
+    (header.version, header.attestation, envelopeOffset) = decodeVaaHeaderCdUnchecked(encodedVaa);
+  }
+
+  function decodeVaaHeaderMemUnchecked(
+    bytes memory encoded,
+    uint headerOffset
+  ) internal pure returns (
+    uint8 version,
+    bytes memory attestation,
+    uint envelopeOffset
+  ) {
+    uint attestationOffset; uint attestationSize;
+    (version, attestationOffset, attestationSize) =
+      _getHeaderMetaMemUnchecked(encoded, headerOffset);
+
+    (attestation, envelopeOffset) = encoded.sliceMemUnchecked(attestationOffset, attestationSize);
+  }
+
+  function decodeVaaHeaderStructMemUnchecked(
+    bytes memory encoded,
+    uint headerOffset
+  ) internal pure returns (
+    VaaHeader memory header,
+    uint envelopeOffset
+  ) {
+    (header.version, header.attestation, envelopeOffset) =
+      decodeVaaHeaderMemUnchecked(encoded, headerOffset);
+  }
+
   function skipVaaHeaderCdUnchecked(
     bytes calldata encodedVaa
   ) internal pure returns (uint envelopeOffset) { unchecked {
-    (uint sigCount, uint offset) = encodedVaa.asUint8CdUnchecked(HEADER_SIGNATURE_COUNT_OFFSET);
-    envelopeOffset = offset + sigCount * GUARDIAN_SIGNATURE_SIZE;
+    (, uint attestationOffset, uint attestationSize) = _getHeaderMetaCdUnchecked(encodedVaa);
+    envelopeOffset = attestationOffset + attestationSize;
   }}
 
   function skipVaaHeaderMemUnchecked(
     bytes memory encoded,
     uint headerOffset
   ) internal pure returns (uint envelopeOffset) { unchecked {
-    uint offset = headerOffset + HEADER_SIGNATURE_COUNT_OFFSET;
-    uint sigCount;
-    (sigCount, offset) = encoded.asUint8MemUnchecked(offset);
-    envelopeOffset = offset + sigCount * GUARDIAN_SIGNATURE_SIZE;
+    (, uint attestationOffset, uint attestationSize) =
+      _getHeaderMetaMemUnchecked(encoded, headerOffset);
+    
+    envelopeOffset = attestationOffset + attestationSize;
   }}
+
+  // - Hashing
 
   //see WARNING box at the top
   function calcVaaSingleHashCd(
-    bytes calldata encodedVaa,
+    bytes calldata encodedVaa
+  ) internal pure returns (bytes32) {
+    return calcVaaSingleHashCd(encodedVaa, skipVaaHeaderCdUnchecked(encodedVaa));
+  }
+  function calcVaaSingleHashCd(
+    bytes calldata encoded,
     uint envelopeOffset
   ) internal pure returns (bytes32) {
-    return keccak256Cd(_decodeRemainderCd(encodedVaa, envelopeOffset));
+    return keccak256Cd(_decodeRemainderCd(encoded, envelopeOffset));
   }
-
-  //see WARNING box at the top
+  function calcVaaSingleHashMem(
+    bytes memory encodedVaa
+  ) internal pure returns (bytes32) { unchecked {
+    uint envelopeOffset = skipVaaHeaderMemUnchecked(encodedVaa, 0);
+    return calcVaaSingleHashMem(encodedVaa, envelopeOffset, encodedVaa.length);
+  }}
   function calcVaaSingleHashMem(
     bytes memory encoded,
     uint envelopeOffset,
@@ -500,27 +805,40 @@ library VaaLib {
     envelopeOffset.checkBound(vaaLength);
     return keccak256SliceUnchecked(encoded, envelopeOffset, vaaLength - envelopeOffset);
   }}
-
-  //see WARNING box at the top
   function calcSingleHash(Vaa memory vaa) internal pure returns (bytes32) {
     return keccak256(abi.encodePacked(encode(vaa.envelope), vaa.payload));
   }
-
-  //see WARNING box at the top
+  function calcSingleHash(VaaMultiSig memory vaa) internal pure returns (bytes32) {
+    return keccak256(abi.encodePacked(encode(vaa.envelope), vaa.payload));
+  }
+  function calcSingleHash(VaaSchnorr memory vaa) internal pure returns (bytes32) {
+    return keccak256(abi.encodePacked(encode(vaa.envelope), vaa.payload));
+  }
+  function calcSingleHash(VaaEcdsa memory vaa) internal pure returns (bytes32) {
+    return keccak256(abi.encodePacked(encode(vaa.envelope), vaa.payload));
+  }
   function calcSingleHash(VaaBody memory body) internal pure returns (bytes32) {
     return keccak256(encode(body));
   }
 
   //see WARNING box at the top
-  //this function matches CoreBridgeVM.hash and is what's been used for (legacy) replay protection
+  //these functions match CoreBridgeVM.hash and are what's been used for (legacy) replay protection
+  function calcVaaDoubleHashCd(
+    bytes calldata encodedVaa
+  ) internal pure returns (bytes32) {
+    return keccak256Word(calcVaaSingleHashCd(encodedVaa));
+  }
   function calcVaaDoubleHashCd(
     bytes calldata encodedVaa,
     uint envelopeOffset
   ) internal pure returns (bytes32) {
     return keccak256Word(calcVaaSingleHashCd(encodedVaa, envelopeOffset));
   }
-
-  //see WARNING box at the top
+  function calcVaaDoubleHashMem(
+    bytes memory encodedVaa
+  ) internal pure returns (bytes32) {
+    return keccak256Word(calcVaaSingleHashMem(encodedVaa));
+  }
   function calcVaaDoubleHashMem(
     bytes memory encoded,
     uint envelopeOffset,
@@ -528,36 +846,53 @@ library VaaLib {
   ) internal pure returns (bytes32) {
     return keccak256Word(calcVaaSingleHashMem(encoded, envelopeOffset, vaaLength));
   }
-
-  //see WARNING box at the top
   function calcDoubleHash(Vaa memory vaa) internal pure returns (bytes32) {
     return keccak256Word(calcSingleHash(vaa));
   }
-
-  //see WARNING box at the top
+  function calcDoubleHash(VaaMultiSig memory vaa) internal pure returns (bytes32) {
+    return keccak256Word(calcSingleHash(vaa));
+  }
+  function calcDoubleHash(VaaSchnorr memory vaa) internal pure returns (bytes32) {
+    return keccak256Word(calcSingleHash(vaa));
+  }
+  function calcDoubleHash(VaaEcdsa memory vaa) internal pure returns (bytes32) {
+    return keccak256Word(calcSingleHash(vaa));
+  }
   function calcDoubleHash(VaaBody memory body) internal pure returns (bytes32) {
     return keccak256Word(calcSingleHash(body));
   }
 
-  function decodeVmStructMemUnchecked(
+  // - General structs
+
+  function decodeVaaEssentialsMem(
     bytes memory encoded,
     uint headerOffset,
     uint vaaLength
-  ) internal pure returns (CoreBridgeVM memory vm, uint newOffset) {
-    vm.version = HEADER_VERSION;
-    uint envelopeOffset;
-    (vm.guardianSetIndex, vm.signatures, envelopeOffset) =
-      decodeVaaHeaderMemUnchecked(encoded, headerOffset);
-    vm.hash = calcVaaDoubleHashMem(encoded, envelopeOffset, vaaLength);
-    ( vm.timestamp,
-      vm.nonce,
-      vm.emitterChainId,
-      vm.emitterAddress,
-      vm.sequence,
-      vm.consistencyLevel,
-      vm.payload,
-      newOffset
-    ) = decodeVaaBodyMemUnchecked(encoded, envelopeOffset, vaaLength);
+  ) internal pure returns (
+    uint16  emitterChainId,
+    bytes32 emitterAddress,
+    uint64  sequence,
+    bytes memory payload,
+    uint    newOffset
+  ) { unchecked {
+    uint envelopeOffset = skipVaaHeaderMemUnchecked(encoded, headerOffset);
+    uint offset = envelopeOffset + ENVELOPE_EMITTER_CHAIN_ID_OFFSET;
+    (emitterChainId, offset) = encoded.asUint16MemUnchecked(offset);
+    (emitterAddress, offset) = encoded.asBytes32MemUnchecked(offset);
+    (sequence,             ) = encoded.asUint64MemUnchecked(offset);
+
+    offset = envelopeOffset + ENVELOPE_SIZE;
+    (payload, offset) = decodeVaaPayloadMemUnchecked(encoded, offset, vaaLength);
+    newOffset = offset;
+  }}
+
+  function decodeVaaEssentialsStructMem(
+    bytes memory encodedVaa,
+    uint headerOffset,
+    uint vaaLength
+  ) internal pure returns (VaaEssentials memory ret, uint newOffset) {
+    (ret.emitterChainId, ret.emitterAddress, ret.sequence, ret.payload, newOffset) =
+      decodeVaaEssentialsMem(encodedVaa, headerOffset, vaaLength);
   }
 
   function decodeVaaStructMemUnchecked(
@@ -565,13 +900,13 @@ library VaaLib {
     uint headerOffset,
     uint vaaLength
   ) internal pure returns (Vaa memory vaa, uint newOffset) {
-    uint envelopeOffset;
-    (vaa.header.guardianSetIndex, vaa.header.signatures, envelopeOffset) =
+    uint offset;
+    (vaa.header.version, vaa.header.attestation, offset) =
       decodeVaaHeaderMemUnchecked(encoded, headerOffset);
-    uint payloadOffset;
-    (vaa.envelope, payloadOffset) = decodeVaaEnvelopeStructMemUnchecked(encoded, envelopeOffset);
 
-    (vaa.payload, newOffset) = decodeVaaPayloadMemUnchecked(encoded, payloadOffset, vaaLength);
+    (vaa.envelope, offset) = decodeVaaEnvelopeStructMemUnchecked(encoded, offset);
+    (vaa.payload,  offset) = decodeVaaPayloadMemUnchecked(encoded, offset, vaaLength);
+    newOffset = offset;
   }
 
   function decodeVaaBodyCd(
@@ -620,10 +955,11 @@ library VaaLib {
     bytes memory payload,
     uint    newOffset
   ) {
-    uint payloadOffset;
-    (timestamp, nonce, emitterChainId, emitterAddress, sequence, consistencyLevel, payloadOffset) =
-      decodeVaaEnvelopeMemUnchecked(encoded, envelopeOffset);
-    (payload, newOffset) = decodeVaaPayloadMemUnchecked(encoded, payloadOffset, vaaLength);
+    uint offset = envelopeOffset;
+    (timestamp, nonce, emitterChainId, emitterAddress, sequence, consistencyLevel, offset) =
+      decodeVaaEnvelopeMemUnchecked(encoded, offset);
+    (payload, offset) = decodeVaaPayloadMemUnchecked(encoded, offset, vaaLength);
+    newOffset = offset;
   }
 
   function decodeVaaBodyStructMemUnchecked(
@@ -714,76 +1050,135 @@ library VaaLib {
     ) = decodeVaaEnvelopeMemUnchecked(encoded, envelopeOffset);
   }
 
-  function decodeVaaHeaderCdUnchecked(
-    bytes calldata encodedVaa
+  function decodeVmStructMemUnchecked(
+    bytes memory encoded,
+    uint headerOffset,
+    uint vaaLength
+  ) internal pure returns (CoreBridgeVM memory vm, uint newOffset) {
+    uint offset = checkVaaVersionMemUnchecked(VERSION_MULTISIG, encoded, headerOffset);
+    vm.version = VERSION_MULTISIG;
+
+    (vm.guardianSetIndex, vm.signatures, offset) =
+      decodeVaaAttestationMultiSigMemUnchecked(encoded, offset);
+
+    vm.hash = calcVaaDoubleHashMem(encoded, offset, vaaLength);
+    ( vm.timestamp,
+      vm.nonce,
+      vm.emitterChainId,
+      vm.emitterAddress,
+      vm.sequence,
+      vm.consistencyLevel,
+      vm.payload,
+      offset
+    ) = decodeVaaBodyMemUnchecked(encoded, offset, vaaLength);
+    newOffset = offset;
+  }
+
+  function decodeVaaMultiSigStructMemUnchecked(
+    bytes memory encoded,
+    uint headerOffset,
+    uint vaaLength
+  ) internal pure returns (VaaMultiSig memory vaa, uint newOffset) {
+    uint offset = checkVaaVersionMemUnchecked(VERSION_MULTISIG, encoded, headerOffset);
+    (vaa.attestation, offset) = decodeVaaAttestationMultiSigStructMemUnchecked(encoded, offset);
+    (vaa.envelope,    offset) = decodeVaaEnvelopeStructMemUnchecked(encoded, offset);
+    (vaa.payload,     offset) = decodeVaaPayloadMemUnchecked(encoded, offset, vaaLength);
+    newOffset = offset;
+  }
+
+  function decodeVaaSchnorrStructMemUnchecked(
+    bytes memory encoded,
+    uint headerOffset,
+    uint vaaLength
+  ) internal pure returns (VaaSchnorr memory vaa, uint newOffset) {
+    uint offset = checkVaaVersionMemUnchecked(VERSION_SCHNORR, encoded, headerOffset);
+    (vaa.attestation, offset) = decodeVaaAttestationSchnorrStructMemUnchecked(encoded, offset);
+    (vaa.envelope,    offset) = decodeVaaEnvelopeStructMemUnchecked(encoded, offset);
+    (vaa.payload,     offset) = decodeVaaPayloadMemUnchecked(encoded, offset, vaaLength);
+    newOffset = offset;
+  }
+
+  function decodeVaaEcdsaStructMemUnchecked(
+    bytes memory encoded,
+    uint headerOffset,
+    uint vaaLength
+  ) internal pure returns (VaaEcdsa memory vaa, uint newOffset) {
+    uint offset = checkVaaVersionMemUnchecked(VERSION_ECDSA, encoded, headerOffset);
+    (vaa.attestation, offset) = decodeVaaAttestationEcdsaStructMemUnchecked(encoded, offset);
+    (vaa.envelope,    offset) = decodeVaaEnvelopeStructMemUnchecked(encoded, offset);
+    (vaa.payload,     offset) = decodeVaaPayloadMemUnchecked(encoded, offset, vaaLength);
+    newOffset = offset;
+  }
+
+  // - Attestation MultiSig
+
+  function decodeVaaAttestationMultiSigCdUnchecked(
+    bytes calldata encodedVaa,
+    uint attestationOffset
   ) internal pure returns (
     uint32 guardianSetIndex,
     GuardianSignature[] memory signatures,
     uint envelopeOffset
   ) { unchecked {
-    checkVaaVersionCdUnchecked(encodedVaa);
-    uint offset = HEADER_GUARDIAN_SET_INDEX_OFFSET;
+    uint offset = attestationOffset;
     (guardianSetIndex, offset) = encodedVaa.asUint32CdUnchecked(offset);
 
-    uint signersLen;
-    (signersLen, offset) = encodedVaa.asUint8CdUnchecked(offset);
+    uint sigCount;
+    (sigCount, offset) = encodedVaa.asUint8CdUnchecked(offset);
 
-    signatures = new GuardianSignature[](signersLen);
-    for (uint i = 0; i < signersLen; ++i)
+    signatures = new GuardianSignature[](sigCount);
+    for (uint i = 0; i < sigCount; ++i)
       (signatures[i], offset) = decodeGuardianSignatureStructCdUnchecked(encodedVaa, offset);
 
     envelopeOffset = offset;
   }}
 
-  function decodeVaaHeaderStructCdUnchecked(
-    bytes calldata encodedVaa
-  ) internal pure returns (VaaHeader memory header, uint envelopeOffset) {
-    ( header.guardianSetIndex,
-      header.signatures,
-      envelopeOffset
-    ) = decodeVaaHeaderCdUnchecked(encodedVaa);
+  function decodeVaaAttestationMultiSigStructCdUnchecked(
+    bytes calldata encodedVaa,
+    uint attestationOffset
+  ) internal pure returns (VaaAttestationMultiSig memory header, uint envelopeOffset) {
+    (header.guardianSetIndex, header.signatures, envelopeOffset) =
+      decodeVaaAttestationMultiSigCdUnchecked(encodedVaa, attestationOffset);
   }
 
-  function decodeVaaHeaderMemUnchecked(
+  function decodeVaaAttestationMultiSigMemUnchecked(
     bytes memory encoded,
-    uint offset
+    uint attestationOffset
   ) internal pure returns (
     uint32 guardianSetIndex,
     GuardianSignature[] memory signatures,
     uint envelopeOffset
   ) { unchecked {
-    offset = checkVaaVersionMemUnchecked(encoded, offset);
+    uint offset = attestationOffset;
     (guardianSetIndex, offset) = encoded.asUint32MemUnchecked(offset);
 
-    uint signersLen;
-    (signersLen, offset) = encoded.asUint8MemUnchecked(offset);
+    uint sigCount;
+    (sigCount, offset) = encoded.asUint8MemUnchecked(offset);
 
-    signatures = new GuardianSignature[](signersLen);
-    for (uint i = 0; i < signersLen; ++i)
+    signatures = new GuardianSignature[](sigCount);
+    for (uint i = 0; i < sigCount; ++i)
       (signatures[i], offset) = decodeGuardianSignatureStructMemUnchecked(encoded, offset);
 
     envelopeOffset = offset;
   }}
 
-  function decodeVaaHeaderStructMemUnchecked(
+  function decodeVaaAttestationMultiSigStructMemUnchecked(
     bytes memory encoded,
-    uint offset
-  ) internal pure returns (VaaHeader memory header, uint envelopeOffset) {
-    ( header.guardianSetIndex,
-      header.signatures,
-      envelopeOffset
-    ) = decodeVaaHeaderMemUnchecked(encoded, offset);
+    uint attestationOffset
+  ) internal pure returns (VaaAttestationMultiSig memory header, uint envelopeOffset) {
+    (header.guardianSetIndex, header.signatures, envelopeOffset) =
+      decodeVaaAttestationMultiSigMemUnchecked(encoded, attestationOffset);
   }
 
   function decodeGuardianSignatureCdUnchecked(
     bytes calldata encodedVaa,
     uint offset
   ) internal pure returns (
-    uint8 guardianIndex,
+    uint8   guardianIndex,
     bytes32 r,
     bytes32 s,
-    uint8 v,
-    uint newOffset
+    uint8   v,
+    uint    newOffset
   ) { unchecked {
     (guardianIndex, offset) = encodedVaa.asUint8CdUnchecked(offset);
     (r,             offset) = encodedVaa.asBytes32CdUnchecked(offset);
@@ -795,28 +1190,29 @@ library VaaLib {
 
   function decodeGuardianSignatureStructCdUnchecked(
     bytes calldata encodedVaa,
-    uint offset
-  ) internal pure returns (GuardianSignature memory ret, uint newOffset) {
-    (ret.guardianIndex, ret.r, ret.s, ret.v, newOffset) =
-      decodeGuardianSignatureCdUnchecked(encodedVaa, offset);
+    uint attestationOffset
+  ) internal pure returns (GuardianSignature memory ret, uint envelopeOffset) {
+    (ret.guardianIndex, ret.r, ret.s, ret.v, envelopeOffset) =
+      decodeGuardianSignatureCdUnchecked(encodedVaa, attestationOffset);
   }
 
   function decodeGuardianSignatureMemUnchecked(
     bytes memory encoded,
-    uint offset
+    uint attestationOffset
   ) internal pure returns (
-    uint8 guardianIndex,
+    uint8   guardianIndex,
     bytes32 r,
     bytes32 s,
-    uint8 v,
-    uint newOffset
+    uint8   v,
+    uint    envelopeOffset
   ) { unchecked {
+    uint offset = attestationOffset;
     (guardianIndex, offset) = encoded.asUint8MemUnchecked(offset);
     (r,             offset) = encoded.asBytes32MemUnchecked(offset);
     (s,             offset) = encoded.asBytes32MemUnchecked(offset);
     (v,             offset) = encoded.asUint8MemUnchecked(offset);
     v += SIGNATURE_RECOVERY_MAGIC;
-    newOffset = offset;
+    envelopeOffset = offset;
   }}
 
   function decodeGuardianSignatureStructMemUnchecked(
@@ -826,6 +1222,114 @@ library VaaLib {
     (ret.guardianIndex, ret.r, ret.s, ret.v, newOffset) =
       decodeGuardianSignatureMemUnchecked(encoded, offset);
   }
+
+  // - Attestation Schnorr
+
+  function decodeVaaAttestationSchnorrCdUnchecked(
+    bytes calldata encodedVaa,
+    uint attestationOffset
+  ) internal pure returns (
+    uint32  schnorrKeyIndex,
+    bytes20 r,
+    bytes32 s,
+    uint    newOffset
+  ) {
+    uint offset = attestationOffset;
+    (schnorrKeyIndex, offset) = encodedVaa.asUint32CdUnchecked(offset);
+    (r,               offset) = encodedVaa.asBytes20CdUnchecked(offset);
+    (s,               offset) = encodedVaa.asBytes32CdUnchecked(offset);
+    newOffset = offset;
+  }
+
+  function decodeVaaAttestationSchnorrStructCdUnchecked(
+    bytes calldata encodedVaa,
+    uint attestationOffset
+  ) internal pure returns (VaaAttestationSchnorr memory header, uint envelopeOffset) {
+    (header.schnorrKeyIndex, header.r, header.s, envelopeOffset) =
+      decodeVaaAttestationSchnorrCdUnchecked(encodedVaa, attestationOffset);
+  }
+
+  function decodeVaaAttestationSchnorrMemUnchecked(
+    bytes memory encoded,
+    uint attestationOffset
+  ) internal pure returns (
+    uint32  schnorrKeyIndex,
+    bytes20 r,
+    bytes32 s,
+    uint    envelopeOffset
+  ) {
+    uint offset = attestationOffset;
+    (schnorrKeyIndex, offset) = encoded.asUint32MemUnchecked(offset);
+    (r,               offset) = encoded.asBytes20MemUnchecked(offset);
+    (s,               offset) = encoded.asBytes32MemUnchecked(offset);
+    envelopeOffset = offset;
+  }
+
+  function decodeVaaAttestationSchnorrStructMemUnchecked(
+    bytes memory encoded,
+    uint attestationOffset
+  ) internal pure returns (VaaAttestationSchnorr memory header, uint envelopeOffset) {
+    (header.schnorrKeyIndex, header.r, header.s, envelopeOffset) =
+      decodeVaaAttestationSchnorrMemUnchecked(encoded, attestationOffset);
+  }
+
+  // - Attestation ECDSA
+
+  function decodeVaaAttestationEcdsaCdUnchecked(
+    bytes calldata encodedVaa,
+    uint attestationOffset
+  ) internal pure returns (
+    uint32  ecdsaKeyIndex,
+    bytes32 r,
+    bytes32 s,
+    uint8   v,
+    uint    newOffset
+  ) {  unchecked {
+    uint offset = attestationOffset;
+    (ecdsaKeyIndex, offset) = encodedVaa.asUint32CdUnchecked(offset);
+    (r,             offset) = encodedVaa.asBytes32CdUnchecked(offset);
+    (s,             offset) = encodedVaa.asBytes32CdUnchecked(offset);
+    (v,             offset) = encodedVaa.asUint8CdUnchecked(offset);
+    v += SIGNATURE_RECOVERY_MAGIC;
+    newOffset = offset;
+  }}
+
+  function decodeVaaAttestationEcdsaStructCdUnchecked(
+    bytes calldata encodedVaa,
+    uint attestationOffset
+  ) internal pure returns (VaaAttestationEcdsa memory header, uint envelopeOffset) {
+    (header.ecdsaKeyIndex, header.r, header.s, header.v, envelopeOffset) =
+      decodeVaaAttestationEcdsaCdUnchecked(encodedVaa, attestationOffset);
+  }
+
+  function decodeVaaAttestationEcdsaMemUnchecked(
+    bytes memory encoded,
+    uint attestationOffset
+  ) internal pure returns (
+    uint32 ecdsaKeyIndex,
+    bytes32 r,
+    bytes32 s,
+    uint8   v,
+    uint    newOffset
+  ) { unchecked {
+    uint offset = attestationOffset;
+    (ecdsaKeyIndex, offset) = encoded.asUint32MemUnchecked(offset);
+    (r,             offset) = encoded.asBytes32MemUnchecked(offset);
+    (s,             offset) = encoded.asBytes32MemUnchecked(offset);
+    (v,             offset) = encoded.asUint8MemUnchecked(offset);
+    v += SIGNATURE_RECOVERY_MAGIC;
+    newOffset = offset;
+  }}
+
+  function decodeVaaAttestationEcdsaStructMemUnchecked(
+    bytes memory encoded,
+    uint attestationOffset
+  ) internal pure returns (VaaAttestationEcdsa memory header, uint envelopeOffset) {
+    (header.ecdsaKeyIndex, header.r, header.s, header.v, envelopeOffset) =
+      decodeVaaAttestationEcdsaMemUnchecked(encoded, attestationOffset);
+  }
+
+  // - Payload
 
   function decodeVaaPayloadCd(
     bytes calldata encodedVaa,
@@ -846,21 +1350,18 @@ library VaaLib {
 
   // ------------ Encoding ------------
 
-  function encode(CoreBridgeVM memory vm) internal pure returns (bytes memory) { unchecked {
-    require(vm.version == HEADER_VERSION, "Invalid version");
-    return abi.encodePacked(
-      encodeVaaHeader(vm.guardianSetIndex, vm.signatures),
-      vm.timestamp,
-      vm.nonce,
-      vm.emitterChainId,
-      vm.emitterAddress,
-      vm.sequence,
-      vm.consistencyLevel,
-      vm.payload
-    );
-  }}
-
   function encodeVaaHeader(
+    uint8 version,
+    bytes memory attestation
+  ) internal pure returns (bytes memory) {
+    return abi.encodePacked(version, attestation);
+  }
+
+  function encode(VaaHeader memory val) internal pure returns (bytes memory) {
+    return encodeVaaHeader(val.version, val.attestation);
+  }
+
+  function encodeVaaAttestationMultiSig(
     uint32 guardianSetIndex,
     GuardianSignature[] memory signatures
   ) internal pure returns (bytes memory) {
@@ -871,16 +1372,36 @@ library VaaLib {
       sigs = bytes.concat(sigs, abi.encodePacked(sig.guardianIndex, sig.r, sig.s, v));
     }
 
-    return abi.encodePacked(
-      HEADER_VERSION,
-      guardianSetIndex,
-      uint8(signatures.length),
-      sigs
-    );
+    return abi.encodePacked(guardianSetIndex, uint8(signatures.length), sigs);
   }
 
-  function encode(VaaHeader memory header) internal pure returns (bytes memory) {
-    return encodeVaaHeader(header.guardianSetIndex, header.signatures);
+  function encode(VaaAttestationMultiSig memory val) internal pure returns (bytes memory) {
+    return encodeVaaAttestationMultiSig(val.guardianSetIndex, val.signatures);
+  }
+
+  function encodeVaaAttestationSchnorr(
+    uint32 schnorrKeyIndex,
+    bytes20 r,
+    bytes32 s
+  ) internal pure returns (bytes memory) {
+    return abi.encodePacked(schnorrKeyIndex, r, s);
+  }
+
+  function encode(VaaAttestationSchnorr memory val) internal pure returns (bytes memory) {
+    return encodeVaaAttestationSchnorr(val.schnorrKeyIndex, val.r, val.s);
+  }
+
+  function encodeVaaAttestationEcdsa(
+    uint32 ecdsaKeyIndex,
+    bytes32 r,
+    bytes32 s,
+    uint8 v
+  ) internal pure returns (bytes memory) {
+    return abi.encodePacked(ecdsaKeyIndex, r, s, v);
+  }
+
+  function encode(VaaAttestationEcdsa memory val) internal pure returns (bytes memory) {
+    return encodeVaaAttestationEcdsa(val.ecdsaKeyIndex, val.r, val.s, val.v);
   }
 
   function encodeVaaEnvelope(
@@ -901,14 +1422,14 @@ library VaaLib {
     );
   }
 
-  function encode(VaaEnvelope memory envelope) internal pure returns (bytes memory) {
+  function encode(VaaEnvelope memory val) internal pure returns (bytes memory) {
     return encodeVaaEnvelope(
-      envelope.timestamp,
-      envelope.nonce,
-      envelope.emitterChainId,
-      envelope.emitterAddress,
-      envelope.sequence,
-      envelope.consistencyLevel
+      val.timestamp,
+      val.nonce,
+      val.emitterChainId,
+      val.emitterAddress,
+      val.sequence,
+      val.consistencyLevel
     );
   }
 
@@ -938,48 +1459,93 @@ library VaaLib {
     return abi.encodePacked(encode(body.envelope), body.payload);
   }
 
-  function encodeVaa(
-    uint32 guardianSetIndex,
-    GuardianSignature[] memory signatures,
-    uint32  timestamp,
-    uint32  nonce,
-    uint16  emitterChainId,
-    bytes32 emitterAddress,
-    uint64  sequence,
-    uint8   consistencyLevel,
-    bytes memory payload
-  ) internal pure returns (bytes memory) {
-    return abi.encodePacked(
-      encodeVaaHeader(guardianSetIndex, signatures),
-      encodeVaaBody(
-        timestamp,
-        nonce,
-        emitterChainId,
-        emitterAddress,
-        sequence,
-        consistencyLevel,
-        payload
-      )
-    );
+  function encode(Vaa memory vaa) internal pure returns (bytes memory) {
+    return abi.encodePacked(encode(vaa.header), encode(vaa.envelope), vaa.payload);
   }
 
-  function encode(Vaa memory vaa) internal pure returns (bytes memory) {
-    return encodeVaa(
-      vaa.header.guardianSetIndex,
-      vaa.header.signatures,
-      vaa.envelope.timestamp,
-      vaa.envelope.nonce,
-      vaa.envelope.emitterChainId,
-      vaa.envelope.emitterAddress,
-      vaa.envelope.sequence,
-      vaa.envelope.consistencyLevel,
-      vaa.payload
+  function encode(VaaMultiSig memory vaa) internal pure returns (bytes memory) {
+    uint8 version = VERSION_MULTISIG;
+    return abi.encodePacked(version, encode(vaa.attestation), encode(vaa.envelope), vaa.payload);
+  }
+
+  function encode(VaaSchnorr memory vaa) internal pure returns (bytes memory) {
+    uint8 version = VERSION_SCHNORR;
+    return abi.encodePacked(version, encode(vaa.attestation), encode(vaa.envelope), vaa.payload);
+  }
+
+  function encode(VaaEcdsa memory vaa) internal pure returns (bytes memory) {
+    uint8 version = VERSION_ECDSA;
+    return abi.encodePacked(version, encode(vaa.attestation), encode(vaa.envelope), vaa.payload);
+  }
+
+  function encode(CoreBridgeVM memory vm) internal pure returns (bytes memory) {
+    checkVaaVersion(vm.version, VERSION_MULTISIG);
+    return abi.encodePacked(
+      VERSION_MULTISIG,
+      encodeVaaAttestationMultiSig(vm.guardianSetIndex, vm.signatures),
+      vm.timestamp,
+      vm.nonce,
+      vm.emitterChainId,
+      vm.emitterAddress,
+      vm.sequence,
+      vm.consistencyLevel,
+      vm.payload
     );
   }
 
   // ------------ Private ------------
 
+  function _getHeaderMetaCdUnchecked(
+    bytes calldata encodedVaa
+  ) private pure returns (
+    uint8 version,
+    uint attestationOffset,
+    uint attestationSize
+  ) { unchecked {
+    (version, attestationOffset) = decodeVaaVersionCdUnchecked(encodedVaa);
+    if (version == VERSION_MULTISIG) {
+      uint offset = MULTISIG_SIGNATURE_COUNT_OFFSET;
+      (uint sigCount, ) = encodedVaa.asUint8CdUnchecked(offset);
+      attestationSize =
+        MULTISIG_GUARDIAN_SET_INDEX_SIZE +
+        MULTISIG_SIGNATURE_COUNT_SIZE +
+        sigCount * MULTISIG_GUARDIAN_SIGNATURE_SIZE;
+    }
+    else if (version == VERSION_SCHNORR)
+      attestationSize = SCHNORR_SIZE;
+    else if (version == VERSION_ECDSA)
+      attestationSize = ECDSA_SIZE;
+    else
+      revert UnexpectedVersion(version);
+  }}
+
+  function _getHeaderMetaMemUnchecked(
+    bytes memory encoded,
+    uint headerOffset
+  ) private pure returns (
+    uint8 version,
+    uint attestationOffset,
+    uint attestationSize
+  ) { unchecked {
+    (version, attestationOffset) = decodeVaaVersionMemUnchecked(encoded, headerOffset);
+    if (version == VERSION_MULTISIG) {
+      uint offset = headerOffset + MULTISIG_SIGNATURE_COUNT_OFFSET;
+      (uint sigCount, ) = encoded.asUint8MemUnchecked(offset);
+      attestationSize =
+        MULTISIG_GUARDIAN_SET_INDEX_SIZE +
+        MULTISIG_SIGNATURE_COUNT_SIZE +
+        sigCount * MULTISIG_GUARDIAN_SIGNATURE_SIZE;
+    }
+    else if (version == VERSION_SCHNORR)
+      attestationSize = SCHNORR_SIZE;
+    else if (version == VERSION_ECDSA)
+      attestationSize = ECDSA_SIZE;
+    else
+      revert UnexpectedVersion(version);
+  }}
+
   //we use this function over encodedVaa[offset:] to consistently get BytesParsing errors
+  //  (and because the native [] operator does a ton of pointless checks)
   function _decodeRemainderCd(
     bytes calldata encodedVaa,
     uint offset
@@ -990,7 +1556,15 @@ library VaaLib {
   }}
 }
 
+using VaaLib for Vaa global;
 using VaaLib for VaaHeader global;
 using VaaLib for VaaEnvelope global;
 using VaaLib for VaaBody global;
-using VaaLib for Vaa global;
+
+using VaaLib for VaaAttestationMultiSig global;
+using VaaLib for VaaAttestationSchnorr global;
+using VaaLib for VaaAttestationEcdsa global;
+
+using VaaLib for VaaMultiSig global;
+using VaaLib for VaaSchnorr global;
+using VaaLib for VaaEcdsa global;

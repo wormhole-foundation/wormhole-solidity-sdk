@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.4;
 
-import "forge-std/Test.sol";
-
-
 import "wormhole-sdk/libraries/QueryResponse.sol";
 import "wormhole-sdk/testing/QueryRequestBuilder.sol";
 import "wormhole-sdk/testing/WormholeOverride.sol";
+import "wormhole-sdk/testing/WormholeForkTest.sol";
 import "./generated/QueryResponseTestWrapper.sol";
 
-contract QueryResponseTest is Test {
+contract QueryResponseTest is WormholeForkTest {
   using AdvancedWormholeOverride for ICoreBridge;
 
   // Some happy case defaults
@@ -48,7 +46,6 @@ contract QueryResponseTest is Test {
   bytes solanaPdaPerChainResponses = hex"0001050000009b00000000000008ff0006115e3f6d7540e05035785e15056a8559815e71343ce31db2abf23f65b19c982b68aee7bf207b014fa9188b339cfd573a0778c5deaeeee94d4bcfb12b345bf8e417e5119dae773efd0000000000116ac000000000000000000002c806312cbe5b79ef8aa6c17e3f423d8fdfe1d46909fb1f6cdf65ee8e2e6faa0000001457cd18b7f8a4d91a2da9ab4af05d0fbece2dcd65";
   bytes solanaPdaPerChainResponsesInner = hex"00000000000008ff0006115e3f6d7540e05035785e15056a8559815e71343ce31db2abf23f65b19c982b68aee7bf207b014fa9188b339cfd573a0778c5deaeeee94d4bcfb12b345bf8e417e5119dae773efd0000000000116ac000000000000000000002c806312cbe5b79ef8aa6c17e3f423d8fdfe1d46909fb1f6cdf65ee8e2e6faa0000001457cd18b7f8a4d91a2da9ab4af05d0fbece2dcd65";
 
-  address coreBridge;
   QueryResponseLibTestWrapper wrapper;
   uint32 guardianSetIndex;
 
@@ -76,7 +73,7 @@ contract QueryResponseTest is Test {
         cd,
         "(address,bytes,(bytes32,bytes32,uint8,uint8)[],uint32)"
       ),
-      coreBridge, resp, sigs, guardianSetIndex
+      coreBridge(), resp, sigs, guardianSetIndex
     ));
   }
 
@@ -121,7 +118,7 @@ contract QueryResponseTest is Test {
         cd,
         "(address,bytes,(bytes32,bytes32,uint8,uint8)[],uint32)"
       ),
-      coreBridge, resp, sigs, guardianSetIndex
+      coreBridge(), resp, sigs, guardianSetIndex
     ));
   }
 
@@ -157,18 +154,16 @@ contract QueryResponseTest is Test {
     assertEq(encodedResult, expectedRevert);
   }
 
-  function setUp() public {
-    vm.createSelectFork(vm.envString("TEST_RPC_URL"));
-    coreBridge = vm.envAddress("TEST_WORMHOLE_ADDRESS");
-    ICoreBridge(coreBridge).setUpOverride();
-    guardianSetIndex = ICoreBridge(coreBridge).getCurrentGuardianSetIndex();
+  function setUp() public override {
+    super.setUp();
+    guardianSetIndex = coreBridge().getCurrentGuardianSetIndex();
     wrapper = new QueryResponseLibTestWrapper();
   }
 
   function sign(
     bytes memory response
   ) internal view returns (GuardianSignature[] memory signatures) {
-    return ICoreBridge(coreBridge).sign(QueryResponseLib.calcPrefixedResponseHashMem(response));
+    return coreBridge().sign(QueryResponseLib.calcPrefixedResponseHashMem(response));
   }
 
   function concatenateQueryResponseBytesOffChain(
@@ -778,7 +773,7 @@ contract QueryResponseTest is Test {
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, perChainQueries, numPerChainResponses, perChainResponses);
     bytes32 responseDigest = keccak256(abi.encodePacked(responsePrefix, keccak256(resp)));
 
-    GuardianSignature[] memory signatures = ICoreBridge(coreBridge).sign(responseDigest);
+    GuardianSignature[] memory signatures = coreBridge().sign(responseDigest);
     bytes memory expectedError = abi.encodePacked(QueryResponseLib.VerificationFailed.selector);
     _expectRevertVerifyQueryResponse(cd, resp, signatures, expectedError);
   }
