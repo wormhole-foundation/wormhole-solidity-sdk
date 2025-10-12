@@ -8,6 +8,8 @@ import {RequestLib}                from "wormhole-sdk/Executor/Request.sol";
 import {RelayInstructionLib}       from "wormhole-sdk/Executor/RelayInstruction.sol";
 import {toUniversalAddress}        from "wormhole-sdk/Utils.sol";
 
+//abstract base contract for typical Executor integrations
+
 abstract contract ExecutorIntegration is IVaaV1Receiver {
   error InvalidPeer();
 
@@ -24,7 +26,7 @@ abstract contract ExecutorIntegration is IVaaV1Receiver {
   //should return bytes32(0) if there is no peer on the given chain
   function _getPeer(uint16 chainId) internal view virtual returns (bytes32);
 
-  //impl via the appropriate replay protection function from ReplayProtectionLib.sol
+  //impl via the appropriate replay protection library from ReplayProtectionLib.sol
   function _replayProtect(
     uint16  emitterChainId,
     bytes32 emitterAddress,

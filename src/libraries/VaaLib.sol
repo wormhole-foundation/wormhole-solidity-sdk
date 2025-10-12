@@ -773,6 +773,7 @@ library VaaLib {
   ) internal pure returns (uint envelopeOffset) { unchecked {
     (, uint attestationOffset, uint attestationSize) =
       _getHeaderMetaMemUnchecked(encoded, headerOffset);
+    
     envelopeOffset = attestationOffset + attestationSize;
   }}
 
@@ -794,7 +795,7 @@ library VaaLib {
     bytes memory encodedVaa
   ) internal pure returns (bytes32) { unchecked {
     uint envelopeOffset = skipVaaHeaderMemUnchecked(encodedVaa, 0);
-    return keccak256SliceUnchecked(encodedVaa, envelopeOffset, encodedVaa.length);
+    return calcVaaSingleHashMem(encodedVaa, envelopeOffset, encodedVaa.length);
   }}
   function calcVaaSingleHashMem(
     bytes memory encoded,
