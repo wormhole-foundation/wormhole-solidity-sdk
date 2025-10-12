@@ -6,7 +6,7 @@ chainConsts_TARGET = testing/ChainConsts.sol
 fnGeneratorTarget = ../src/$($(1)_TARGET)
 GENERATOR_TARGETS = $(foreach generator,$(GENERATORS),$(call fnGeneratorTarget,$(generator)))
 
-TEST_WRAPPERS = BytesParsing QueryResponse VaaLib TokenBridgeMessages CctpMessages
+TEST_WRAPPERS = BytesParsing QueryResponse VaaLib TokenBridgeMessages CctpMessages ReplayProtection
 
 fnTestWrapperTarget = ../test/generated/$(1)TestWrapper.sol
 TEST_WRAPPER_TARGETS =\
