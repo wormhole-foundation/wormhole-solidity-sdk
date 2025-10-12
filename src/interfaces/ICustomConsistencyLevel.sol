@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache 2
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
 //from https://github.com/wormhole-foundation/wormhole/blob/39081fa2936badf178f8b7e5eb63074d3308bf7d/ethereum/contracts/custom_consistency_level/interfaces/ICustomConsistencyLevel.sol

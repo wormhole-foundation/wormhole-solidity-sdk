@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache 2
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.19;
 
 import {IWormholeReceiver} from "wormhole-sdk/interfaces/IWormholeRelayer.sol";
