@@ -28,5 +28,5 @@ interface IExecutor {
 //from https://github.com/wormholelabs-xyz/example-messaging-executor/blob/ec5daea3c03f8860a62c23e28db5c6dc8771a9ce/evm/src/interfaces/IVaaV1Receiver.sol
 //required interface for receiving MultiSig (=V1) VAAs from the executor
 interface IVaaV1Receiver {
-  function executeVAAv1(bytes memory msg) external payable;
+  function executeVAAv1(bytes memory multiSigVaa) external payable;
 }
