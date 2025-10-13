@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache 2
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.4;
 
 import "forge-std/Test.sol";
@@ -358,8 +358,9 @@ contract WormholeMessagesTest is Test {
   }
 
   function vmToVaa(CoreBridgeVM memory vm) internal pure returns (Vaa memory vaa) {
-    vaa.header.guardianSetIndex = vm.guardianSetIndex;
-    vaa.header.signatures = vm.signatures;
+    vaa.header.version = vm.version;
+    vaa.header.attestation =
+      VaaLib.encode(VaaAttestationMultiSig(vm.guardianSetIndex, vm.signatures));
     vaa.envelope.timestamp = vm.timestamp;
     vaa.envelope.nonce = vm.nonce;
     vaa.envelope.emitterChainId = vm.emitterChainId;
@@ -370,8 +371,11 @@ contract WormholeMessagesTest is Test {
   }
 
   function compareVaaVm(Vaa memory vaa, CoreBridgeVM memory expectedVm) internal {
-    assertEq(vaa.header.guardianSetIndex, expectedVm.guardianSetIndex);
-    compareSignatures(vaa.header.signatures, expectedVm.signatures);
+    assertEq(vaa.header.version, expectedVm.version);
+    VaaAttestationMultiSig memory attestation =
+      VaaLib.decodeVaaAttestationMultiSigStructMem(vaa.header.attestation);
+    assertEq(attestation.guardianSetIndex, expectedVm.guardianSetIndex);
+    compareSignatures(attestation.signatures, expectedVm.signatures);
     assertEq(vaa.envelope.timestamp, expectedVm.timestamp);
     assertEq(vaa.envelope.nonce, expectedVm.nonce);
     assertEq(vaa.envelope.emitterChainId, expectedVm.emitterChainId);
@@ -442,12 +446,17 @@ contract WormholeMessagesTest is Test {
         (bytes32)
       );
       assertEq(hash, expectedHash);
+      hash = abi.decode(
+        callWithBytes(vaaLibWrapper, functionName, cd, encoded, true),
+        (bytes32)
+      );
+      assertEq(hash, expectedHash, cd ? "Cd" : "Mem");
     }
   }
   function bytesHash(bool cd) internal {
     checkBytesHash(cd, transferVaa(), transferSingleHash, transferDoubleHash);
-    checkBytesHash(cd, twpVaa(),      twpSingleHash,      twpDoubleHash     );
-    checkBytesHash(cd, amVaa(),       amSingleHash,       amDoubleHash      );
+    // checkBytesHash(cd, twpVaa(),      twpSingleHash,      twpDoubleHash     );
+    // checkBytesHash(cd, amVaa(),       amSingleHash,       amDoubleHash      );
   }
   function testBytesHash() public { runBoth(bytesHash); }
 

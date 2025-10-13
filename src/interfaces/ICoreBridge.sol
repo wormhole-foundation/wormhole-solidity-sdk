@@ -1,10 +1,11 @@
-// SPDX-License-Identifier: Apache 2
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-// ╭────────────────────────────────────────────────────╮
-// │ For verification, consider using `CoreBridgeLib`   │
-// │ For encoding and decoding, consider using `VaaLib` │
-// ╰────────────────────────────────────────────────────╯
+// ╭─────────────────────────────────────────────────────────────╮
+// │ For verification, consider using `CoreBridgeLib`            │
+// │ For encoding and decoding, consider using `VaaLib`          │
+// │ For replay protection, consider using `ReplayProtectionLib` │
+// ╰─────────────────────────────────────────────────────────────╯
 
 //slimmed down interface of the CoreBridge (aka the Wormhole contract)
 
@@ -20,12 +21,13 @@ struct GuardianSignature {
   uint8 guardianIndex;
 }
 
-//VM = Verified Message - legacy struct of the core bridge
+//VM = Verified Message - legacy struct of the CoreBridge
 //contains fields that are not relevant to the integrator:
 // * version - always 1 regardless
-// * signatures/guardianSetIndex - only the core bridge itself cares for verification
-// * hash - _finalized_ VAAs should use the unique (emitterChainId, emitterAddress, sequence) triple
-//           for cheaper replay protection
+// * signatures/guardianSetIndex - only the CoreBridge itself cares (for verification)
+// * hash - NOT the VAA hash, but the hash of the hash! see warning at the top of VaaLib.sol!
+//          _finalized_ VAAs should use the unique (emitterChainId, emitterAddress, sequence) triple
+//          for cheaper replay protection, see SequenceReplayProtectionLib
 struct CoreBridgeVM {
   uint8 version;
   uint32 timestamp;
@@ -37,7 +39,7 @@ struct CoreBridgeVM {
   bytes payload;
   uint32 guardianSetIndex;
   GuardianSignature[] signatures;
-  bytes32 hash;
+  bytes32 hash; //see comment above
 }
 
 interface ICoreBridge {

@@ -6,7 +6,7 @@ chainConsts_TARGET = testing/ChainConsts.sol
 fnGeneratorTarget = ../src/$($(1)_TARGET)
 GENERATOR_TARGETS = $(foreach generator,$(GENERATORS),$(call fnGeneratorTarget,$(generator)))
 
-TEST_WRAPPERS = BytesParsing QueryResponse VaaLib TokenBridgeMessages CctpMessages
+TEST_WRAPPERS = BytesParsing QueryResponse VaaLib TokenBridgeMessages CctpMessages ReplayProtection
 
 fnTestWrapperTarget = ../test/generated/$(1)TestWrapper.sol
 TEST_WRAPPER_TARGETS =\
@@ -18,7 +18,7 @@ TEST_WRAPPER_TARGETS =\
 build: $(GENERATOR_TARGETS) $(TEST_WRAPPER_TARGETS)
 
 clean:
-	rm -rf node_modules fork_changed testing.env
+	rm -rf node_modules fork_changed
 
 FORCE:
 
@@ -36,15 +36,3 @@ $(call fnTestWrapperTarget,$(1)): ../src/libraries/$(1).sol libraryTestWrapper.t
 	npx ts-node libraryTestWrapper.ts libraries/$(1) > $$@
 endef
 $(foreach wrapper,$(TEST_WRAPPERS),$(eval $(call ruleTestWrapper,$(wrapper))))
-
-ifneq ($(TEST_FORK), $(shell cat fork_changed 2>/dev/null))
-#if a different chain/network for testing was supplied last time then force an update
-fork_changed: FORCE
-endif
-
-testing.env: node_modules fork_changed testingEnv.ts
-	@echo "Generating testing.env for $(TEST_FORK)"
-	npx ts-node testingEnv.ts $(TEST_FORK) > $@
-
-fork_changed:
-	@echo $(TEST_FORK) > fork_changed

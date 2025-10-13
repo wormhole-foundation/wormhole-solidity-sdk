@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache 2
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.24;
 
 import {Vm} from "forge-std/Vm.sol";
@@ -14,6 +14,7 @@ import {
   VaaLib,
   GuardianSignature,
   Vaa,
+  VaaAttestationMultiSig,
   VaaEnvelope,
   VaaBody as PublishedMessage
 } from "wormhole-sdk/libraries/VaaLib.sol";
@@ -441,8 +442,11 @@ library AdvancedWormholeOverride {
     PublishedMessage memory pm,
     bytes memory signingGuardianIndices //treated as a packed uint8 array
   ) internal view returns (Vaa memory vaa) {
-    vaa.header.guardianSetIndex = coreBridge.getCurrentGuardianSetIndex();
-    vaa.header.signatures = sign(coreBridge, VaaLib.calcDoubleHash(pm), signingGuardianIndices);
+    vaa.header.version = VaaLib.VERSION_MULTISIG;
+    vaa.header.attestation = VaaLib.encode(VaaAttestationMultiSig(
+      coreBridge.getCurrentGuardianSetIndex(),
+      sign(coreBridge, VaaLib.calcDoubleHash(pm), signingGuardianIndices)
+    ));
     vaa.envelope = pm.envelope;
     vaa.payload = pm.payload;
   }

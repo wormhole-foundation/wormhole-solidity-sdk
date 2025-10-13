@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache 2
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.4;
 
 uint constant TOKEN_BRIDGE_NORMALIZED_DECIMALS = 8;

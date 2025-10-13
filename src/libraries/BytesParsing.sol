@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache 2
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.4;
 
 import "wormhole-sdk/constants/Common.sol";
@@ -9,14 +9,9 @@ library BytesParsing {
   error LengthMismatch(uint256 encodedLength, uint256 expectedLength);
   error InvalidBoolVal(uint8 val);
 
-  /**
-   * Implements runtime check of logic that accesses memory.
-   * @param pastTheEndOffset The offset past the end relative to the accessed memory fragment.
-   * @param length The length of the memory fragment accessed.
-   */
-  function checkBound(uint pastTheEndOffset, uint length) internal pure {
-    if (pastTheEndOffset > length)
-      revert OutOfBounds(pastTheEndOffset, length);
+  function checkBound(uint offset, uint length) internal pure {
+    if (offset > length)
+      revert OutOfBounds(offset, length);
   }
 
   function checkLength(uint encodedLength, uint expectedLength) internal pure {
@@ -37,10 +32,19 @@ library BytesParsing {
   //  calldata variants over the memory variants and to use the unchecked variants with a manual
   //  length check at the end using `checkLength` to ensure that encoded data was consumed exactly.
   //
-  //WARNING: Neither variant uses safe math! It is up to the dev to ensure that offset and length
-  //  values are sensible. In other words, verify user inputs before passing them on. Preferably,
-  //  the format that's being parsed does not allow for such overflows in the first place by e.g.
-  //  encoding lengths using at most 4 bytes, etc.
+  // ╭────────────────────────────────── WARNING ──────────────────────────────────╮
+  // │ Neither function variant (vanilla or unchecked) uses safe math!             │
+  // │                                                                             │
+  // │ In the context of the BytesParsing library, checking only ever refers to    │
+  // │   out of bound reads of the given buffer, never arithmetic overflows!       │
+  // ╰─────────────────────────────────────────────────────────────────────────────╯
+  //
+  //In other words:
+  //  It is up to the dev to ensure that offset and length values are sensibly bounded, even
+  //    for the vanilla variants.
+  //  Critically, this includes verifying user inputs before passing them on and preferably,
+  //    using a format that does not allow for any such overflows in the first place,
+  //    e.g. one that encodes lengths using at most 4 bytes, etc.
   //
   //Functions:
   //  Unless stated otherwise, all functions take an `encoded` bytes calldata/memory and an `offset`

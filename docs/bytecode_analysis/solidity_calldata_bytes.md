@@ -35,8 +35,8 @@ deployed bytecode assembly + stack trace:
 tag_1:
   0x00  [0x80, 0x00]
   swap1 [0x00, 0x80]
-  dup2  
-  calldataload 
+  dup2
+  calldataload
   0xe0
   shr
   0xf8a8fd6d

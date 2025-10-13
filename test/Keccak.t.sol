@@ -1,8 +1,8 @@
-// SPDX-License-Identifier: Apache 2
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
-import {keccak256Word, keccak256SliceUnchecked, keccak256Cd} from "../src/Utils.sol";
+import {keccak256Word, keccak256SliceUnchecked, keccak256Cd} from "wormhole-sdk/Utils.sol";
 
 contract TestKeccak is Test {
   using { keccak256Word } for bytes32;
