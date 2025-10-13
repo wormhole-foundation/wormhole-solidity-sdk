@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache 2
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.4;
 
 import {WORD_SIZE, SCRATCH_SPACE_PTR, FREE_MEMORY_PTR} from "wormhole-sdk/constants/Common.sol";

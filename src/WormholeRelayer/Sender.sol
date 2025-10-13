@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache 2
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.19;
 
 import {CONSISTENCY_LEVEL_FINALIZED} from "wormhole-sdk/constants/ConsistencyLevel.sol";
