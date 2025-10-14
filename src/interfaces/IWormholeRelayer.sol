@@ -18,6 +18,13 @@ struct VaaKey {
 
 // Note - the default delivery provider only will relay CCTP transfers that were sent
 //   in the same transaction that this message was emitted!
+//
+// Offchain, the default delivery provider processes CCTPKey messages as follows:
+// - CCTP version is determined by nonce value: v1 (nonce > 0), v2 (nonce === 0)
+// - CCTP v1: Uses Circle's /v1/attestations/{messageHash} API. Uses nonce to determine the message hash.
+// - CCTP v2: Uses Circle's /v2/messages/{domain}?transactionHash={txHash} API
+// - Single delivery can contain both v1 and v2 CCTP message keys
+// - All CCTP messages must fetch successfully or entire delivery fails
 struct CctpKey {
   uint32 domain;
   uint64 nonce;
