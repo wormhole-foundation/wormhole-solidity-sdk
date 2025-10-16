@@ -1,5 +1,5 @@
 [profile.default]
-solc_version = "0.8.24"
+solc_version = "0.8.30"
 evm_version = "paris" # prevent use of PUSH0 opcode until it is widely supported
 src = "src"
 out = "out"
@@ -20,3 +20,8 @@ remappings = [
 ]
 
 verbosity = 3
+
+#the linter is allowed at the adults' table when it has something intelligent to say
+#  rather than just being a longhousing nanny that's wasting my time
+[lint]
+lint_on_build = false
