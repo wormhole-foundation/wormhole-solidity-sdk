@@ -7,6 +7,7 @@ import "wormhole-sdk/constants/Chains.sol";
 import "wormhole-sdk/interfaces/ICoreBridge.sol";
 import "wormhole-sdk/interfaces/ITokenBridge.sol";
 import "wormhole-sdk/interfaces/IWormholeRelayer.sol";
+import "wormhole-sdk/interfaces/IExecutor.sol";
 import "wormhole-sdk/interfaces/cctp/IMessageTransmitter.sol";
 import "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol";
 import "wormhole-sdk/libraries/VaaLib.sol";
@@ -19,6 +20,7 @@ import {
   coreBridge as coreBridge_,
   tokenBridge as tokenBridge_,
   wormholeRelayer as wormholeRelayer_,
+  executor as executor_,
   cctpDomain as cctpDomain_,
   usdc as usdc_,
   cctpMessageTransmitter as cctpMessageTransmitter_,
@@ -38,6 +40,7 @@ struct Fork {
   ICoreBridge coreBridge;
   ITokenBridge tokenBridge;
   IWormholeRelayer relayer;
+  IExecutor executor;
 
   IUSDC usdc;
   uint32 cctpDomain;
@@ -58,7 +61,8 @@ abstract contract WormholeForkTest is Test {
   // -- setup --
 
   constructor() {
-    isMainnet = true; //by default fork/test against mainnets
+    //by default fork/test against mainnets, set to false in your own constructor to override
+    isMainnet = true;
   }
 
   function setUp() public virtual { //default impl that can be overridden
@@ -66,11 +70,11 @@ abstract contract WormholeForkTest is Test {
     selectFork(CHAIN_ID_ETHEREUM);
   }
 
-  function setUpFork(uint16 chainId_) internal {
+  function setUpFork(uint16 chainId_) internal virtual {
     setUpFork(chainId_, defaultRPC(isMainnet, chainId_));
   }
 
-  function setUpFork(uint16 chainId_, string memory rpcUrl_) internal {
+  function setUpFork(uint16 chainId_, string memory rpcUrl_) internal virtual {
     Fork memory fork = Fork(
       vm.createSelectFork(rpcUrl_),
       chainId_,
@@ -79,6 +83,7 @@ abstract contract WormholeForkTest is Test {
       ICoreBridge(coreBridge_(isMainnet, chainId_)),
       ITokenBridge(tokenBridge_(isMainnet, chainId_)),
       IWormholeRelayer(wormholeRelayer_(isMainnet, chainId_)),
+      IExecutor(executor_(isMainnet, chainId_)),
       IUSDC(usdc_(isMainnet, chainId_)),
       cctpDomain_(isMainnet, chainId_),
       IMessageTransmitter(cctpMessageTransmitter_(isMainnet, chainId_)),
@@ -87,7 +92,7 @@ abstract contract WormholeForkTest is Test {
     setUpFork(fork);
   }
 
-  function setUpFork(Fork memory fork) internal {
+  function setUpFork(Fork memory fork) internal virtual {
     setUpOverrides(fork);
     addFork(fork);
   }
@@ -100,63 +105,67 @@ abstract contract WormholeForkTest is Test {
     vm.selectFork(originalFork);
   }
 
-  function selectFork(uint16 chainId_) internal { unchecked {
+  function selectFork(uint16 chainId_) internal virtual { unchecked {
     uint index = chainIdToForkIndexPlusOne[chainId_];
     require(index != 0, "Chain not registered with ForkTest");
     vm.selectFork(forks[index-1].fork);
   }}
 
-  function chainId() internal view returns (uint16) {
+  function chainId() internal view virtual returns (uint16) {
     return activeFork().chainId;
   }
 
-  function chainName() internal view returns (string memory) {
+  function chainName() internal view virtual returns (string memory) {
     return activeFork().chainName;
   }
 
-  function rpcUrl() internal view returns (string memory) {
+  function rpcUrl() internal view virtual returns (string memory) {
     return activeFork().rpcUrl;
   }
 
-  function coreBridge() internal view returns (ICoreBridge) {
+  function coreBridge() internal view virtual returns (ICoreBridge) {
     return activeFork().coreBridge;
   }
 
-  function tokenBridge() internal view returns (ITokenBridge) {
+  function tokenBridge() internal view virtual returns (ITokenBridge) {
     return activeFork().tokenBridge;
   }
 
-  function wormholeRelayer() internal view returns (IWormholeRelayer) {
+  function wormholeRelayer() internal view virtual returns (IWormholeRelayer) {
     return activeFork().relayer;
   }
 
-  function usdc() internal view returns (IUSDC) {
+  function executor() internal view virtual returns (IExecutor) {
+    return activeFork().executor;
+  }
+
+  function usdc() internal view virtual returns (IUSDC) {
     return activeFork().usdc;
   }
 
-  function cctpDomain() internal view returns (uint32) {
+  function cctpDomain() internal view virtual returns (uint32) {
     return activeFork().cctpDomain;
   }
 
-  function cctpMessageTransmitter() internal view returns (IMessageTransmitter) {
+  function cctpMessageTransmitter() internal view virtual returns (IMessageTransmitter) {
     return activeFork().cctpMessageTransmitter;
   }
 
-  function cctpTokenMessenger() internal view returns (ITokenMessenger) {
+  function cctpTokenMessenger() internal view virtual returns (ITokenMessenger) {
     return activeFork().cctpTokenMessenger;
   }
 
-  function dealUsdc(address to, uint256 amount) internal {
+  function dealUsdc(address to, uint256 amount) internal virtual {
     usdc().deal(to, amount);
   }
 
   // -- convenience functions --
 
-  function setMessageFee(uint256 msgFee) internal {
+  function setMessageFee(uint256 msgFee) internal virtual{
     coreBridge().setMessageFee(msgFee);
   }
 
-  function attestToken(address token) internal preserveFork {
+  function attestToken(address token) internal virtual preserveFork {
     uint originalChainId = chainId();
     vm.recordLogs();
     tokenBridge().attestToken{value: coreBridge().messageFee()}(token, 0);
@@ -172,41 +181,41 @@ abstract contract WormholeForkTest is Test {
     }
   }
 
-  function fetchEncodedVaa() internal returns (bytes memory) {
+  function fetchEncodedVaa() internal virtual returns (bytes memory) {
     return fetchEncodedVaa(vm.getRecordedLogs());
   }
 
-  function fetchEncodedVaa(Vm.Log[] memory logs) internal view returns (bytes memory) {
+  function fetchEncodedVaa(Vm.Log[] memory logs) internal view virtual returns (bytes memory) {
     return coreBridge().sign(
       coreBridge().fetchPublishedMessages(logs)[0]
     ).encode();
   }
 
   function fetchEncodedBurnMessageAndAttestation(
-  ) internal returns (bytes memory encodedBurnMessage, bytes memory attestation) {
+  ) internal virtual returns (bytes memory encodedBurnMessage, bytes memory attestation) {
     return fetchEncodedBurnMessageAndAttestation(vm.getRecordedLogs());
   }
 
   function fetchEncodedBurnMessageAndAttestation(
     Vm.Log[] memory logs
-  ) internal view returns (bytes memory encodedBurnMessage, bytes memory attestation) {
+  ) internal view virtual returns (bytes memory encodedBurnMessage, bytes memory attestation) {
     CctpTokenBurnMessage memory burnMessage = cctpMessageTransmitter().fetchBurnMessages(logs)[0];
     return (burnMessage.encode(), cctpMessageTransmitter().sign(burnMessage));
   }
 
   // -- more low-level stuff --
 
-  function activeFork() internal view returns (Fork storage fork) { unchecked {
+  function activeFork() internal view virtual returns (Fork storage fork) { unchecked {
     fork = forks[forkToForkIndexPlusOne[vm.activeFork()] - 1];
   }}
 
-  function setUpOverrides(Fork memory fork) internal {
+  function setUpOverrides(Fork memory fork) internal virtual {
     fork.coreBridge.setUpOverride();
     if (address(fork.cctpMessageTransmitter) != address(0))
       fork.cctpMessageTransmitter.setUpOverride();
   }
 
-  function addFork(Fork memory fork) internal { unchecked {
+  function addFork(Fork memory fork) internal virtual { unchecked {
     require(fork.chainId != 0, "ChainId is not valid");
     require(address(fork.coreBridge) != address(0), "CoreBridge is not valid");
     require(chainIdToForkIndexPlusOne[fork.chainId] == 0, "Chain already has a fork");

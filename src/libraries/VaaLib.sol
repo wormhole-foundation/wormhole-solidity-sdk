@@ -773,7 +773,7 @@ library VaaLib {
   ) internal pure returns (uint envelopeOffset) { unchecked {
     (, uint attestationOffset, uint attestationSize) =
       _getHeaderMetaMemUnchecked(encoded, headerOffset);
-    
+
     envelopeOffset = attestationOffset + attestationSize;
   }}
 

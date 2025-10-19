@@ -61,7 +61,7 @@ const fullPath = (() => {
     return filename;
 
   console.log(
-    `// SPDX-License-Identifier: Apache 2\npragma solidity ^0.8.24;\n\n` +
+    `// SPDX-License-Identifier: Apache-2.0\npragma solidity ^0.8.24;\n\n` +
     `import "wormhole-sdk/${filename}.sol";\n`
   );
 

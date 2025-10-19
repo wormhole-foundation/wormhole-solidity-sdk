@@ -25,6 +25,7 @@ struct DeliveryResult {
   IWormholeRelayerDelivery.RefundStatus refundStatus;
   bytes additionalStatusInfo;
   bytes overridesInfo;
+  Vm.Log[] logs;
 }
 
 abstract contract WormholeRelayerTest is WormholeForkTest {
@@ -353,7 +354,8 @@ abstract contract WormholeRelayerTest is WormholeForkTest {
       gasUsed: gasUsed,
       refundStatus: IWormholeRelayerDelivery.RefundStatus(refundStatus),
       additionalStatusInfo: additionalStatusInfo,
-      overridesInfo: overridesInfo
+      overridesInfo: overridesInfo,
+      logs: logs
     });
 
     _deliveryResults.push(deliveryResult);
