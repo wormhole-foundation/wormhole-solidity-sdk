@@ -36,6 +36,24 @@ library UncheckedIndexing {
     writeUnchecked(arrBytes, _mulWordSize(index), uint256(uint160(value)));
   }
 
+  function readUnchecked(uint128[] memory arr, uint index) internal pure returns (uint128 ret) {
+    bytes memory arrBytes;
+    /// @solidity memory-safe-assembly
+    assembly { arrBytes := arr }
+    uint256 raw = readUnchecked(arrBytes, _mulWordSize(index));
+    /// @solidity memory-safe-assembly
+    assembly { ret := raw }
+  }
+
+  //it is assumed that value is never dirty here (it's hard to create a dirty address)
+  //  see https://docs.soliditylang.org/en/latest/internals/variable_cleanup.html
+  function writeUnchecked(uint128[] memory arr, uint index, uint128 value) internal pure {
+    bytes memory arrBytes;
+    /// @solidity memory-safe-assembly
+    assembly { arrBytes := arr }
+    writeUnchecked(arrBytes, _mulWordSize(index), uint256(value));
+  }
+
   function readUnchecked(uint256[] memory arr, uint index) internal pure returns (uint256 ret) {
     bytes memory arrBytes;
     /// @solidity memory-safe-assembly
@@ -49,6 +67,23 @@ library UncheckedIndexing {
     assembly { arrBytes := arr }
     writeUnchecked(arrBytes, _mulWordSize(index), value);
   }
+
+  function readUnchecked(bytes32[] memory arr, uint index) internal pure returns (bytes32 ret) {
+    bytes memory arrBytes;
+    /// @solidity memory-safe-assembly
+    assembly { arrBytes := arr }
+    uint256 raw = readUnchecked(arrBytes, _mulWordSize(index));
+    /// @solidity memory-safe-assembly
+    assembly { ret := raw }
+  }
+
+  function writeUnchecked(bytes32[] memory arr, uint index, bytes32 value) internal pure {
+    bytes memory arrBytes;
+    /// @solidity memory-safe-assembly
+    assembly { arrBytes := arr }
+    writeUnchecked(arrBytes, _mulWordSize(index), uint256(value));
+  }
+
 
   function _mulWordSize(uint index) private pure returns (uint) { unchecked {
     return index * WORD_SIZE;

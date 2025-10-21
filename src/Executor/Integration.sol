@@ -9,6 +9,12 @@ import {RelayInstructionLib}       from "wormhole-sdk/Executor/RelayInstruction.
 import {toUniversalAddress}        from "wormhole-sdk/Utils.sol";
 
 //abstract base contracts for typical Executor integrations
+//integrators should inherit from exactly one of:
+// * ExecutorSend
+// * ExecutorReceive
+// * ExecutorSendReceive
+//note: The Impl contracts are a nuisance to deal with the diamond inheritance pattern and
+//      the "Base constructor arguments given twice" error that comes with it.
 
 abstract contract ExecutorSharedBase {
   error InvalidPeer();
@@ -29,11 +35,11 @@ abstract contract ExecutorSharedBase {
   }
 }
 
-abstract contract ExecutorSend is ExecutorSharedBase {
+abstract contract ExecutorSendImpl is ExecutorSharedBase {
   IExecutor   internal immutable _executor;
   uint16      internal immutable _chainId;
 
-  constructor(address coreBridge, address executor) ExecutorSharedBase(coreBridge) {
+  constructor(address executor) {
     _executor = IExecutor(executor);
     _chainId = _coreBridge.chainId();
   }
@@ -71,8 +77,14 @@ abstract contract ExecutorSend is ExecutorSharedBase {
   }}
 }
 
-abstract contract ExecutorReceive is ExecutorSharedBase, IVaaV1Receiver {
-  constructor(address coreBridge) ExecutorSharedBase(coreBridge) {}
+abstract contract ExecutorReceiveImpl is ExecutorSharedBase, IVaaV1Receiver {
+  constructor(address coreBridge) {}
+
+  //default impl as safeguard - integrators should override this with an empty impl and perform
+  //  appropriate check in their impl of _executeVaa instead, if they allow for non-zero msg.value
+  function _executeVaaDefaultMsgValueCheck() internal virtual {
+    require(msg.value == 0);
+  }
 
   //impl via the appropriate replay protection library from ReplayProtectionLib.sol
   function _replayProtect(
@@ -98,6 +110,8 @@ abstract contract ExecutorReceive is ExecutorSharedBase, IVaaV1Receiver {
   }
 
   function executeVAAv1(bytes calldata multiSigVaa) external payable virtual {
+    _executeVaaDefaultMsgValueCheck();
+
     ( uint32  timestamp,
       , //nonce is ignored
       uint16  emitterChainId,
@@ -119,4 +133,25 @@ abstract contract ExecutorReceive is ExecutorSharedBase, IVaaV1Receiver {
       consistencyLevel
     );
   }
+}
+
+abstract contract ExecutorSend is ExecutorSharedBase, ExecutorSendImpl {
+  constructor(address coreBridge, address executor)
+    ExecutorSharedBase(coreBridge)
+    ExecutorSendImpl(executor)
+  {}
+}
+
+abstract contract ExecutorReceive is ExecutorSharedBase, ExecutorReceiveImpl {
+  constructor(address coreBridge)
+    ExecutorSharedBase(coreBridge)
+    ExecutorReceiveImpl(coreBridge)
+  {}
+}
+
+abstract contract ExecutorSendReceive is ExecutorSharedBase, ExecutorSendImpl, ExecutorReceiveImpl {
+  constructor(address coreBridge, address executor)
+    ExecutorSendImpl(executor)
+    ExecutorReceiveImpl(coreBridge)
+    ExecutorSharedBase(coreBridge) {}
 }
