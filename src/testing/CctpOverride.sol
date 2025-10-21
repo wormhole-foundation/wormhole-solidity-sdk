@@ -75,8 +75,8 @@ library CctpOverride {
     );
 
     ret = new CctpTokenBurnMessage[](encodedBurnLogs.length);
-    for (uint i; i < encodedBurnLogs.length; ++i)
-      ret[i++] = _logDataToActualBytes(encodedBurnLogs[i].data)
+    for (uint i = 0; i < encodedBurnLogs.length; ++i)
+      ret[i] = _logDataToActualBytes(encodedBurnLogs[i].data)
         .decodeCctpTokenBurnMessageStructMem();
   }}
 

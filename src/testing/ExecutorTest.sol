@@ -35,7 +35,15 @@ library QuoteLib {
     uint64 expiryTime,
     bytes memory data
   ) internal pure returns (bytes memory) {
-    return abi.encodePacked(QUOTE_PREFIX_V1, quoter, payee, srcChain, dstChain, expiryTime, data);
+    return abi.encodePacked(
+      prefix,
+      quoter,
+      toUniversalAddress(payee),
+      srcChain,
+      dstChain,
+      expiryTime,
+      data
+    );
   }
 
   function encodeV1Quote(
@@ -73,7 +81,8 @@ struct ExecutionRequest {
   bytes        requestData;
   uint16       dstChain;
   bytes32      dstAddr;
-  bytes        associatedMsgPtr; //only the published message, not the VAA/attestation
+  //the IN MEMORY STRUCT REPRESENTATION, i.e. PublishedMessage or CctpTokenBurnMessage
+  bytes        associatedMsgPtr;
   uint256      gasLimit;
   uint256      msgVal;
   GasDropOff[] gasDropOffs;
@@ -154,33 +163,38 @@ abstract contract ExecutorTest is WormholeForkTest {
 
     selectFork(request.dstChain);
 
+    address callee;
     bytes memory funcCall;
     if (request.requestType == RequestLib.REQ_VAA_V1) {
       bytes memory vaa = coreBridge().sign(_asPublishedMessage(request.associatedMsgPtr)).encode();
 
+      callee = request.dstAddr.fromUniversalAddress();
       funcCall = abi.encodeCall(IVaaV1Receiver.executeVAAv1, (vaa));
-
       executionResult.attestedMsg = vaa;
-    }
-    else {
-      bytes memory cctpAttestation =
-        cctpMessageTransmitter().sign(_asCctpTokenBurnMessage(request.associatedMsgPtr));
 
-      cctpMessageTransmitter().receiveMessage(request.associatedMsgPtr, cctpAttestation);
+    }
+    else { //must be REQ_CCTP_V1
+      CctpTokenBurnMessage memory cctpBurnMsg = _asCctpTokenBurnMessage(request.associatedMsgPtr);
+      bytes memory cctpAttestation = cctpMessageTransmitter().sign(cctpBurnMsg);
+      bytes memory cctpEncodedMsg = cctpBurnMsg.encode();
+
+      callee = address(cctpMessageTransmitter());
       funcCall = abi.encodeCall(
         IMessageTransmitter.receiveMessage,
-        (request.associatedMsgPtr, cctpAttestation)
+        (cctpEncodedMsg, cctpAttestation)
       );
-
-      executionResult.attestedMsg = abi.encode(request.associatedMsgPtr, cctpAttestation);
+      executionResult.attestedMsg = abi.encode(cctpEncodedMsg, cctpAttestation);
     }
+
+    if (callee.code.length == 0)
+      revert("Callee has no code");
 
     vm.recordLogs();
 
     (executionResult.success, executionResult.data) = address(this).call(
       abi.encodeCall(
         this.callAndMaybeDropOff,
-        ( request.dstAddr.fromUniversalAddress(),
+        ( callee,
           funcCall,
           request.gasLimit != 0 ? request.gasLimit : type(uint128).max,
           request.msgVal,
@@ -248,7 +262,7 @@ abstract contract ExecutorTest is WormholeForkTest {
       (requestData, offset) = requestBytes.sliceMemUnchecked(requestDataOffset, requestDataSize);
 
       (uint gasLimit, uint msgVal, GasDropOff[] memory gasDropOffs) =
-        decodeRelayInstructions(relayInstructions);
+        _decodeRelayInstructions(relayInstructions);
 
       requests[i] = ExecutionRequest(
         requestType,
@@ -341,7 +355,7 @@ abstract contract ExecutorTest is WormholeForkTest {
     revert("Failed to find CCTP Message");
   }
 
-  function decodeRelayInstructions(
+  function _decodeRelayInstructions(
     bytes memory encoded
   ) private pure returns (
     uint totalGasLimit,
@@ -359,7 +373,8 @@ abstract contract ExecutorTest is WormholeForkTest {
         (msgVal,   offset) = encoded.asUint128MemUnchecked(offset);
         totalGasLimit += gasLimit;
         totalMsgVal   += msgVal;
-      } else if (instructionType == RelayInstructionLib.RECV_INST_TYPE_DROP_OFF) {
+      }
+      else if (instructionType == RelayInstructionLib.RECV_INST_TYPE_DROP_OFF) {
         offset += 48; // 16 dropOff amount + 32 universal recipient
         ++dropoffRequests;
       }
@@ -381,7 +396,7 @@ abstract contract ExecutorTest is WormholeForkTest {
         else {
           //must be RECV_INST_TYPE_DROP_OFF
           uint dropOff; bytes32 recipient;
-          (dropOff,   offset) = encoded.asUint256MemUnchecked(offset);
+          (dropOff,   offset) = encoded.asUint128MemUnchecked(offset);
           (recipient, offset) = encoded.asBytes32MemUnchecked(offset);
           uint i = 0;
           for (; i < uniqueRecipientCount; ++i)
