@@ -104,25 +104,33 @@ contract TestBytesParsing is Test {
 
   uint constant BASEWORD = 0x0101010101010101010101010101010101010101010101010101010101010101;
 
-  function largeBytes() private pure returns (bytes memory data) {
-    data = new bytes(256 * WORD_SIZE);
-    for (uint i = 1; i < 256; ++i)
-      assembly ("memory-safe") { mstore(add(data, mul(add(i,1),WORD_SIZE)), mul(i, BASEWORD)) }
+  function constructBytes(uint256 length, uint256 extraBytes) private pure returns (bytes memory data) {
+    // Assume the extraBytes are already bound to range 0..WORD_SIZE_MINUS_ONE
+    data = new bytes(length * WORD_SIZE + extraBytes);
+    for (uint i = 0; i < length; ++i)
+      assembly ("memory-safe") { mstore(add(data, mul(add(i,1),WORD_SIZE)), mul(add(i,1), BASEWORD)) }
+    // store extra bytes at the end
+    assembly ("memory-safe") { mstore(add(data, mul(add(length,1),WORD_SIZE)), and(BASEWORD, shl(mul(sub(WORD_SIZE, extraBytes), 8), not(0)))) }
   }
 
   /// forge-config: default.fuzz.runs = 20
-  function testFuzzLargeBytes(uint word, uint shift) public {
-    bytes memory data = largeBytes();
-    assertEq(data.length, 256*WORD_SIZE, "wrong size");
-    word = bound(word, 0, WORD_SIZE_MINUS_ONE);
-    shift = bound(word, 0, WORD_SIZE_MINUS_ONE);
-    (uint result, ) = data.asUint256MemUnchecked(word*WORD_SIZE + shift);
-    assertEq(result, (word*BASEWORD << 8*shift) + ((word+1)*BASEWORD >> 8*(WORD_SIZE-shift)));
+  function testFuzzBytes(uint length, uint shift) public {
+    uint256 extraBytes = bound(length, 0, WORD_SIZE_MINUS_ONE);
+    length = bound(length, 1, 256);
+    shift = bound(shift, 0, length-1);
+    bytes memory data = constructBytes(length, extraBytes);
+    assertEq(data.length, length*WORD_SIZE + extraBytes, "wrong size");
+    (uint result, ) = data.asUint256MemUnchecked(shift);
+    uint wordIndex = shift / WORD_SIZE + 1;  // +1 because constructBytes stores (i+1)*BASEWORD
+    uint byteOffset = shift % WORD_SIZE;
+    assertEq(result, (wordIndex * BASEWORD << 8*byteOffset) + ((wordIndex+1) * BASEWORD >> 8*(WORD_SIZE-byteOffset)));
   }
 
   /// forge-config: default.fuzz.runs = 1000
-  function testFuzzSlice(uint offset, uint size, bool cd, bool checked) public {
-    bytes memory data = largeBytes();
+  function testFuzzSlice(uint256 length, uint offset, uint size, bool cd, bool checked) public {
+    uint256 extraBytes = bound(length, 0, WORD_SIZE_MINUS_ONE);
+    length = bound(length, 1, 256);
+    bytes memory data = constructBytes(length, extraBytes);
     offset = bound(offset, 0, data.length);
     //we increase the upper bound of size by 25 % beyond what can be correctly read
     //  hence resulting in an out of bounds error 20% of the time
@@ -155,13 +163,16 @@ contract TestBytesParsing is Test {
 
   /// forge-config: default.fuzz.runs = 1000
   function testFuzzPrefixedSlice(
+    uint length,
     uint offset,
     uint size,
     uint prefixSize,
     bool cd,
     bool checked
   ) public {
-    bytes memory data = largeBytes();
+    uint256 extraBytes = bound(length, 0, WORD_SIZE_MINUS_ONE);
+    length = bound(length, 4, 256); // ensure we have enough bytes for the prefix
+    bytes memory data = constructBytes(length, extraBytes);
     prefixSize = 2**bound(prefixSize, 0, 2); //=1, 2, 4
     offset = bound(offset, 0, data.length-prefixSize);
     //we increase the upper bound of size by 25 % beyond what can be correctly read
