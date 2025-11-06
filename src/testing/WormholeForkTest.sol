@@ -48,6 +48,16 @@ struct Fork {
   ITokenMessenger cctpTokenMessenger;
 }
 
+struct AttestedMessages {
+  Vaa[] vaas;
+  AttestedCctpBurnMessage[] attestedCctpBurnMsgs;
+}
+
+struct AttestedCctpBurnMessage {
+  CctpTokenBurnMessage cctpBurnMsg;
+  bytes attestation;
+}
+
 abstract contract WormholeForkTest is Test {
   using WormholeOverride for ICoreBridge;
   using CctpOverride for IMessageTransmitter;
@@ -181,26 +191,55 @@ abstract contract WormholeForkTest is Test {
     }
   }
 
-  function fetchEncodedVaa() internal virtual returns (bytes memory) {
+  //convenience function for common use case
+  function fetchEncodedVaa() internal virtual returns (bytes memory encodedVaa) {
     return fetchEncodedVaa(vm.getRecordedLogs());
   }
 
-  function fetchEncodedVaa(Vm.Log[] memory logs) internal view virtual returns (bytes memory) {
-    return coreBridge().sign(
-      coreBridge().fetchPublishedMessages(logs)[0]
-    ).encode();
-  }
-
-  function fetchEncodedBurnMessageAndAttestation(
-  ) internal virtual returns (bytes memory encodedBurnMessage, bytes memory attestation) {
-    return fetchEncodedBurnMessageAndAttestation(vm.getRecordedLogs());
-  }
-
-  function fetchEncodedBurnMessageAndAttestation(
+  function fetchEncodedVaa(
     Vm.Log[] memory logs
-  ) internal view virtual returns (bytes memory encodedBurnMessage, bytes memory attestation) {
-    CctpTokenBurnMessage memory burnMessage = cctpMessageTransmitter().fetchBurnMessages(logs)[0];
-    return (burnMessage.encode(), cctpMessageTransmitter().sign(burnMessage));
+  ) internal view virtual returns (bytes memory encodedVaa) {
+    PublishedMessage[] memory pms = coreBridge().fetchPublishedMessages(logs);
+    assert(pms.length > 0);
+    return coreBridge().sign(pms[0]).encode();
+  }
+
+  //fetches and signs all published messages of the CoreBridge
+  function fetchVaas() internal virtual returns (Vaa[] memory) {
+    return fetchVaas(vm.getRecordedLogs());
+  }
+
+  function fetchVaas(Vm.Log[] memory logs) internal view virtual returns (Vaa[] memory vaas) {
+    PublishedMessage[] memory pms = coreBridge().fetchPublishedMessages(logs);
+    vaas = new Vaa[](pms.length);
+    for (uint i = 0; i < pms.length; ++i)
+      vaas[i] = coreBridge().sign(pms[i]);
+  }
+
+  //fetches and signs all emitted messages (CoreBridge + CCTP)
+  //returning a single struct rather than multiple arrays for future extensibility
+  function fetchAttestedMessages() internal virtual returns (AttestedMessages memory) {
+    return fetchAttestedMessages(vm.getRecordedLogs());
+  }
+
+  function fetchAttestedMessages(
+    Vm.Log[] memory logs
+  ) internal view virtual returns (AttestedMessages memory attestedMessages) {
+    attestedMessages.vaas = fetchVaas(logs);
+    attestedMessages.attestedCctpBurnMsgs = fetchAttestedCctpBurnMessages(logs);
+  }
+
+  //fetches and signs all CCTP burn messages
+  function fetchAttestedCctpBurnMessages(
+    Vm.Log[] memory logs
+  ) internal view virtual returns (AttestedCctpBurnMessage[] memory attestedCctpBurnMsgs) {
+    CctpTokenBurnMessage[] memory cctpBurnMsgs = cctpMessageTransmitter().fetchBurnMessages(logs);
+    attestedCctpBurnMsgs = new AttestedCctpBurnMessage[](cctpBurnMsgs.length);
+    for (uint i = 0; i < cctpBurnMsgs.length; ++i)
+      attestedCctpBurnMsgs[i] = AttestedCctpBurnMessage(
+        cctpBurnMsgs[i],
+        cctpMessageTransmitter().sign(cctpBurnMsgs[i])
+      );
   }
 
   // -- more low-level stuff --
