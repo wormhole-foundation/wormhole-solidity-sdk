@@ -7,7 +7,7 @@ import {ITokenMessenger} from "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol"
 import {
   CHAIN_ID_ETHEREUM,
   CHAIN_ID_BASE,
-  CHAIN_ID_AVALANCHE
+  CHAIN_ID_POLYGON
 } from "wormhole-sdk/constants/Chains.sol";
 import {CONSISTENCY_LEVEL_FINALIZED} from "wormhole-sdk/constants/ConsistencyLevel.sol";
 import {
@@ -240,7 +240,7 @@ contract ExecutorDemoIntegrationTest is ExecutorTest {
   constructor() {
     chains.push(CHAIN_ID_ETHEREUM);
     chains.push(CHAIN_ID_BASE);
-    chains.push(CHAIN_ID_AVALANCHE);
+    chains.push(CHAIN_ID_POLYGON);
   }
 
   function setUp() public override {

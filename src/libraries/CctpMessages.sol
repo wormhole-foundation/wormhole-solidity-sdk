@@ -625,7 +625,7 @@ library CctpMessageLib {
     uint offset
   ) internal pure returns (CctpTokenBurnMessage memory message, uint newOffset) {
     (message.header, offset) = decodeCctpHeaderStructMemUnchecked(encoded, offset);
-    (message.body,   offset) = decodeCctpTokenBurnBodyStructMemUnchecked(encoded, newOffset);
+    (message.body,   offset) = decodeCctpTokenBurnBodyStructMemUnchecked(encoded, offset);
     newOffset = offset;
   }
 
