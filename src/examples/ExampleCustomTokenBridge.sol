@@ -12,12 +12,19 @@ contract ExampleCustomTokenBridge {
     using SafeERC20 for IERC20;
     using BytesParsing for bytes;
 
+    // See https://wormhole.com/docs/products/reference/consistency-levels/
     uint8 public constant consistencyLevel = 1; // finalized
 
-    // Source code: see https://github.com/wormhole-foundation/wormhole/blob/main/ethereum/contracts/Implementation.sol
+    // Wormhole token bridge contract
+    // Source code: https://github.com/wormhole-foundation/wormhole/blob/main/ethereum/contracts/Implementation.sol
     ICoreBridge public coreBridge;
+
+    // The token address
     IERC20 public token;
+    
+    /// Owner of this contract
     address public owner;
+
     mapping(uint16 => bytes32) public peers;
 
     constructor(address coreBridgeAddress, address tokenAddress, address ownerAddress) {
@@ -60,8 +67,8 @@ contract ExampleCustomTokenBridge {
 
         // Perform replay protection
         // We can safely use sequence-based replay protection here because we are using the finalized consistency level
-        // DO NOT use sequence-based replay protection for VAAs with non-finalized consistency levels!
-        // This function will revert if the VAA has already been processed
+        // NOTE: DO NOT use sequence-based replay protection for VAAs with non-finalized consistency levels!
+        // This function will revert if the VAA has already been processed/consumed
         SequenceReplayProtectionLib.replayProtect(
             emitterChainId,
             emitterAddress,
@@ -74,10 +81,12 @@ contract ExampleCustomTokenBridge {
         uint256 offset = 0;
         address to;
         uint256 amount;
+        
         // We use the unchecked variant here, but it's important we check the offset once we're done parsing to ensure
         // we consumed the entire payload
         (to, offset) = payload.asAddressMemUnchecked(offset);
         (amount, offset) = payload.asUint256MemUnchecked(offset);
+
         // This check is critical when using unchecked parsing
         // It's more gas efficient if we're performing multiple parsing operations in succession
         BytesParsing.checkLength(payload.length, offset);
