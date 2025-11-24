@@ -21,13 +21,17 @@ contract ExampleCustomTokenBridge {
 
     // The token address
     IERC20 public token;
-    
+
     /// Owner of this contract
     address public owner;
 
     mapping(uint16 => bytes32) public peers;
 
-    constructor(address coreBridgeAddress, address tokenAddress, address ownerAddress) {
+    constructor(
+        address coreBridgeAddress,
+        address tokenAddress,
+        address ownerAddress
+    ) {
         coreBridge = ICoreBridge(coreBridgeAddress);
         token = IERC20(tokenAddress);
         owner = ownerAddress;
@@ -35,8 +39,10 @@ contract ExampleCustomTokenBridge {
 
     // Entry point for users to send tokens from this chain (source chain) to destination chain
     function sendToken(address to, uint256 amount) external payable {
+        uint256 wormholeFee = coreBridge.messageFee();
+
         // require users to pay Wormhole fee
-        require(msg.value == coreBridge.messageFee(), "invalid fee");
+        require(msg.value == wormholeFee, "invalid fee");
 
         // The SafeERC20 ibrary function can be used exactly as the OZ equivalent
         token.safeTransferFrom(msg.sender, address(this), amount);
@@ -44,7 +50,11 @@ contract ExampleCustomTokenBridge {
         // Construct the payload for the token transfer message
         bytes memory payload = abi.encodePacked(to, amount);
 
-        coreBridge.publishMessage{value: coreBridge.messageFee()}(0, payload, consistencyLevel);
+        coreBridge.publishMessage{value: wormholeFee}(
+            0,
+            payload,
+            consistencyLevel
+        );
     }
 
     // Entry point when we receive a cross-chain message from other chains
@@ -52,18 +62,23 @@ contract ExampleCustomTokenBridge {
         // First we need to parse and verify the VAA
         // CoreBridgeLib.decodeAndVerifyVaaMem will do this for us
         // It is functionalty equivalent to calling parseAndVerifyVM on the core bridge contract
-        ( 
-            , //timestamp is ignored
-            , //nonce is ignored
-            uint16  emitterChainId,
+        (
+            ,
+            ,
+            //timestamp is ignored
+            //nonce is ignored
+            uint16 emitterChainId,
             bytes32 emitterAddress,
-            uint64  sequence,
-            , //consistencyLevel is ignored as we know the peers are using finalized
+            uint64 sequence, //consistencyLevel is ignored as we know the peers are using finalized
+            ,
             bytes memory payload
         ) = CoreBridgeLib.decodeAndVerifyVaaMem(address(coreBridge), vaa);
 
         // Check that the emitter is a known peer
-        require(peers[emitterChainId] == bytes32(emitterAddress), "Unknown peer");
+        require(
+            peers[emitterChainId] == bytes32(emitterAddress),
+            "Unknown peer"
+        );
 
         // Perform replay protection
         // We can safely use sequence-based replay protection here because we are using the finalized consistency level
@@ -81,16 +96,15 @@ contract ExampleCustomTokenBridge {
         uint256 offset = 0;
         address to;
         uint256 amount;
-        
-        // We use the unchecked variant here, but it's important we check the offset once we're done parsing to ensure
-        // we consumed the entire payload
+
+        // We use the unchecked variant here, but it's important we check the offset via `checkLength` once we're done parsing to ensure we consumed the entire payload
         (to, offset) = payload.asAddressMemUnchecked(offset);
         (amount, offset) = payload.asUint256MemUnchecked(offset);
 
-        // This check is critical when using unchecked parsing
-        // It's more gas efficient if we're performing multiple parsing operations in succession
+        // This check is critical when using unchecked parsing (`asAddressMemUnchecked` & `asUint256MemUnchecked`) because `checkLength` will ensure that the encoded length and expected length are the same
+        // Also, it's more gas efficient if we're performing multiple parsing operations in succession
         BytesParsing.checkLength(payload.length, offset);
-        
+
         // Finally we can transfer the tokens to the recipient
         // Again, this is functionally equivalent to the OZ SafeERC20 library
         // Here we assume the contract has enough balance to cover the transfer, but a real implementation
