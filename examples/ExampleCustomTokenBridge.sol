@@ -74,10 +74,11 @@ contract ExampleCustomTokenBridge {
             bytes memory payload
         ) = CoreBridgeLib.decodeAndVerifyVaaMem(address(coreBridge), vaa);
 
-        // Check that the emitter is a known peer
+        // Ensure that the contract that emits the message is our trusted contract on the source chain
+        // See the `setPeer` function for more context
         require(
             peers[emitterChainId] == bytes32(emitterAddress),
-            "Unknown peer"
+            "Incorrect peer/emitter from source chain"
         );
 
         // Perform replay protection
@@ -112,8 +113,15 @@ contract ExampleCustomTokenBridge {
         token.safeTransfer(to, amount);
     }
 
+    // Owner updates the peer address so we are only accepting messages emitted by trusted contracts from other chains
+    // This is important to ensure we are not listening to a faulty contract that tries to mint valuable tokens on the destination chain
+    // If you come from web2 security, think Insecure Direct Object Reference (IDOR) attack
+    // See https://wormhole.com/docs/products/messaging/guides/core-contracts/#validating-the-emitter
     function setPeer(uint16 chainId, bytes32 peerAddress) external {
-        require(msg.sender == owner, "Only owner can set peers");
+        require(
+            msg.sender == owner,
+            "Only owner can set peers from other chains"
+        );
         peers[chainId] = peerAddress;
     }
 }
