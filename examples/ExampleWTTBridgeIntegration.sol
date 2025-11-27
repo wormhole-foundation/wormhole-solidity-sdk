@@ -66,7 +66,8 @@ contract ExampleWTTBridgeIntegration {
         uint256 sentAmount = msg.value;
         uint256 feeAmount = calculateFee(sentAmount);
 
-        payable(feeRecipient).transfer(feeAmount);
+        (bool success, ) = feeRecipient.call{value: feeAmount}("");
+        require(success);
 
         // Calculate remaining amount
         uint256 remainingAmount = sentAmount - feeAmount;
@@ -90,7 +91,8 @@ contract ExampleWTTBridgeIntegration {
         // refund dust
         uint dust = leftoverAmount - deNormalizeAmount(normalizedAmount, 18);
         if (dust > 0) {
-            payable(msg.sender).transfer(dust);
+            (bool success, ) = msg.sender.call{value: dust}("");
+            require(success);
         }
 
         tokenBridge.wrapAndTransferETH{value: remainingAmount - dust}(
@@ -114,7 +116,8 @@ contract ExampleWTTBridgeIntegration {
         uint256 sentAmount = msg.value;
         uint256 feeAmount = calculateFee(sentAmount);
 
-        payable(feeRecipient).transfer(feeAmount);
+        (bool success, ) = feeRecipient.call{value: feeAmount}("");
+        require(success);
 
         // calculate remaining amount
         uint256 remainingAmount = sentAmount - feeAmount;
@@ -133,7 +136,8 @@ contract ExampleWTTBridgeIntegration {
         // refund dust
         uint dust = leftoverAmount - deNormalizeAmount(normalizedAmount, 18);
         if (dust > 0) {
-            payable(msg.sender).transfer(dust);
+            (bool success, ) = msg.sender.call{value: dust}("");
+            require(success);
         }
 
         tokenBridge.wrapAndTransferETHWithPayload{
