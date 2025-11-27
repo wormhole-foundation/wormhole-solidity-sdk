@@ -72,35 +72,20 @@ contract ExampleWTTBridgeIntegration {
         // Calculate remaining amount
         uint256 remainingAmount = sentAmount - feeAmount;
 
-        // Handle case where a potential refund might occur in https://github.com/wormhole-foundation/wormhole/blob/c3301db8978fedf1f8ea2819d076871e435e2492/ethereum/contracts/bridge/Bridge.sol#L129-L144
-        // We dont want the funds be stuck in the contract, so we refund to the caller
-        // See https://github.com/wormhole-foundation/wormhole/blob/c3301db8978fedf1f8ea2819d076871e435e2492/ethereum/contracts/bridge/Bridge.sol#L83
-
-        uint wormholeFee = coreBridge.messageFee();
-        require(
-            wormholeFee < remainingAmount,
-            "remaining amount is smaller than wormhole fee"
-        );
-        uint leftoverAmount = remainingAmount - wormholeFee;
-
-        require(
-            arbiterFee <= leftoverAmount,
-            "arbiter fee is bigger than leftover amount minus wormhole fee"
-        );
-        uint normalizedAmount = normalizeAmount(leftoverAmount, 18);
-        // refund dust
-        uint dust = leftoverAmount - deNormalizeAmount(normalizedAmount, 18);
-        if (dust > 0) {
-            (bool success, ) = msg.sender.call{value: dust}("");
-            require(success);
-        }
-
-        tokenBridge.wrapAndTransferETH{value: remainingAmount - dust}(
+        tokenBridge.wrapAndTransferETH{value: remainingAmount}(
             recipientChain,
             recipient,
             arbiterFee,
             nonce
         );
+
+        // refund potential dust to caller
+        // See https://github.com/wormhole-foundation/wormhole/blob/c3301db8978fedf1f8ea2819d076871e435e2492/ethereum/contracts/bridge/Bridge.sol#L129-L144 and https://github.com/wormhole-foundation/wormhole/blob/c3301db8978fedf1f8ea2819d076871e435e2492/ethereum/contracts/bridge/Bridge.sol#L83
+        uint balance = address(this).balance;
+        if (balance > 0) {
+            (bool refundSuccess, ) = msg.sender.call{value: balance}("");
+            require(refundSuccess);
+        }
     }
 
     // Entry point for transferring ETH with payload
@@ -122,27 +107,20 @@ contract ExampleWTTBridgeIntegration {
         // calculate remaining amount
         uint256 remainingAmount = sentAmount - feeAmount;
 
-        // Handle case where a potential refund might occur in https://github.com/wormhole-foundation/wormhole/blob/c3301db8978fedf1f8ea2819d076871e435e2492/ethereum/contracts/bridge/Bridge.sol#L129-L144
-        // We dont want the funds be stuck in the contract, so we refund to the caller
-        // See https://github.com/wormhole-foundation/wormhole/blob/c3301db8978fedf1f8ea2819d076871e435e2492/ethereum/contracts/bridge/Bridge.sol#L115
-
-        uint wormholeFee = coreBridge.messageFee();
-        require(
-            wormholeFee < remainingAmount,
-            "remaining amount is smaller than wormhole fee"
+        tokenBridge.wrapAndTransferETHWithPayload{value: remainingAmount}(
+            recipientChain,
+            recipient,
+            nonce,
+            payload
         );
-        uint leftoverAmount = remainingAmount - wormholeFee;
-        uint normalizedAmount = normalizeAmount(leftoverAmount, 18);
-        // refund dust
-        uint dust = leftoverAmount - deNormalizeAmount(normalizedAmount, 18);
-        if (dust > 0) {
-            (bool success, ) = msg.sender.call{value: dust}("");
-            require(success);
-        }
 
-        tokenBridge.wrapAndTransferETHWithPayload{
-            value: remainingAmount - dust
-        }(recipientChain, recipient, nonce, payload);
+        // refund potential dust to caller
+        // See https://github.com/wormhole-foundation/wormhole/blob/c3301db8978fedf1f8ea2819d076871e435e2492/ethereum/contracts/bridge/Bridge.sol#L129-L144 and https://github.com/wormhole-foundation/wormhole/blob/c3301db8978fedf1f8ea2819d076871e435e2492/ethereum/contracts/bridge/Bridge.sol#L115
+        uint balance = address(this).balance;
+        if (balance > 0) {
+            (bool refundSuccess, ) = msg.sender.call{value: balance}("");
+            require(refundSuccess);
+        }
     }
 
     // Entry point for transferring tokens without payload (i.e., a simple token transfer)
