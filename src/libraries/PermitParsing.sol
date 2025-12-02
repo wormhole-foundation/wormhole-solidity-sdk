@@ -337,7 +337,7 @@ library PermitParsing {
     uint256 amount,
     uint256 nonce,
     uint256 sigDeadline,
-    bytes memory signature
+    bytes calldata signature
   ) {
     uint offset = 0;
     (amount, nonce, sigDeadline, signature, offset) =
@@ -362,7 +362,7 @@ library PermitParsing {
     uint256 amount,
     uint256 nonce,
     uint256 sigDeadline,
-    bytes memory signature,
+    bytes calldata signature,
     uint    newOffset
   ) {
     (amount,      offset) = params.asUint256CdUnchecked(offset);
@@ -392,8 +392,10 @@ library PermitParsing {
     uint256 sigDeadline,
     bytes memory signature
   ) {
-    (amount, nonce, sigDeadline, signature, ) =
-      decodePermit2TransferMemUnchecked(params, 0);
+    uint offset = 0;
+    (amount, nonce, sigDeadline, signature, offset) =
+      decodePermit2TransferMemUnchecked(params, offset);
+    params.length.checkLength(offset);
   }
 
   function decodePermit2TransferStructMem(
