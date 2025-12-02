@@ -78,14 +78,6 @@ import {
 // │    uint32   │ schnorrKeyIndex  │ which (collective) Guardian Schnorr key signed the VAA       │
 // │   bytes20   │ r                │ Schnorr r value                                              │
 // │   bytes32   │ s                │ Schnorr s value                                              │
-// ┝━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┥
-// │        ECDSA Header                                                                           │
-// ├─────────────┬──────────────────┬──────────────────────────────────────────────────────────────┤
-// │    uint8    │ version          │ fixed value of 3 (see VERSION_ECDSA)                         │
-// │    uint32   │ ecdsaKeyIndex    │ which (collective) Guardian ECDSA key signed the VAA         │
-// │   bytes32   │ r                │ ECDSA r value                                                │
-// │   bytes32   │ s                │ ECDSA s value                                                │
-// │    uint8    │ v                │ encoded: 0/1, decoded: 27/28, see SIGNATURE_RECOVERY_MAGIC   │
 // ╰─────────────┴──────────────────┴──────────────────────────────────────────────────────────────╯
 //
 // ### VAA Body
@@ -93,7 +85,7 @@ import {
 // ╭─────────────┬──────────────────┬──────────────────────────────────────────────────────────────╮
 // │    Type     │       Name       │     Description                                              │
 // ┝━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┥
-// │           Header (MultiSig, Schnorr, or ECDSA)                                                │
+// │           Header (MultiSig or Schnorr)                                                        │
 // ┝━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┥
 // │          Envelope                                                                             │
 // ├─────────────┬──────────────────┬──────────────────────────────────────────────────────────────┤
@@ -146,7 +138,7 @@ import {
 //   decodeVaaEnvelope          │
 //   decodeVaaPayload           │
 //   decodeVaaBody              │ decodes the envelope and payload
-//   decodeVaa<Type>            │ decodes the expected VAA type (Type = MultiSig, Schnorr, or ECDSA)
+//   decodeVaa<Type>            │ decodes the expected VAA type (Type = MultiSig or Schnorr)
 //   decodeVaaAttestation<Type> │ decodes the attestation alone
 //   decodeVmStruct             │ decodes a legacy VM struct (no non-struct flavor available)
 //   checkVaaVersion            │
@@ -213,13 +205,6 @@ struct VaaAttestationSchnorr {
   bytes32 s;
 }
 
-struct VaaAttestationEcdsa {
-  uint32  ecdsaKeyIndex;
-  bytes32 r;
-  bytes32 s;
-  uint8   v;
-}
-
 struct VaaMultiSig {
   VaaAttestationMultiSig attestation;
   VaaEnvelope            envelope;
@@ -228,12 +213,6 @@ struct VaaMultiSig {
 
 struct VaaSchnorr {
   VaaAttestationSchnorr  attestation;
-  VaaEnvelope            envelope;
-  bytes                  payload;
-}
-
-struct VaaEcdsa {
-  VaaAttestationEcdsa    attestation;
   VaaEnvelope            envelope;
   bytes                  payload;
 }
@@ -250,7 +229,6 @@ library VaaLib {
 
   uint8 public constant VERSION_MULTISIG = 1;
   uint8 public constant VERSION_SCHNORR  = 2;
-  uint8 public constant VERSION_ECDSA    = 3;
 
   // ------------ Offsets (provided for more eclectic, manual parsing) ------------
 
@@ -297,7 +275,7 @@ library VaaLib {
   uint internal constant SCHNORR_KEY_INDEX_SIZE   = 4;
 
   uint internal constant SCHNORR_R_OFFSET = SCHNORR_KEY_INDEX_OFFSET + SCHNORR_KEY_INDEX_SIZE;
-  uint internal constant SCHNORR_R_SIZE   = 32;
+  uint internal constant SCHNORR_R_SIZE   = 20;
 
   uint internal constant SCHNORR_S_OFFSET = SCHNORR_R_OFFSET + SCHNORR_R_SIZE;
   uint internal constant SCHNORR_S_SIZE   = 32;
@@ -306,24 +284,6 @@ library VaaLib {
     SCHNORR_KEY_INDEX_SIZE + SCHNORR_R_SIZE + SCHNORR_S_SIZE;
 
   uint internal constant SCHNORR_ENVELOPE_OFFSET = SCHNORR_S_OFFSET + SCHNORR_S_SIZE;
-
-  //ECDSA Attestation
-  uint internal constant ECDSA_KEY_INDEX_OFFSET = HEADER_ATTESTATION_OFFSET;
-  uint internal constant ECDSA_KEY_INDEX_SIZE   = 4;
-
-  uint internal constant ECDSA_R_OFFSET = ECDSA_KEY_INDEX_OFFSET + ECDSA_KEY_INDEX_SIZE;
-  uint internal constant ECDSA_R_SIZE   = 20;
-
-  uint internal constant ECDSA_S_OFFSET = ECDSA_R_OFFSET + ECDSA_R_SIZE;
-  uint internal constant ECDSA_S_SIZE   = 32;
-
-  uint internal constant ECDSA_V_OFFSET = ECDSA_S_OFFSET + ECDSA_S_SIZE;
-  uint internal constant ECDSA_V_SIZE   = 1;
-
-  uint internal constant ECDSA_SIZE =
-    ECDSA_KEY_INDEX_SIZE + ECDSA_R_SIZE + ECDSA_S_SIZE + ECDSA_V_SIZE;
-
-  uint internal constant ECDSA_ENVELOPE_OFFSET = ECDSA_V_OFFSET + ECDSA_V_SIZE;
 
   //VAA Envelope/Body
   uint internal constant ENVELOPE_TIMESTAMP_OFFSET = 0;
@@ -592,38 +552,6 @@ library VaaLib {
       decodeVaaAttestationSchnorrMem(encodedAttestation);
   }
 
-  function decodeVaaAttestationEcdsaCd(
-    bytes calldata encodedAttestation
-  ) internal pure returns (uint32 ecdsaKeyIndex, bytes32 r, bytes32 s, uint8 v) {
-    uint offset;
-    (ecdsaKeyIndex, r, s, v, offset) =
-      decodeVaaAttestationEcdsaCdUnchecked(encodedAttestation, 0);
-
-    encodedAttestation.length.checkLength(offset);
-  }
-
-  function decodeVaaAttestationEcdsaMem(
-    bytes memory encodedAttestation
-  ) internal pure returns (uint32 ecdsaKeyIndex, bytes32 r, bytes32 s, uint8 v) {
-    uint offset;
-    (ecdsaKeyIndex, r, s, v, offset) =
-      decodeVaaAttestationEcdsaMemUnchecked(encodedAttestation, 0);
-  }
-
-  function decodeVaaAttestationEcdsaStructCd(
-    bytes calldata encodedAttestation
-  ) internal pure returns (VaaAttestationEcdsa memory attestation) {
-    (attestation.ecdsaKeyIndex, attestation.r, attestation.s, attestation.v) =
-      decodeVaaAttestationEcdsaCd(encodedAttestation);
-  }
-
-  function decodeVaaAttestationEcdsaStructMem(
-    bytes memory encodedAttestation
-  ) internal pure returns (VaaAttestationEcdsa memory attestation) {
-    (attestation.ecdsaKeyIndex, attestation.r, attestation.s, attestation.v) =
-      decodeVaaAttestationEcdsaMem(encodedAttestation);
-  }
-
   // - Attestation specific VAAs
 
   function decodeVaaMultiSigStructCd(
@@ -654,21 +582,6 @@ library VaaLib {
     bytes memory encodedVaa
   ) internal pure returns (VaaSchnorr memory vaa) {
     (vaa, ) = decodeVaaSchnorrStructMemUnchecked(encodedVaa, 0, encodedVaa.length);
-  }
-
-  function decodeVaaEcdsaStructCd(
-    bytes calldata encodedVaa
-  ) internal pure returns (VaaEcdsa memory vaa) {
-    uint offset = checkVaaVersionCdUnchecked(VERSION_ECDSA, encodedVaa);
-    (vaa.attestation, offset) = decodeVaaAttestationEcdsaStructCdUnchecked(encodedVaa, offset);
-    (vaa.envelope,    offset) = decodeVaaEnvelopeStructCdUnchecked(encodedVaa, offset);
-    vaa.payload               = decodeVaaPayloadCd(encodedVaa, offset);
-  }
-
-  function decodeVaaEcdsaStructMem(
-    bytes memory encodedVaa
-  ) internal pure returns (VaaEcdsa memory vaa) {
-    (vaa, ) = decodeVaaEcdsaStructMemUnchecked(encodedVaa, 0, encodedVaa.length);
   }
 
   // ------------ Advanced Decoding Functions ------------
@@ -814,9 +727,6 @@ library VaaLib {
   function calcSingleHash(VaaSchnorr memory vaa) internal pure returns (bytes32) {
     return keccak256(abi.encodePacked(encode(vaa.envelope), vaa.payload));
   }
-  function calcSingleHash(VaaEcdsa memory vaa) internal pure returns (bytes32) {
-    return keccak256(abi.encodePacked(encode(vaa.envelope), vaa.payload));
-  }
   function calcSingleHash(VaaBody memory body) internal pure returns (bytes32) {
     return keccak256(encode(body));
   }
@@ -853,9 +763,6 @@ library VaaLib {
     return keccak256Word(calcSingleHash(vaa));
   }
   function calcDoubleHash(VaaSchnorr memory vaa) internal pure returns (bytes32) {
-    return keccak256Word(calcSingleHash(vaa));
-  }
-  function calcDoubleHash(VaaEcdsa memory vaa) internal pure returns (bytes32) {
     return keccak256Word(calcSingleHash(vaa));
   }
   function calcDoubleHash(VaaBody memory body) internal pure returns (bytes32) {
@@ -1098,18 +1005,6 @@ library VaaLib {
     newOffset = offset;
   }
 
-  function decodeVaaEcdsaStructMemUnchecked(
-    bytes memory encoded,
-    uint headerOffset,
-    uint vaaLength
-  ) internal pure returns (VaaEcdsa memory vaa, uint newOffset) {
-    uint offset = checkVaaVersionMemUnchecked(VERSION_ECDSA, encoded, headerOffset);
-    (vaa.attestation, offset) = decodeVaaAttestationEcdsaStructMemUnchecked(encoded, offset);
-    (vaa.envelope,    offset) = decodeVaaEnvelopeStructMemUnchecked(encoded, offset);
-    (vaa.payload,     offset) = decodeVaaPayloadMemUnchecked(encoded, offset, vaaLength);
-    newOffset = offset;
-  }
-
   // - Attestation MultiSig
 
   function decodeVaaAttestationMultiSigCdUnchecked(
@@ -1273,62 +1168,6 @@ library VaaLib {
       decodeVaaAttestationSchnorrMemUnchecked(encoded, attestationOffset);
   }
 
-  // - Attestation ECDSA
-
-  function decodeVaaAttestationEcdsaCdUnchecked(
-    bytes calldata encodedVaa,
-    uint attestationOffset
-  ) internal pure returns (
-    uint32  ecdsaKeyIndex,
-    bytes32 r,
-    bytes32 s,
-    uint8   v,
-    uint    newOffset
-  ) {  unchecked {
-    uint offset = attestationOffset;
-    (ecdsaKeyIndex, offset) = encodedVaa.asUint32CdUnchecked(offset);
-    (r,             offset) = encodedVaa.asBytes32CdUnchecked(offset);
-    (s,             offset) = encodedVaa.asBytes32CdUnchecked(offset);
-    (v,             offset) = encodedVaa.asUint8CdUnchecked(offset);
-    v += SIGNATURE_RECOVERY_MAGIC;
-    newOffset = offset;
-  }}
-
-  function decodeVaaAttestationEcdsaStructCdUnchecked(
-    bytes calldata encodedVaa,
-    uint attestationOffset
-  ) internal pure returns (VaaAttestationEcdsa memory header, uint envelopeOffset) {
-    (header.ecdsaKeyIndex, header.r, header.s, header.v, envelopeOffset) =
-      decodeVaaAttestationEcdsaCdUnchecked(encodedVaa, attestationOffset);
-  }
-
-  function decodeVaaAttestationEcdsaMemUnchecked(
-    bytes memory encoded,
-    uint attestationOffset
-  ) internal pure returns (
-    uint32 ecdsaKeyIndex,
-    bytes32 r,
-    bytes32 s,
-    uint8   v,
-    uint    newOffset
-  ) { unchecked {
-    uint offset = attestationOffset;
-    (ecdsaKeyIndex, offset) = encoded.asUint32MemUnchecked(offset);
-    (r,             offset) = encoded.asBytes32MemUnchecked(offset);
-    (s,             offset) = encoded.asBytes32MemUnchecked(offset);
-    (v,             offset) = encoded.asUint8MemUnchecked(offset);
-    v += SIGNATURE_RECOVERY_MAGIC;
-    newOffset = offset;
-  }}
-
-  function decodeVaaAttestationEcdsaStructMemUnchecked(
-    bytes memory encoded,
-    uint attestationOffset
-  ) internal pure returns (VaaAttestationEcdsa memory header, uint envelopeOffset) {
-    (header.ecdsaKeyIndex, header.r, header.s, header.v, envelopeOffset) =
-      decodeVaaAttestationEcdsaMemUnchecked(encoded, attestationOffset);
-  }
-
   // - Payload
 
   function decodeVaaPayloadCd(
@@ -1389,19 +1228,6 @@ library VaaLib {
 
   function encode(VaaAttestationSchnorr memory val) internal pure returns (bytes memory) {
     return encodeVaaAttestationSchnorr(val.schnorrKeyIndex, val.r, val.s);
-  }
-
-  function encodeVaaAttestationEcdsa(
-    uint32 ecdsaKeyIndex,
-    bytes32 r,
-    bytes32 s,
-    uint8 v
-  ) internal pure returns (bytes memory) {
-    return abi.encodePacked(ecdsaKeyIndex, r, s, v);
-  }
-
-  function encode(VaaAttestationEcdsa memory val) internal pure returns (bytes memory) {
-    return encodeVaaAttestationEcdsa(val.ecdsaKeyIndex, val.r, val.s, val.v);
   }
 
   function encodeVaaEnvelope(
@@ -1473,11 +1299,6 @@ library VaaLib {
     return abi.encodePacked(version, encode(vaa.attestation), encode(vaa.envelope), vaa.payload);
   }
 
-  function encode(VaaEcdsa memory vaa) internal pure returns (bytes memory) {
-    uint8 version = VERSION_ECDSA;
-    return abi.encodePacked(version, encode(vaa.attestation), encode(vaa.envelope), vaa.payload);
-  }
-
   function encode(CoreBridgeVM memory vm) internal pure returns (bytes memory) {
     checkVaaVersion(vm.version, VERSION_MULTISIG);
     return abi.encodePacked(
@@ -1513,8 +1334,6 @@ library VaaLib {
     }
     else if (version == VERSION_SCHNORR)
       attestationSize = SCHNORR_SIZE;
-    else if (version == VERSION_ECDSA)
-      attestationSize = ECDSA_SIZE;
     else
       revert UnexpectedVersion(version);
   }}
@@ -1538,8 +1357,6 @@ library VaaLib {
     }
     else if (version == VERSION_SCHNORR)
       attestationSize = SCHNORR_SIZE;
-    else if (version == VERSION_ECDSA)
-      attestationSize = ECDSA_SIZE;
     else
       revert UnexpectedVersion(version);
   }}
@@ -1563,8 +1380,6 @@ using VaaLib for VaaBody global;
 
 using VaaLib for VaaAttestationMultiSig global;
 using VaaLib for VaaAttestationSchnorr global;
-using VaaLib for VaaAttestationEcdsa global;
 
 using VaaLib for VaaMultiSig global;
 using VaaLib for VaaSchnorr global;
-using VaaLib for VaaEcdsa global;
