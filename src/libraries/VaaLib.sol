@@ -621,7 +621,7 @@ library VaaLib {
     uint offset
   ) internal pure returns (uint attestationOffset) {
     uint8 version;
-    (version, attestationOffset) = encoded.asUint8MemUnchecked(offset);
+    (version, attestationOffset) = decodeVaaVersionMemUnchecked(encoded, offset);
     checkVaaVersion(version, expectedVersion);
   }
 
