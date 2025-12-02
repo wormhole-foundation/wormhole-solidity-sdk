@@ -54,6 +54,9 @@ library PercentageLib {
       revert InvalidArguments(value, fractionalDigits);
 
     if (fractionalDigits == 0) {
+      if (value > MAX_MANTISSA) //prevents silent overflow of subsequent *= 10
+        revert InvalidArguments(value, fractionalDigits);
+
       value *= 10;
       fractionalDigits = 1;
     }
