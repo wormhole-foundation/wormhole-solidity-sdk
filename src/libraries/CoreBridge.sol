@@ -292,7 +292,7 @@ library CoreBridgeLib {
     return isVerifiedByQuorumMem(hash, guardianSignatures, guardians);
   }
 
-  //returns empty array if the guardian set is expired
+  //returns empty array if the guardian set is expired or does not exist
   //has more predictable gas costs (guaranteed to only do one external call)
   function getGuardiansOrEmpty(
     address coreBridge,
@@ -304,9 +304,12 @@ library CoreBridgeLib {
   }
 
   //returns associated guardian set or latest guardian set if the specified one is expired
+  //returns empty array if the guardian set does not exist
   //has more variable gas costs but has a chance of doing an ad-hoc "repair" of the VAA in case
-  //  the specified signatures are valid for the latest guardian set as well (about a 30 % chance
-  //  for the typical guardian set rotation where one guardian address gets replaced).
+  //  the specified signatures are valid for the latest guardian set as well.
+  //  (At least a 30 % chance for the typical guardian set rotation where one guardian gets
+  //  replaced by another, though likely higher, given that the departing guardian likely
+  //  stopped signing messages way before the actual rotation).
   function getGuardiansOrLatest(
     address coreBridge,
     uint32 guardianSetIndex
