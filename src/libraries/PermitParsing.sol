@@ -7,6 +7,84 @@ import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 // │ Library for decoding ERC2612 Permit and Permit2 signatures and metadata │
 // ╰─────────────────────────────────────────────────────────────────────────╯
 
+// # Purpose / Usage
+//
+// This library standardizes the format of the parameters that have to be passed
+//   to a contract so it can use a token permit to acquire tokens through one
+//   of the supported permit mechanisms.
+//
+// [ERC2612 Permit](https://eips.ethereum.org/EIPS/eip-2612)
+// [Uniswap Permit2](https://github.com/Uniswap/permit2)
+// [+ explanation](https://github.com/dragonfly-xyz/useful-solidity-patterns/tree/main/patterns/permit2)
+//
+// ## ERC2612 Permit Example Code
+//
+// ```
+// (uint256 value, uint256 deadline, bytes32 r, bytes32 s, uint8 v) =
+//   PermitParsing.decodePermitCd(data);
+//
+// //redeem permit and allow failure to prevent front-running griefing attacks
+// //  (i.e. getting permit from mempool and submitting it to the token contract directly)
+// try
+//   IERC20Permit(address(token)).permit(msg.sender, address(this), value, deadline, v, r, s) {}
+// catch {}
+//
+// finally, transfer the desired amount of tokens like normally:
+// SafeERC20.safeTransferFrom(token, msg.sender, address(this), amountToAcquire);
+// ```
+//
+// ## Permit2 Permit Example Code
+//
+// ```
+// ( uint160 amount,
+//   uint48 expiration,
+//   uint48 nonce,
+//   uint256 sigDeadline,
+//   bytes calldata signature
+// ) = PermitParsing.decodePermit2PermitCd(data);
+//
+// //allow failure to prevent front-running griefing attacks
+// try
+//   permit2.permit(
+//     msg.sender,
+//     IAllowanceTransfer.PermitSingle({
+//       details: IAllowanceTransfer.PermitDetails(
+//         address(token),
+//         amount,
+//         expiration,
+//         nonce
+//       ),
+//       spender: address(this),
+//       sigDeadline: sigDeadline
+//     }),
+//     signature
+//   ) {}
+// catch {}
+//
+// permit2.transferFrom(msg.sender, address(this), uint160(amountToAcquire), address(token));
+// ```
+//
+// ## Permit2 Transfer Example Code
+//
+// ```
+// (uint256 amount, uint256 nonce, uint256 sigDeadline, bytes calldata signature) =
+//   PermitParsing.decodePermit2TransferCd(data);
+//
+// permit2.permitTransferFrom(
+//   ISignatureTransfer.PermitTransferFrom({
+//     permitted: ISignatureTransfer.TokenPermissions(address(token), amount),
+//     nonce: nonce,
+//     deadline: sigDeadline
+//   }),
+//   ISignatureTransfer.SignatureTransferDetails({
+//     to: address(this),
+//     requestedAmount: finalTokenAmount
+//   }),
+//   msg.sender,
+//   signature
+// );
+// ```
+//
 // # Format
 //
 // ╭─────────┬─────────────┬───────────────────────────────────────────────────╮
@@ -46,9 +124,8 @@ import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 //     2.1. individual, stack-based return values (no extra tag)
 //     2.2. the associated, memory-allocated Struct (using the Struct tag)
 //
-// Like in BytesParsing, the Unchecked function name suffix does not refer to
-//   Solidity's `unchecked` keyword, but rather to the fact that no bounds checking
-//   is performed.
+// Like in BytesParsing, the unchecked function name suffix refers to the fact that
+//   no bounds checking is performed and unchecked math for offsets is used.
 //
 // Decoding functions flavorless base names:
 //   * decodePermit
@@ -337,7 +414,7 @@ library PermitParsing {
     uint256 amount,
     uint256 nonce,
     uint256 sigDeadline,
-    bytes memory signature
+    bytes calldata signature
   ) {
     uint offset = 0;
     (amount, nonce, sigDeadline, signature, offset) =
@@ -362,7 +439,7 @@ library PermitParsing {
     uint256 amount,
     uint256 nonce,
     uint256 sigDeadline,
-    bytes memory signature,
+    bytes calldata signature,
     uint    newOffset
   ) {
     (amount,      offset) = params.asUint256CdUnchecked(offset);
@@ -392,8 +469,10 @@ library PermitParsing {
     uint256 sigDeadline,
     bytes memory signature
   ) {
-    (amount, nonce, sigDeadline, signature, ) =
-      decodePermit2TransferMemUnchecked(params, 0);
+    uint offset = 0;
+    (amount, nonce, sigDeadline, signature, offset) =
+      decodePermit2TransferMemUnchecked(params, offset);
+    params.length.checkLength(offset);
   }
 
   function decodePermit2TransferStructMem(
