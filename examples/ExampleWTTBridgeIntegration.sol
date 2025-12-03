@@ -5,10 +5,8 @@ import {SafeERC20} from "wormhole-sdk/libraries/SafeERC20.sol";
 import {IERC20} from "IERC20/IERC20.sol";
 import {ICoreBridge} from "wormhole-sdk/interfaces/ICoreBridge.sol";
 import {ITokenBridge} from "wormhole-sdk/interfaces/ITokenBridge.sol";
-import {CoreBridgeLib} from "wormhole-sdk/libraries/CoreBridge.sol";
 import {TokenBridgeMessageLib, TokenBridgeTransferWithPayload} from "wormhole-sdk/libraries/TokenBridgeMessages.sol";
 import {Percentage, PercentageLib} from "wormhole-sdk/libraries/Percentage.sol";
-import {SequenceReplayProtectionLib} from "wormhole-sdk/libraries/ReplayProtection.sol";
 import "src/utils/DecimalNormalization.sol";
 
 // Example contract to interact with Wormhole WTT Bridge contract
@@ -36,17 +34,18 @@ contract ExampleWTTBridgeIntegration {
     // Fee amount charged when sending messages outbound
     Percentage public outboundFeePercentage;
 
-    // Fee amount required when receiving inbound messages
-    uint256 public inboundFee;
+    // Fee amount charged when receiving inbound messages
+    Percentage public inboundFeePercentage;
 
     constructor(
         address coreBridgeAddress,
         address tokenBridgeAddress,
         address ownerAddress,
         address feeRecipientAddress,
-        uint16 feeMantissa,
-        uint16 feeDigits,
-        uint256 inboundFeeAmount
+        uint16 outboundFeeMantissa,
+        uint16 outboundFeeDigits,
+        uint16 inboundFeeMantissa,
+        uint16 inboundFeeDigits
     ) {
         coreBridge = ICoreBridge(coreBridgeAddress);
         tokenBridge = ITokenBridge(tokenBridgeAddress);
@@ -59,9 +58,14 @@ contract ExampleWTTBridgeIntegration {
 
         // Use PercentageLib.to() to create the Percentage type
         // Example: to(50, 2) = 0.50%, to(100, 2) = 1.00%, to(5, 1) = 0.5%
-        outboundFeePercentage = PercentageLib.to(feeMantissa, feeDigits);
-
-        inboundFee = inboundFeeAmount;
+        outboundFeePercentage = PercentageLib.to(
+            outboundFeeMantissa,
+            outboundFeeDigits
+        );
+        inboundFeePercentage = PercentageLib.to(
+            inboundFeeMantissa,
+            inboundFeeDigits
+        );
     }
 
     // Entry point for transferring ETH without payload (i.e., a simple ETH transfer)
@@ -74,7 +78,7 @@ contract ExampleWTTBridgeIntegration {
     ) external payable {
         // incur fees from ETH
         uint256 sentAmount = msg.value;
-        uint256 feeAmount = calculateFee(sentAmount);
+        uint256 feeAmount = calculateOutboundFee(sentAmount);
 
         (bool success, ) = feeRecipient.call{value: feeAmount}("");
         require(success);
@@ -109,7 +113,7 @@ contract ExampleWTTBridgeIntegration {
     ) external payable {
         // incur fees from ETH
         uint256 sentAmount = msg.value;
-        uint256 feeAmount = calculateFee(sentAmount);
+        uint256 feeAmount = calculateOutboundFee(sentAmount);
 
         (bool success, ) = feeRecipient.call{value: feeAmount}("");
         require(success);
@@ -134,45 +138,77 @@ contract ExampleWTTBridgeIntegration {
     }
 
     // Entry point to receive cross-chain messages from the source chain
-    function receiveETHWithPayload(bytes memory encodedVm) external payable {
-        bytes memory encodedVM = tokenBridge.completeTransferAndUnwrapETHWithPayload(encodedVm);
-        TokenBridgeTransferWithPayload memory twp = TokenBridgeMessageLib.decodeTransferWithPayloadStructMem(encodedVM);
+    // Since the message was dispatched as payload ID 3 using the `wrapAndTransferETHWithPayload` entry point, only the specified `recipient` address can withdraw the funds from the WTT bridge contract (see https://github.com/wormhole-foundation/wormhole/blob/5af2e5e8ccf2377771e8a3bc741ed8772ddd4d47/ethereum/contracts/bridge/Bridge.sol#L505-L507). This ensures that no one can manually redeem the funds on behalf on this contract.
+    function receiveETHWithPayload(bytes memory encodedVm) external {
+        bytes memory encodedVM = tokenBridge
+            .completeTransferAndUnwrapETHWithPayload(encodedVm);
+        TokenBridgeTransferWithPayload memory twp = TokenBridgeMessageLib
+            .decodeTransferWithPayloadStructMem(encodedVM);
 
-        // Note: since we are building on top of WTT bridge, we do not need to verify whether the emitterAddress is a legitimate WTT bridge from the source chain
-        // this is because WTT bridge already validates it inside https://github.com/wormhole-foundation/wormhole/blob/c3301db8978fedf1f8ea2819d076871e435e2492/ethereum/contracts/bridge/Bridge.sol#L499 and https://github.com/wormhole-foundation/wormhole/blob/c3301db8978fedf1f8ea2819d076871e435e2492/ethereum/contracts/bridge/Bridge.sol#L592
+        // Note: since we are building on top of WTT bridge, we do not need to verify whether the `emitterAddress` is a legitimate WTT bridge from the source chain, as the bridge already validates it in https://github.com/wormhole-foundation/wormhole/blob/c3301db8978fedf1f8ea2819d076871e435e2492/ethereum/contracts/bridge/Bridge.sol#L499 and https://github.com/wormhole-foundation/wormhole/blob/c3301db8978fedf1f8ea2819d076871e435e2492/ethereum/contracts/bridge/Bridge.sol#L592
 
         bytes32 expectedSender = whitelistedSenders[twp.tokenChainId];
 
-        // Simple fee charging structure where we require fees to be paid if sender from the source chain is not whitelisted
-        // if sender is not whitelisted, we incur fees
+        // ETH transfers are 18 decimals, see https://github.com/wormhole-foundation/wormhole/blob/5af2e5e8ccf2377771e8a3bc741ed8772ddd4d47/ethereum/contracts/bridge/Bridge.sol#L137
+        uint256 receiveAmount = deNormalizeAmount(twp.normalizedAmount, 18);
+
+        // Require inbound fees to be paid if the sender from the source chain is not whitelisted
         if (twp.fromAddress != expectedSender) {
-            require(msg.value == inboundFee, "Fee is required as sender is not whitelisted");
+            uint256 feeAmount = calculateInboundFee(receiveAmount);
 
-            // distribute fee to recipient
-            (bool success, ) = feeRecipient.call{value: msg.value}("");
+            (bool feeTransferSuccess, ) = feeRecipient.call{value: feeAmount}(
+                ""
+            );
+            require(feeTransferSuccess);
+
+            uint256 remainingAmount = receiveAmount - feeAmount;
+
+            (bool success, ) = owner.call{value: remainingAmount}("");
             require(success);
-
         } else {
-            // sender is whitelisted, no need pay fees
-            require(msg.value == 0, "Fee is not required as sender is whitelisted");
+            // sender is whitelisted, no need to pay fees
+            (bool success, ) = owner.call{value: receiveAmount}("");
+            require(success);
         }
     }
 
     // Owner update fee percentage via mantissa and fractional digits
     // Example: to(50, 2) = 0.50%, to(100, 2) = 1.00%, to(5, 1) = 0.5%
     function updateFeePercentage(
+        bool isInBound,
         uint16 mantissa,
         uint16 fractionalDigits
     ) external onlyOwner {
-        outboundFeePercentage = PercentageLib.to(mantissa, fractionalDigits);
+        if (isInBound) {
+            inboundFeePercentage = PercentageLib.to(mantissa, fractionalDigits);
+        } else {
+            outboundFeePercentage = PercentageLib.to(
+                mantissa,
+                fractionalDigits
+            );
+        }
     }
 
-    // Owner update fee percentage via basis points 
+    // Owner update fee percentage via basis points
     // Example: 1% = 100, 10% = 1000
     function updateFeePercentageBasisPoints(
+        bool isInBound,
         uint16 basisPoints
     ) external onlyOwner {
-        outboundFeePercentage = PercentageLib.to(basisPoints, 2);
+        if (isInBound) {
+            inboundFeePercentage = PercentageLib.to(basisPoints, 2);
+        } else {
+            outboundFeePercentage = PercentageLib.to(basisPoints, 2);
+        }
+    }
+
+    // Owner sets whitelisted senders from various chains
+    // Whitelisted senders will be exempted from paying the inbound fees when receiving cross-chain messages from `receiveETHWithPayload`
+    function setWhitelistedSenders(
+        uint16 chainId,
+        bytes32 whitelistedAddress
+    ) external onlyOwner {
+        whitelistedSenders[chainId] = whitelistedAddress;
     }
 
     // Owner updates fee recipient address
@@ -189,19 +225,20 @@ contract ExampleWTTBridgeIntegration {
         owner = newOwner;
     }
 
-    // Calculate outbound fee amount
-    function calculateFee(uint256 amount) public view returns (uint256) {
-        return outboundFeePercentage.mulUnchecked(amount);
-    }
-
-    // Owner sets whitelisted senders from various chains
-    // Whitelisted senders will be exempted from paying the inbound fees when receiving cross-chain messages from `receiveETHWithPayload` 
-    function setWhitelistedSenders(uint16 chainId, bytes32 whitelistedAddress) external onlyOwner() {
-        whitelistedSenders[chainId] = whitelistedAddress;
-    }
-
     modifier onlyOwner() {
         require(msg.sender == owner);
         _;
+    }
+
+    // Calculate outbound fee amount
+    function calculateOutboundFee(
+        uint256 amount
+    ) public view returns (uint256) {
+        return outboundFeePercentage.mulUnchecked(amount);
+    }
+
+    // Calculate inbound fee amount
+    function calculateInboundFee(uint256 amount) public view returns (uint256) {
+        return inboundFeePercentage.mulUnchecked(amount);
     }
 }
