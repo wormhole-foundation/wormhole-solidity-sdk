@@ -9,20 +9,37 @@ import {CoreBridgeLib} from "wormhole-sdk/libraries/CoreBridge.sol";
 import {CustomConsistencyLib} from "wormhole-sdk/libraries/CustomConsistency.sol";
 import {HashReplayProtectionLib} from "wormhole-sdk/libraries/ReplayProtection.sol";
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
+import {VaaLib} from "wormhole-sdk/libraries/VaaLib.sol";
+import "src/constants/ConsistencyLevel.sol";
 
-contract ExampleCustomConsistencyTokenBridge { //todo name could be better?
+/*
+    Wormhole implements a feature that allows custom contracts to define custom consistency levels and finality requirements. This is configured by setting the `consistencyLevel` parameter in the `publishMessage` function to `ConsistencyLevelCustom`, which is 203.
+
+    // https://github.com/wormhole-foundation/wormhole/blob/5af2e5e8ccf2377771e8a3bc741ed8772ddd4d47/sdk/vaa/structs.go#L108
+    const (
+        ConsistencyLevelPublishImmediately = uint8(200)
+        ConsistencyLevelSafe               = uint8(201)
+        ConsistencyLevelFinalized          = uint8(202)
+        ConsistencyLevelCustom             = uint8(203)
+    )   
+
+    NOTE that there is a possibility that ConsistencyLevelCustom will default to use ConsistencyLevelFinalized due to (but not limited to) any of the following reasons:
+    - The watcher did not enable the feature for the specific chain
+    - Consistency level is not explicitly configured in the custom consistency contract address (`cclContract`)
+    - Configured consistency level in the cclContract is invalid
+        
+    See more in https://github.com/wormhole-foundation/wormhole/blob/5af2e5e8ccf2377771e8a3bc741ed8772ddd4d47/node/pkg/watchers/evm/watcher.go#L852-L855 & https://github.com/wormhole-foundation/wormhole/blob/5af2e5e8ccf2377771e8a3bc741ed8772ddd4d47/node/pkg/watchers/evm/custom_consistency_level.go#L169-L186
+*/
+contract ExampleCustomConsistencyTokenBridge {
     using SafeERC20 for IERC20;
     using BytesParsing for bytes;
 
-    // See https://wormhole.com/docs/products/reference/consistency-levels/
-    // uint8 public constant consistencyLevel = 1; // finalized
-
-    // Wormhole token bridge contract
+    // Wormhole core bridge contract
     // Source code: https://github.com/wormhole-foundation/wormhole/blob/main/ethereum/contracts/Implementation.sol
     ICoreBridge public coreBridge;
 
     // Custom consistency contract address
-    // Allows the owner to define a custom consistency level and block numbers to elapse before accepting a cross-chain message
+    // Allows the owner to define a custom consistency level and additional blocks to elapse before starting to process a message
     // See src/libraries/CustomConsistency.sol
     address public cclContract;
 
@@ -32,29 +49,32 @@ contract ExampleCustomConsistencyTokenBridge { //todo name could be better?
     // Owner of this contract
     address public owner;
 
-    // List of deployed bridge address from various chains
+    // List of peers from various chains
     // This is used for validating the emitterAddress, see https://wormhole.com/docs/products/messaging/guides/core-contracts/#validating-the-emitter
     mapping(uint16 => bytes32) public peers;
-
-    // Seconds per block minted
-    uint16 public secondsPerBlock;
 
     constructor(
         address coreBridgeAddress,
         address tokenAddress,
         address customConsistencyAddress,
         address ownerAddress,
-        uint16 _secondsPerBlock,
         uint8 requiredConsistencyLevel,
         uint16 requiredBlocksToWait
     ) {
+        require(coreBridgeAddress != address(0), "Invalid address");
+        require(tokenAddress != address(0), "Invalid address");
+        require(customConsistencyAddress != address(0), "Invalid address");
+        require(ownerAddress != address(0), "Invalid address");
+
         coreBridge = ICoreBridge(coreBridgeAddress);
         token = IERC20(tokenAddress);
         cclContract = customConsistencyAddress;
         owner = ownerAddress;
-        secondsPerBlock = _secondsPerBlock;
 
         // Set the required consistency level and blocks to wait in the CCL contract
+        // Watcher from guardians will read from the cclContract and enforce delays (if configured) accordingly
+        // For example, our contract may want an additional delay of 10 blocks before the watcher starts processing observations
+        // See https://github.com/wormhole-foundation/wormhole/blob/5af2e5e8ccf2377771e8a3bc741ed8772ddd4d47/node/pkg/watchers/evm/watcher.go#L528-L536
         CustomConsistencyLib.setAdditionalBlocksConfig(
             cclContract,
             requiredConsistencyLevel,
@@ -75,55 +95,45 @@ contract ExampleCustomConsistencyTokenBridge { //todo name could be better?
         // Construct the payload for the token transfer message
         bytes memory payload = abi.encodePacked(to, amount);
 
-        // Enforce custom consistency level defined
-        (uint8 requiredConsistencyLevel, ) = CustomConsistencyLib
-            .getAdditionalBlocksConfig(cclContract);
-
+        // We use CONSISTENCY_LEVEL_CUSTOM here so the watcher will read from cclContract to determine our configured consistency levels
+        // See src/constants/ConsistencyLevel.sol
         coreBridge.publishMessage{value: wormholeFee}(
             0,
             payload,
-            requiredConsistencyLevel
+            CONSISTENCY_LEVEL_CUSTOM
         );
     }
 
     // Entry point when we receive a cross-chain message from other chains
-    function receiveToken(bytes memory vaa) external {
+    function receiveToken(bytes calldata vaa) external {
         // First we need to parse and verify the VAA
         // CoreBridgeLib.decodeAndVerifyVaaMem will do this for us
         // It is functionalty equivalent to calling parseAndVerifyVM on the core bridge contract
         (
-            uint32 timestamp,
+            , //timestamp is ignored
             , //nonce is ignored
             uint16 emitterChainId,
             bytes32 emitterAddress, 
             , // sequence is ignored
-            uint8 consistencyLevel,
+            , // consistencyLevel is ignored
             bytes memory payload
         ) = CoreBridgeLib.decodeAndVerifyVaaMem(address(coreBridge), vaa);
+
+        // By the time this entry point is executed, our configured `consistencyLevel` and `blocksToWait` in the `cclContract` should already be enforced by the watcher
 
         // Perform replay protection via the hash of the VAA
         // We are using hash replay protections here as the consistency levels may not be finalized yet
         // This function will revert if the VAA has already been processed/consumed
-        bytes32 vaaHash = keccak256(vaa);
+
+        // NOTE we use `calcVaaSingleHashCd` to compute the hash once (single-hashed) and not doubly hashed
+        // See src/libraries/ReplayProtection.sol for more details
+        bytes32 vaaHash = VaaLib.calcVaaSingleHashCd(vaa);
         HashReplayProtectionLib.replayProtect(vaaHash);
-
-        (
-            uint8 requiredConsistencyLevel,
-            uint16 requiredBlocksToWait
-        ) = CustomConsistencyLib.getAdditionalBlocksConfig(cclContract);
-
-        //todo is this needed if we already pass `requiredConsistencyLevel` into `publishMessage`?
-        require(requiredConsistencyLevel >= consistencyLevel);
-
-        // wait for required blocks to elapse
-        uint16 requiredDurationToElapse = requiredBlocksToWait *
-            secondsPerBlock;
-        require(block.timestamp >= timestamp + requiredDurationToElapse);
 
         // Ensure that the contract that emits the message is our trusted contract on the source chain
         // See the `setPeer` function for more context
         require(
-            peers[emitterChainId] == bytes32(emitterAddress),
+            peers[emitterChainId] == emitterAddress,
             "Incorrect peer/emitter from source chain"
         );
 
@@ -135,6 +145,7 @@ contract ExampleCustomConsistencyTokenBridge { //todo name could be better?
         uint256 amount;
 
         // `asAddressMem` and `asUint256Mem` will validate the offsets internally via the `checkBound` function
+        // The corresponding unchecked variants (`asAddressMemUnchecked` and `asUint256MemUnchecked`) could be used for gas optimization purposes, however it requires an additional `checkLength` call to ensure the offsets are correct, see examples/ExampleCustomTokenBridge.sol
         (to, offset) = payload.asAddressMem(offset);
         (amount, offset) = payload.asUint256Mem(offset);
 
@@ -150,9 +161,11 @@ contract ExampleCustomConsistencyTokenBridge { //todo name could be better?
         address customConsistencyAddress,
         address ownerAddress,
         uint8 requiredConsistencyLevel,
-        uint16 requiredBlocksToWait,
-        uint16 _secondsPerBlock
+        uint16 requiredBlocksToWait
     ) external onlyOwner {
+        require(customConsistencyAddress != address(0), "Invalid address");
+        require(ownerAddress != address(0), "Invalid address");
+
         cclContract = customConsistencyAddress;
         owner = ownerAddress;
         CustomConsistencyLib.setAdditionalBlocksConfig(
@@ -160,7 +173,6 @@ contract ExampleCustomConsistencyTokenBridge { //todo name could be better?
             requiredConsistencyLevel,
             requiredBlocksToWait
         );
-        secondsPerBlock = _secondsPerBlock;
     }
 
     // Owner updates the peer address so we are only accepting messages emitted by trusted contracts from other chains

@@ -7,15 +7,13 @@ import {ICoreBridge} from "wormhole-sdk/interfaces/ICoreBridge.sol";
 import {CoreBridgeLib} from "wormhole-sdk/libraries/CoreBridge.sol";
 import {SequenceReplayProtectionLib} from "wormhole-sdk/libraries/ReplayProtection.sol";
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
+import "src/constants/ConsistencyLevel.sol";
 
 contract ExampleCustomTokenBridge {
     using SafeERC20 for IERC20;
     using BytesParsing for bytes;
 
-    // See https://wormhole.com/docs/products/reference/consistency-levels/
-    uint8 public constant consistencyLevel = 1; // finalized
-
-    // Wormhole token bridge contract
+    // Wormhole core bridge contract
     // Source code: https://github.com/wormhole-foundation/wormhole/blob/main/ethereum/contracts/Implementation.sol
     ICoreBridge public coreBridge;
 
@@ -25,7 +23,7 @@ contract ExampleCustomTokenBridge {
     // Owner of this contract
     address public owner;
 
-    // List of deployed bridge address from various chains
+    // List of peers from various chains
     // This is used for validating the emitterAddress, see https://wormhole.com/docs/products/messaging/guides/core-contracts/#validating-the-emitter
     mapping(uint16 => bytes32) public peers;
 
@@ -34,6 +32,10 @@ contract ExampleCustomTokenBridge {
         address tokenAddress,
         address ownerAddress
     ) {
+        require(coreBridgeAddress != address(0), "Invalid address");
+        require(tokenAddress != address(0), "Invalid address");
+        require(ownerAddress != address(0), "Invalid address");
+
         coreBridge = ICoreBridge(coreBridgeAddress);
         token = IERC20(tokenAddress);
         owner = ownerAddress;
@@ -52,15 +54,18 @@ contract ExampleCustomTokenBridge {
         // Construct the payload for the token transfer message
         bytes memory payload = abi.encodePacked(to, amount);
 
+        // Using `CONSISTENCY_LEVEL_FINALIZED` means we are requesting `ConsistencyLevelFinalized`
+        // Its value can be 1 or 202, see src/constants/ConsistencyLevel.sol
+        // Also see https://wormhole.com/docs/products/reference/consistency-levels/
         coreBridge.publishMessage{value: wormholeFee}(
             0,
             payload,
-            consistencyLevel
+            CONSISTENCY_LEVEL_FINALIZED
         );
     }
 
     // Entry point when we receive a cross-chain message from other chains
-    function receiveToken(bytes memory vaa) external {
+    function receiveToken(bytes calldata vaa) external {
         // First we need to parse and verify the VAA
         // CoreBridgeLib.decodeAndVerifyVaaMem will do this for us
         // It is functionalty equivalent to calling parseAndVerifyVM on the core bridge contract
@@ -71,15 +76,15 @@ contract ExampleCustomTokenBridge {
             //nonce is ignored
             uint16 emitterChainId,
             bytes32 emitterAddress,
-            uint64 sequence, //consistencyLevel is ignored as we know the peers are using finalized
-            ,
+            uint64 sequence, 
+            , //consistencyLevel is ignored as we know the peers are using finalized
             bytes memory payload
         ) = CoreBridgeLib.decodeAndVerifyVaaMem(address(coreBridge), vaa);
 
         // Ensure that the contract that emits the message is our trusted contract on the source chain
         // See the `setPeer` function for more context
         require(
-            peers[emitterChainId] == bytes32(emitterAddress),
+            peers[emitterChainId] == emitterAddress,
             "Incorrect peer/emitter from source chain"
         );
 
