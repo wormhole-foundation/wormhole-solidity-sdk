@@ -55,8 +55,7 @@ contract ExampleCustomTokenBridge {
         bytes memory payload = abi.encodePacked(to, amount);
 
         // Using `CONSISTENCY_LEVEL_FINALIZED` means we are requesting `ConsistencyLevelFinalized`
-        // Its value can be 1 or 202, see src/constants/ConsistencyLevel.sol
-        // Also see https://wormhole.com/docs/products/reference/consistency-levels/
+        // See src/constants/ConsistencyLevel.sol & https://wormhole.com/docs/products/reference/consistency-levels/
         coreBridge.publishMessage{value: wormholeFee}(
             0,
             payload,
@@ -65,7 +64,7 @@ contract ExampleCustomTokenBridge {
     }
 
     // Entry point when we receive a cross-chain message from other chains
-    function receiveToken(bytes calldata vaa) external {
+    function receiveToken(bytes memory vaa) external {
         // First we need to parse and verify the VAA
         // CoreBridgeLib.decodeAndVerifyVaaMem will do this for us
         // It is functionalty equivalent to calling parseAndVerifyVM on the core bridge contract

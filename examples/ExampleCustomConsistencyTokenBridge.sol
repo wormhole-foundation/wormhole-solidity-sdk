@@ -72,7 +72,7 @@ contract ExampleCustomConsistencyTokenBridge {
         owner = ownerAddress;
 
         // Set the required consistency level and blocks to wait in the CCL contract
-        // Watcher from guardians will read from the cclContract and enforce delays (if configured) accordingly
+        // The Guardians will read from the `cclContract` and will only start processing a message emission after the specified additional blocks have elapsed
         // For example, our contract may want an additional delay of 10 blocks before the watcher starts processing observations
         // See https://github.com/wormhole-foundation/wormhole/blob/5af2e5e8ccf2377771e8a3bc741ed8772ddd4d47/node/pkg/watchers/evm/watcher.go#L528-L536
         CustomConsistencyLib.setAdditionalBlocksConfig(
@@ -117,7 +117,7 @@ contract ExampleCustomConsistencyTokenBridge {
             , // sequence is ignored
             , // consistencyLevel is ignored
             bytes memory payload
-        ) = CoreBridgeLib.decodeAndVerifyVaaMem(address(coreBridge), vaa);
+        ) = CoreBridgeLib.decodeAndVerifyVaaCd(address(coreBridge), vaa);
 
         // By the time this entry point is executed, our configured `consistencyLevel` and `blocksToWait` in the `cclContract` should already be enforced by the watcher
 
@@ -125,8 +125,8 @@ contract ExampleCustomConsistencyTokenBridge {
         // We are using hash replay protections here as the consistency levels may not be finalized yet
         // This function will revert if the VAA has already been processed/consumed
 
-        // NOTE we use `calcVaaSingleHashCd` to compute the hash once (single-hashed) and not doubly hashed
-        // See src/libraries/ReplayProtection.sol for more details
+        // NOTE we use `calcVaaSingleHashCd` to compute the VAA's `Body` hash once (single-hashed) and not doubly hashed
+        // See src/libraries/ReplayProtection.sol and https://wormhole.com/docs/protocol/infrastructure/vaas/#signatures for more details
         bytes32 vaaHash = VaaLib.calcVaaSingleHashCd(vaa);
         HashReplayProtectionLib.replayProtect(vaaHash);
 

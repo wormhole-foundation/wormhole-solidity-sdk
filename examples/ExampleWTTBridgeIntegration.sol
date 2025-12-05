@@ -28,9 +28,9 @@ contract ExampleWTTBridgeIntegration {
     // Fee recipient address
     address public feeRecipient;
 
-    // Peer on destination chain
-    // This will be our contract address deployed on the destination chain
-    bytes32 public peerInDestinationChain;
+    // List of peers from various chains
+    // This will be our contract addresses deployed on each chain
+    mapping(uint16 => bytes32) public peers;
 
     // Map of whitelisted senders that are exempt from the inbound fees
     // Key: source chain ID => whitelisted senders
@@ -47,7 +47,6 @@ contract ExampleWTTBridgeIntegration {
         address tokenBridgeAddress,
         address ownerAddress,
         address feeRecipientAddress,
-        bytes32 _peerInDestinationChain,
         uint16 outboundFeeMantissa,
         uint16 outboundFeeDigits,
         uint16 inboundFeeMantissa,
@@ -62,7 +61,6 @@ contract ExampleWTTBridgeIntegration {
         tokenBridge = ITokenBridge(tokenBridgeAddress);
         owner = ownerAddress;
         feeRecipient = feeRecipientAddress;
-        peerInDestinationChain = _peerInDestinationChain;
 
         // Use PercentageLib.to() to create the Percentage type
         // Example: to(50, 2) = 0.50%, to(100, 2) = 1.00%, to(5, 1) = 0.5%
@@ -95,12 +93,16 @@ contract ExampleWTTBridgeIntegration {
         // calculate remaining amount
         uint256 remainingAmount = sentAmount - feeAmount;
 
+        // get the peer address from destination chain
+        bytes32 peerAddress = peers[recipientChain];
+        require(peerAddress != bytes32(0), "Invalid peer address!");
+
         // encode recipient address in destination chain
-        bytes memory payload = abi.encodePacked(bytes32(recipient));
+        bytes memory payload = abi.encode(bytes32(uint256(uint160(msg.sender))), recipient);
 
         tokenBridge.wrapAndTransferETHWithPayload{value: remainingAmount}(
             recipientChain,
-            peerInDestinationChain,
+            peerAddress,
             nonce,
             payload
         );
@@ -130,13 +132,14 @@ contract ExampleWTTBridgeIntegration {
         uint256 receiveAmount = deNormalizeAmount(twp.normalizedAmount, 18);
 
         // Extract the recipient address from the custom `payload` field
-        bytes memory payload = twp.payload;
-        address finalRecipient = address(uint160(uint256(bytes32(payload))));
+        (bytes32 sender, bytes32 recipient) = abi.decode(twp.payload, (bytes32, bytes32));
+        address finalRecipient = address(uint160(uint256(recipient)));
 
-        bool isSenderWhitelisted = isWhitelisted(twp.tokenChainId, twp.fromAddress);
+        bool isSenderWhitelisted = isWhitelisted(twp.tokenChainId, sender);
 
         // Require inbound fees to be paid if the sender from the source chain is not whitelisted
         if (!isSenderWhitelisted) {
+            // sender is not whitelisted, incur fee
             uint256 feeAmount = calculateInboundFee(receiveAmount);
 
             (bool feeTransferSuccess, ) = feeRecipient.call{value: feeAmount}(
@@ -179,6 +182,11 @@ contract ExampleWTTBridgeIntegration {
         bytes32[] calldata whitelistedAddresses
     ) external onlyOwner {
         whitelistedSenders[chainId] = whitelistedAddresses;
+    }
+
+    // Owner updates the peer address for various chains
+    function setPeer(uint16 chainId, bytes32 peerAddress) external onlyOwner {
+        peers[chainId] = peerAddress;
     }
 
     // Owner updates fee recipient address
