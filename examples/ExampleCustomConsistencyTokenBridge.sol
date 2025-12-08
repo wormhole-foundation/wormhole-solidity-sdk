@@ -4,7 +4,6 @@ pragma solidity ^0.8.4;
 import {SafeERC20} from "wormhole-sdk/libraries/SafeERC20.sol";
 import {IERC20} from "IERC20/IERC20.sol";
 import {ICoreBridge} from "wormhole-sdk/interfaces/ICoreBridge.sol";
-import {ITokenBridge} from "wormhole-sdk/interfaces/ITokenBridge.sol";
 import {CoreBridgeLib} from "wormhole-sdk/libraries/CoreBridge.sol";
 import {CustomConsistencyLib} from "wormhole-sdk/libraries/CustomConsistency.sol";
 import {HashReplayProtectionLib} from "wormhole-sdk/libraries/ReplayProtection.sol";
