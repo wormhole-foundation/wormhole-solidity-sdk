@@ -7,6 +7,7 @@ import {ICoreBridge} from "wormhole-sdk/interfaces/ICoreBridge.sol";
 import {ITokenBridge} from "wormhole-sdk/interfaces/ITokenBridge.sol";
 import {TokenBridgeMessageLib, TokenBridgeTransferWithPayload} from "wormhole-sdk/libraries/TokenBridgeMessages.sol";
 import {Percentage, PercentageLib} from "wormhole-sdk/libraries/Percentage.sol";
+import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 import "src/utils/DecimalNormalization.sol";
 
 // Example contract to interact with Wormhole WTT Bridge contract
@@ -98,7 +99,7 @@ contract ExampleWTTBridgeIntegration {
         require(peerAddress != bytes32(0), "Invalid peer address!");
 
         // encode recipient address in destination chain
-        bytes memory payload = abi.encode(bytes32(uint256(uint160(msg.sender))), recipient);
+        bytes memory payload = abi.encodePacked(bytes32(uint256(uint160(msg.sender))), recipient);
 
         tokenBridge.wrapAndTransferETHWithPayload{value: remainingAmount}(
             recipientChain,
@@ -132,7 +133,16 @@ contract ExampleWTTBridgeIntegration {
         uint256 receiveAmount = deNormalizeAmount(twp.normalizedAmount, 18);
 
         // Extract the recipient address from the custom `payload` field
-        (bytes32 sender, bytes32 recipient) = abi.decode(twp.payload, (bytes32, bytes32));
+        bytes32 sender;
+        bytes32 recipient;
+        uint offset = 0;
+
+        (sender, offset) = BytesParsing.asBytes32Mem(twp.payload, offset);
+        (recipient, offset) = BytesParsing.asBytes32Mem(twp.payload, offset);
+
+        // ensure all the payload is fully consumed
+        BytesParsing.checkLength(offset, twp.payload.length);
+
         address finalRecipient = address(uint160(uint256(recipient)));
 
         bool isSenderWhitelisted = isWhitelisted(twp.tokenChainId, sender);
