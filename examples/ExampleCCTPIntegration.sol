@@ -98,8 +98,14 @@ contract ExampleCCTPIntegration {
         bytes calldata message,
         bytes calldata attestation
     ) external {
-        bool isValid = CctpMessageLib.isCctpTokenBurnMessageCd(message);
-        require(isValid, "Message is invalid");
+        // Ensure the lockup has elapsed
+        bytes32 key = keccak256(abi.encodePacked(message, attestation));
+        uint unlockTimestamp = unlockTimestamps[key];
+        require(unlockTimestamp != 0, "Unlock is not requested!");
+        require(
+            block.timestamp >= unlockTimestamp,
+            "Timelock has not elapsed!"
+        );
 
         (
             uint32 sourceDomain,
@@ -113,15 +119,6 @@ contract ExampleCCTPIntegration {
             uint256 amount,
             bytes32 messageSender
         ) = CctpMessageLib.decodeCctpTokenBurnMessageCd(message);
-
-        // Ensure the lockup has elapsed
-        bytes32 key = keccak256(abi.encodePacked(message, attestation));
-        uint unlockTimestamp = unlockTimestamps[key];
-        require(unlockTimestamp != 0, "Unlock is not requested!");
-        require(
-            block.timestamp >= unlockTimestamp,
-            "Timelock has not elapsed!"
-        );
 
         // Calling receiveMessage() will in turn cause the funds to be sent to this contract
         // https://github.com/circlefin/evm-cctp-contracts/blob/4061786a5726bc05f99fcdb53b0985599f0dbaf7/src/TokenMessenger.sol#L337-L343
