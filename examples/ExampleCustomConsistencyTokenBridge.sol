@@ -5,11 +5,15 @@ import {SafeERC20} from "wormhole-sdk/libraries/SafeERC20.sol";
 import {IERC20} from "IERC20/IERC20.sol";
 import {ICoreBridge} from "wormhole-sdk/interfaces/ICoreBridge.sol";
 import {CoreBridgeLib} from "wormhole-sdk/libraries/CoreBridge.sol";
-import {CustomConsistencyLib} from "wormhole-sdk/libraries/CustomConsistency.sol";
-import {HashReplayProtectionLib} from "wormhole-sdk/libraries/ReplayProtection.sol";
+import {
+    CustomConsistencyLib
+} from "wormhole-sdk/libraries/CustomConsistency.sol";
+import {
+    HashReplayProtectionLib
+} from "wormhole-sdk/libraries/ReplayProtection.sol";
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 import {VaaLib} from "wormhole-sdk/libraries/VaaLib.sol";
-import "src/constants/ConsistencyLevel.sol";
+import "wormhole-sdk/constants/ConsistencyLevel.sol";
 
 /*
     Wormhole implements a feature that allows custom contracts to define custom consistency levels and finality requirements. This is configured by setting the `consistencyLevel` parameter in the `publishMessage` function to `ConsistencyLevelCustom`, which is 203.
@@ -112,7 +116,7 @@ contract ExampleCustomConsistencyTokenBridge {
             , //timestamp is ignored
             , //nonce is ignored
             uint16 emitterChainId,
-            bytes32 emitterAddress, 
+            bytes32 emitterAddress,
             , // sequence is ignored
             , // consistencyLevel is ignored
             bytes memory payload
