@@ -23,10 +23,10 @@ A basic cross-chain token bridge implementation using Wormhole's core messaging 
 
 **Libraries Demonstrated:**
 
-- `SafeERC20` - Safe ERC20 token operations
-- `CoreBridgeLib` - VAA decoding and verification
-- `SequenceReplayProtectionLib` - Prevents duplicate message processing
-- `BytesParsing` - Efficient payload parsing with unchecked variants
+- [`SafeERC20`](../src/libraries/SafeERC20.sol) - Safe ERC20 token operations
+- [`CoreBridgeLib`](../src/libraries/CoreBridge.sol) - VAA decoding and verification
+- [`SequenceReplayProtectionLib`](../src/libraries/ReplayProtection.sol) - Prevents duplicate message processing
+- [`BytesParsing`](../src/libraries/BytesParsing.sol) - Efficient payload parsing with unchecked variants and manual `checkLength` validation
 
 **Use Case:** Building a simple token bridge between two chains where you control both source and destination contracts.
 
@@ -45,12 +45,12 @@ An advanced token bridge that demonstrates Wormhole's custom consistency level f
 
 **Libraries Demonstrated:**
 
-- `CustomConsistencyLib` - Setting custom consistency levels and block waiting periods
-- `HashReplayProtectionLib` - Hash-based replay protection for non-finalized messages
-- `VaaLib` - Single-hash VAA computation
-- `CoreBridgeLib` - VAA verification with calldata optimization
+- [`CustomConsistencyLib`](../src/libraries/CustomConsistency.sol) - Setting custom consistency levels and block waiting periods
+- [`HashReplayProtectionLib`](../src/libraries/ReplayProtection.sol) - Hash-based replay protection for non-finalized messages
+- [`VaaLib`](../src/libraries/VaaLib.sol) - Single-hash VAA computation
+- [`CoreBridgeLib`](../src/libraries/CoreBridge.sol) - VAA verification with calldata optimization
 
-**Use Case:** When you need faster cross-chain transfers with custom finality requirements, or want to optimize for specific chain characteristics.
+**Use Case:** When you need faster cross-chain transfers with custom finality requirements or want to optimize for specific chain characteristics.
 
 **Notes:**
 
@@ -73,10 +73,10 @@ Integration with Wormhole's native Token Bridge (WTT) for wrapped token transfer
 
 **Libraries Demonstrated:**
 
-- `TokenBridgeMessageLib` - Parsing Token Bridge transfer messages
-- `PercentageLib` - Fee percentage calculations with mantissa and fractional digits
-- `BytesParsing` - Payload extraction and validation
-- `DecimalNormalization` - Handling token decimal conversions
+- [`TokenBridgeMessageLib`](../src/libraries/TokenBridgeMessages.sol) - Parsing Token Bridge transfer messages
+- [`PercentageLib`](../src/libraries/Percentage.sol) - Fee percentage calculations with mantissa and fractional digits
+- [`BytesParsing`](../src/libraries/BytesParsing.sol) - Payload extraction and validation
+- [`DecimalNormalization`](../src/utils/DecimalNormalization.sol) - Handling token decimal conversions
 
 **Use Case:** Building applications that need to transfer tokens cross-chain with custom logic, fees, or additional data (e.g., DEX aggregators, payment systems).
 
@@ -89,14 +89,16 @@ Integration with Circle's Cross-Chain Transfer Protocol (CCTP) for native USDC t
 **Key Features:**
 
 - Native USDC cross-chain transfers
+- Wormhole chain ID to CCTP domain mapping for user-friendly API
 - 24-hour timelock for fund redemption
 - Whitelist system to bypass timelock for trusted recipients
 
 **Libraries Demonstrated:**
 
-- `CctpMessageLib` - Decoding CCTP burn messages
-- `SafeERC20` - Token approvals and transfers
-- Integration with Circle's `ITokenMessenger` and `IMessageTransmitter`
+- [`CctpMessageLib`](../src/libraries/CctpMessages.sol) - Decoding CCTP burn messages
+- [`SafeERC20`](../src/libraries/SafeERC20.sol) - Token approvals and transfers
+- Integration with Circle's [`ITokenMessenger`](../src/interfaces/cctp/ITokenMessenger.sol) and [`IMessageTransmitter`](../src/interfaces/cctp/IMessageTransmitter.sol)
+- Custom struct pattern to handle [Wormhole Chain ID](../src/constants/Chains.sol) and [CCTP Domain ID](../src/constants/CctpDomains.sol) mappings
 
 **Use Case:** Transferring USDC between chains with additional security measures like timelocks, or building payment systems that require native USDC.
 
@@ -104,21 +106,21 @@ Integration with Circle's Cross-Chain Transfer Protocol (CCTP) for native USDC t
 
 ### Core Libraries
 
-- **CoreBridgeLib** - VAA parsing and verification
-- **BytesParsing** - Efficient payload parsing with checked and unchecked variants
+- **[`CoreBridgeLib`](../src/libraries/CoreBridge.sol)** - VAA parsing and verification
+- **[`BytesParsing`](../src/libraries/BytesParsing.sol)** - Efficient payload parsing with checked and unchecked variants
 
 ### Replay Protection
 
-- **SequenceReplayProtectionLib** - For finalized messages
-- **HashReplayProtectionLib** - For non-finalized messages
+- **[`SequenceReplayProtectionLib`](../src/libraries/ReplayProtection.sol)** - Should only be used for messages using the finalized consistency level
+- **[`HashReplayProtectionLib`](../src/libraries/ReplayProtection.sol)** - Can be used for messages with any consistency level
 
 ### Specialized Libraries
 
-- **CustomConsistencyLib** - Custom finality configuration
-- **TokenBridgeMessageLib** - Token Bridge message parsing
-- **CctpMessageLib** - CCTP message parsing
-- **PercentageLib** - Fee calculations
-- **VaaLib** - VAA hash computations
+- **[`CustomConsistencyLib`](../src/libraries/CustomConsistency.sol)** - Custom finality configuration
+- **[`TokenBridgeMessageLib`](../src/libraries/TokenBridgeMessages.sol)** - Token Bridge message parsing
+- **[`CctpMessageLib`](../src/libraries/CctpMessages.sol)** - CCTP message parsing
+- **[`PercentageLib`](../src/libraries/Percentage.sol)** - Fee calculations
+- **[`VaaLib`](../src/libraries/VaaLib.sol)** - VAA hash computations
 
 ## Security Considerations
 

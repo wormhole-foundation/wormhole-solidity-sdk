@@ -3,21 +3,20 @@ pragma solidity ^0.8.14;
 
 import {SafeERC20} from "wormhole-sdk/libraries/SafeERC20.sol";
 import {IERC20} from "IERC20/IERC20.sol";
-import {ICoreBridge} from "wormhole-sdk/interfaces/ICoreBridge.sol";
 import {ITokenBridge} from "wormhole-sdk/interfaces/ITokenBridge.sol";
-import {TokenBridgeMessageLib, TokenBridgeTransferWithPayload} from "wormhole-sdk/libraries/TokenBridgeMessages.sol";
+import {
+    TokenBridgeMessageLib,
+    TokenBridgeTransferWithPayload
+} from "wormhole-sdk/libraries/TokenBridgeMessages.sol";
 import {Percentage, PercentageLib} from "wormhole-sdk/libraries/Percentage.sol";
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
-import "src/utils/DecimalNormalization.sol";
+import "wormhole-sdk/utils/DecimalNormalization.sol";
 
 // Example contract to interact with Wormhole WTT Bridge contract
 // See more in https://wormhole.com/docs/products/token-transfers/wrapped-token-transfers/overview/
 contract ExampleWTTBridgeIntegration {
     using SafeERC20 for IERC20;
     using TokenBridgeMessageLib for bytes;
-
-    // Wormhole core bridge contract
-    ICoreBridge public coreBridge;
 
     // WTT bridge contract
     // Source code: https://github.com/wormhole-foundation/wormhole/blob/tree/ethereum/contracts/bridge/Bridge.sol
@@ -31,6 +30,7 @@ contract ExampleWTTBridgeIntegration {
 
     // List of peers from various chains
     // This will be our contract addresses deployed on each chain
+    // This mapping is based on Wormhole chain ID mappings in src/constants/Chains.sol
     mapping(uint16 => bytes32) public peers;
 
     // Map of whitelisted senders that are exempt from the inbound fees
@@ -44,7 +44,6 @@ contract ExampleWTTBridgeIntegration {
     Percentage public inboundFeePercentage;
 
     constructor(
-        address coreBridgeAddress,
         address tokenBridgeAddress,
         address ownerAddress,
         address feeRecipientAddress,
@@ -53,12 +52,10 @@ contract ExampleWTTBridgeIntegration {
         uint16 inboundFeeMantissa,
         uint16 inboundFeeDigits
     ) {
-        require(coreBridgeAddress != address(0), "Invalid address");
         require(tokenBridgeAddress != address(0), "Invalid address");
         require(ownerAddress != address(0), "Invalid address");
         require(feeRecipientAddress != address(0), "Invalid address");
 
-        coreBridge = ICoreBridge(coreBridgeAddress);
         tokenBridge = ITokenBridge(tokenBridgeAddress);
         owner = ownerAddress;
         feeRecipient = feeRecipientAddress;
@@ -80,8 +77,7 @@ contract ExampleWTTBridgeIntegration {
     // See https://wormhole.com/docs/products/token-transfers/wrapped-token-transfers/concepts/payload-structure/#transferwithpayload
     function transferETHWithPayload(
         uint16 recipientChain,
-        bytes32 recipient,
-        uint32 nonce
+        bytes32 recipient
     ) external payable {
         // incur fees from ETH
         uint256 sentAmount = msg.value;
@@ -98,13 +94,20 @@ contract ExampleWTTBridgeIntegration {
         bytes32 peerAddress = peers[recipientChain];
         require(peerAddress != bytes32(0), "Invalid peer address!");
 
+        // validate the upper 12 bytes of the `recipient` address is zero since we will be casting bytes32 into bytes20 in `receiveETHWithPayload`
+        bool isAddressValid = uint256(recipient) <= type(uint160).max;
+        require(isAddressValid, "Invalid recipient address provided");
+
         // encode recipient address in destination chain
-        bytes memory payload = abi.encodePacked(bytes32(uint256(uint160(msg.sender))), recipient);
+        bytes memory payload = abi.encodePacked(
+            bytes32(uint256(uint160(msg.sender))),
+            recipient
+        );
 
         tokenBridge.wrapAndTransferETHWithPayload{value: remainingAmount}(
             recipientChain,
             peerAddress,
-            nonce,
+            0, // default nonce to 0
             payload
         );
 
@@ -118,12 +121,11 @@ contract ExampleWTTBridgeIntegration {
     }
 
     // Entry point to receive custom cross-chain messages from the source chain
-    function receiveETHWithPayload(bytes calldata encodedVm) external {
-        
+    function receiveETHWithPayload(bytes calldata vaa) external {
         // Since the message was dispatched as payload ID 3 using the `wrapAndTransferETHWithPayload` entry point, only the specified `recipient` address can withdraw the funds from the WTT bridge contract (see https://github.com/wormhole-foundation/wormhole/blob/5af2e5e8ccf2377771e8a3bc741ed8772ddd4d47/ethereum/contracts/bridge/Bridge.sol#L505-L507).
         // This ensures that no one can manually redeem the funds on behalf on this contract.
         bytes memory wttPayload = tokenBridge
-            .completeTransferAndUnwrapETHWithPayload(encodedVm);
+            .completeTransferAndUnwrapETHWithPayload(vaa);
         TokenBridgeTransferWithPayload memory twp = TokenBridgeMessageLib
             .decodeTransferWithPayloadStructMem(wttPayload);
 
@@ -137,10 +139,18 @@ contract ExampleWTTBridgeIntegration {
         bytes32 recipient;
         uint offset = 0;
 
-        (sender, offset) = BytesParsing.asBytes32Mem(twp.payload, offset);
-        (recipient, offset) = BytesParsing.asBytes32Mem(twp.payload, offset);
+        // For gas efficiency, we use the unchecked versions here (`asBytes32MemUnchecked` instead of `asBytes32Mem`) and manually validate the offset length with a separate call to `checkLength` below
+        (sender, offset) = BytesParsing.asBytes32MemUnchecked(
+            twp.payload,
+            offset
+        );
+        (recipient, offset) = BytesParsing.asBytes32MemUnchecked(
+            twp.payload,
+            offset
+        );
 
-        // ensure all the payload is fully consumed
+        // Ensure the payload is fully consumed
+        // This is required as we use the unchecked parsing methods above
         BytesParsing.checkLength(offset, twp.payload.length);
 
         address finalRecipient = address(uint160(uint256(recipient)));
@@ -231,15 +241,18 @@ contract ExampleWTTBridgeIntegration {
     }
 
     // Checks whether the sender from this chainId is whitelisted
-    function isWhitelisted(uint16 chainId, bytes32 sender) public view returns (bool) {
+    function isWhitelisted(
+        uint16 chainId,
+        bytes32 sender
+    ) public view returns (bool) {
         bytes32[] memory senders = whitelistedSenders[chainId];
-        
+
         for (uint256 i = 0; i < senders.length; i++) {
             if (senders[i] == sender) {
                 return true;
             }
         }
-        
+
         return false;
     }
 }

@@ -5,9 +5,11 @@ import {SafeERC20} from "wormhole-sdk/libraries/SafeERC20.sol";
 import {IERC20} from "IERC20/IERC20.sol";
 import {ICoreBridge} from "wormhole-sdk/interfaces/ICoreBridge.sol";
 import {CoreBridgeLib} from "wormhole-sdk/libraries/CoreBridge.sol";
-import {SequenceReplayProtectionLib} from "wormhole-sdk/libraries/ReplayProtection.sol";
+import {
+    SequenceReplayProtectionLib
+} from "wormhole-sdk/libraries/ReplayProtection.sol";
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
-import "src/constants/ConsistencyLevel.sol";
+import "wormhole-sdk/constants/ConsistencyLevel.sol";
 
 contract ExampleCustomTokenBridge {
     using SafeERC20 for IERC20;
@@ -25,6 +27,7 @@ contract ExampleCustomTokenBridge {
 
     // List of peers from various chains
     // This is used for validating the emitterAddress, see https://wormhole.com/docs/products/messaging/guides/core-contracts/#validating-the-emitter
+    // This mapping is based on Wormhole chain ID mappings in src/constants/Chains.sol
     mapping(uint16 => bytes32) public peers;
 
     constructor(
@@ -48,7 +51,7 @@ contract ExampleCustomTokenBridge {
         // require users to pay Wormhole fee
         require(msg.value == wormholeFee, "invalid fee");
 
-        // The SafeERC20 ibrary function can be used exactly as the OZ equivalent
+        // The SafeERC20 library function can be used exactly as the OZ equivalent
         token.safeTransferFrom(msg.sender, address(this), amount);
 
         // Construct the payload for the token transfer message
@@ -69,19 +72,18 @@ contract ExampleCustomTokenBridge {
         // CoreBridgeLib.decodeAndVerifyVaaMem will do this for us
         // It is functionalty equivalent to calling parseAndVerifyVM on the core bridge contract
         (
-            ,
-            ,
-            //timestamp is ignored
-            //nonce is ignored
+            , //timestamp is ignored
+            , //nonce is ignored
             uint16 emitterChainId,
             bytes32 emitterAddress,
-            uint64 sequence, 
+            uint64 sequence,
             , //consistencyLevel is ignored as we know the peers are using finalized
             bytes memory payload
         ) = CoreBridgeLib.decodeAndVerifyVaaMem(address(coreBridge), vaa);
 
         // Ensure that the contract that emits the message is our trusted contract on the source chain
         // See the `setPeer` function for more context
+        require(peers[emitterChainId] != bytes32(0), "Invalid peer address!");
         require(
             peers[emitterChainId] == emitterAddress,
             "Incorrect peer/emitter from source chain"
