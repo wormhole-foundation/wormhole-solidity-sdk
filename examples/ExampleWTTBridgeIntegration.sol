@@ -21,7 +21,7 @@ contract ExampleWTTBridgeIntegration {
 
     // WTT bridge contract
     // Source code: https://github.com/wormhole-foundation/wormhole/blob/tree/ethereum/contracts/bridge/Bridge.sol
-    ITokenBridge immutable tokenBridge;
+    ITokenBridge public immutable tokenBridge;
 
     // Owner of the contract
     address public owner;

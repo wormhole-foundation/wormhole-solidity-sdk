@@ -39,15 +39,18 @@ contract ExampleCustomConsistencyTokenBridge {
 
     // Wormhole core bridge contract
     // Source code: https://github.com/wormhole-foundation/wormhole/blob/main/ethereum/contracts/Implementation.sol
-    ICoreBridge immutable coreBridge;
+    ICoreBridge public immutable coreBridge;
 
     // Custom consistency contract address
     // Allows the owner to define a custom consistency level and additional blocks to elapse before starting to process a message
     // See src/libraries/CustomConsistency.sol
-    address immutable cclContract;
+    address public immutable cclContract;
 
     // The token address
-    IERC20 immutable token;
+    IERC20 public immutable token;
+
+    // Wormhole chain ID for this contract
+    uint16 public immutable wormholeChainId;
 
     // Owner of this contract
     address public owner;
@@ -62,6 +65,7 @@ contract ExampleCustomConsistencyTokenBridge {
         address tokenAddress,
         address customConsistencyAddress,
         address ownerAddress,
+        uint16 _wormholeChainId,
         uint8 requiredConsistencyLevel,
         uint16 requiredBlocksToWait
     ) {
@@ -74,6 +78,7 @@ contract ExampleCustomConsistencyTokenBridge {
         token = IERC20(tokenAddress);
         cclContract = customConsistencyAddress;
         owner = ownerAddress;
+        wormholeChainId = _wormholeChainId;
 
         // Set the required consistency level and blocks to wait in the CCL contract
         // The Guardians will read from the `cclContract` and will only start processing a message emission after the specified additional blocks have elapsed
@@ -87,17 +92,27 @@ contract ExampleCustomConsistencyTokenBridge {
     }
 
     // Entry point for users to send tokens from this chain (source chain) to destination chain
-    function sendToken(address to, uint256 amount) external payable {
+    function sendToken(
+        uint16 destinationChainId,
+        address to,
+        uint256 amount
+    ) external payable {
         uint256 wormholeFee = coreBridge.messageFee();
 
         // require users to pay Wormhole fee
         require(msg.value == wormholeFee, "invalid fee");
 
+        // Ensure there is a bridge in the destination chain
+        require(
+            peers[destinationChainId] != bytes32(0),
+            "Invalid destination chain ID!"
+        );
+
         // The SafeERC20 library function can be used exactly as the OZ equivalent
         token.safeTransferFrom(msg.sender, address(this), amount);
 
         // Construct the payload for the token transfer message
-        bytes memory payload = abi.encodePacked(to, amount);
+        bytes memory payload = abi.encodePacked(destinationChainId, to, amount);
 
         // We use CONSISTENCY_LEVEL_CUSTOM here so the watcher will read from cclContract to determine our configured consistency levels
         // See src/constants/ConsistencyLevel.sol
@@ -144,15 +159,23 @@ contract ExampleCustomConsistencyTokenBridge {
 
         // Now we have verified the VAA is valid, checked the emitter, and ensured it hasn't been processed before
         // We can process the payload
-        // We know the payload contains an address and a uint256 amount and we can start parsing from the beginning
+        // We know the payload contains a destination chain ID, an address and a uint256 amount, so we can start parsing from the beginning
         uint256 offset = 0;
+
+        uint16 destinationChainId;
         address to;
         uint256 amount;
 
         // `asAddressMem` and `asUint256Mem` will validate the offsets internally via the `checkBound` function
         // The corresponding unchecked variants (`asAddressMemUnchecked` and `asUint256MemUnchecked`) could be used for gas optimization purposes, however it requires an additional `checkLength` call to ensure the offsets are correct, see examples/ExampleCustomTokenBridge.sol
+        (destinationChainId, offset) = payload.asUint16Mem(offset);
         (to, offset) = payload.asAddressMem(offset);
         (amount, offset) = payload.asUint256Mem(offset);
+
+        require(
+            destinationChainId == wormholeChainId,
+            "Message is for different chain!"
+        );
 
         // Finally we can transfer the tokens to the recipient
         // Again, this is functionally equivalent to the OZ SafeERC20 library
