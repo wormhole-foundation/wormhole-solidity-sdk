@@ -165,11 +165,8 @@ contract ExampleCCTPIntegration {
 
         // Calling receiveMessage() in the `messageTransmitter` will finalize and transfer the funds to the `mintRecipient`
         // https://github.com/circlefin/evm-cctp-contracts/blob/4061786a5726bc05f99fcdb53b0985599f0dbaf7/src/TokenMessenger.sol#L337-L343
-        bool isSuccess = messageTransmitter.receiveMessage(
-            message,
-            attestation
-        );
-        require(isSuccess, "receiveMessage() failed");
+        // We don't need to check the `success` bool from this function because it can only ever return true or throws on error, see https://github.com/circlefin/evm-cctp-contracts/blob/4061786a5726bc05f99fcdb53b0985599f0dbaf7/src/MessageTransmitter.sol#L305
+        messageTransmitter.receiveMessage(message, attestation);
     }
 
     // Owner updates the peer address for various chains
