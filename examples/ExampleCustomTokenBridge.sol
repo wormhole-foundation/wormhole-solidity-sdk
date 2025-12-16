@@ -17,10 +17,10 @@ contract ExampleCustomTokenBridge {
 
     // Wormhole core bridge contract
     // Source code: https://github.com/wormhole-foundation/wormhole/blob/main/ethereum/contracts/Implementation.sol
-    ICoreBridge public coreBridge;
+    ICoreBridge immutable coreBridge;
 
     // The token address
-    IERC20 public token;
+    IERC20 immutable token;
 
     // Owner of this contract
     address public owner;
@@ -124,11 +124,12 @@ contract ExampleCustomTokenBridge {
     // Owner updates the peer address so we are only accepting messages emitted by trusted contracts from other chains
     // This is important to ensure we are not listening to a faulty contract that tries to mint valuable tokens on the destination chain
     // See https://wormhole.com/docs/products/messaging/guides/core-contracts/#validating-the-emitter
-    function setPeer(uint16 chainId, bytes32 peerAddress) external {
-        require(
-            msg.sender == owner,
-            "Only owner can set peers from other chains"
-        );
+    function setPeer(uint16 chainId, bytes32 peerAddress) external onlyOwner {
         peers[chainId] = peerAddress;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner);
+        _;
     }
 }

@@ -27,10 +27,10 @@ contract ExampleCCTPIntegration {
     }
 
     // Source code: https://github.com/circlefin/evm-cctp-contracts/blob/4061786a5726bc05f99fcdb53b0985599f0dbaf7/src/TokenMessenger.sol
-    ITokenMessenger public tokenMessenger;
+    ITokenMessenger immutable tokenMessenger;
 
     // Source code: https://github.com/circlefin/evm-cctp-contracts/blob/4061786a5726bc05f99fcdb53b0985599f0dbaf7/src/MessageTransmitter.sol
-    IMessageTransmitter public messageTransmitter;
+    IMessageTransmitter immutable messageTransmitter;
 
     // List of peers from various chains
     // This will be our contract addresses deployed on each chain

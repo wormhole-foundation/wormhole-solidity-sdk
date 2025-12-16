@@ -39,15 +39,15 @@ contract ExampleCustomConsistencyTokenBridge {
 
     // Wormhole core bridge contract
     // Source code: https://github.com/wormhole-foundation/wormhole/blob/main/ethereum/contracts/Implementation.sol
-    ICoreBridge public coreBridge;
+    ICoreBridge immutable coreBridge;
 
     // Custom consistency contract address
     // Allows the owner to define a custom consistency level and additional blocks to elapse before starting to process a message
     // See src/libraries/CustomConsistency.sol
-    address public cclContract;
+    address immutable cclContract;
 
     // The token address
-    IERC20 public token;
+    IERC20 immutable token;
 
     // Owner of this contract
     address public owner;
@@ -163,15 +163,12 @@ contract ExampleCustomConsistencyTokenBridge {
 
     // Owner updates contract configuration
     function updateConfiguration(
-        address customConsistencyAddress,
         address ownerAddress,
         uint8 requiredConsistencyLevel,
         uint16 requiredBlocksToWait
     ) external onlyOwner {
-        require(customConsistencyAddress != address(0), "Invalid address");
         require(ownerAddress != address(0), "Invalid address");
 
-        cclContract = customConsistencyAddress;
         owner = ownerAddress;
         CustomConsistencyLib.setAdditionalBlocksConfig(
             cclContract,
