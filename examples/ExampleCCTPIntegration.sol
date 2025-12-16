@@ -14,6 +14,7 @@ import {
     CctpMessageLib,
     CctpTokenBurnMessage
 } from "wormhole-sdk/libraries/CctpMessages.sol";
+import "wormhole-sdk/utils/UniversalAddress.sol";
 
 contract ExampleCCTPIntegration {
     using SafeERC20 for IERC20;
@@ -99,10 +100,8 @@ contract ExampleCCTPIntegration {
         IERC20(burnToken).forceApprove(address(tokenMessenger), amount);
 
         // validate the upper 12 bytes of the `mintRecipient` address is zero since we will be casting bytes32 into bytes20 in `redeemUnlockedFunds`
-        require(
-            uint256(mintRecipient) <= type(uint160).max,
-            "Invalid mintRecipient address"
-        );
+        // we perform this by using the `fromUniversalAddress` function to ensure it is a valid EVM address
+        fromUniversalAddress(mintRecipient);
 
         // call the token Messenger contract with the `destinationDomain` set to CCTP domain
         tokenMessenger.depositForBurnWithCaller(
@@ -143,7 +142,7 @@ contract ExampleCCTPIntegration {
         bytes32 mintRecipient = burnMessage.body.mintRecipient;
 
         // The timelock for funds redemption is only enforced if the recipient is not whitelisted
-        address finalRecipient = address(uint160(uint256(mintRecipient)));
+        address finalRecipient = fromUniversalAddress(mintRecipient);
         bool isRecipientWhitelisted = whitelistedRecipients[finalRecipient];
 
         if (!isRecipientWhitelisted) {

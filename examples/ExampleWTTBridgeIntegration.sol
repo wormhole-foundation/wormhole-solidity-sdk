@@ -11,6 +11,7 @@ import {
 import {Percentage, PercentageLib} from "wormhole-sdk/libraries/Percentage.sol";
 import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 import "wormhole-sdk/utils/DecimalNormalization.sol";
+import "wormhole-sdk/utils/UniversalAddress.sol";
 
 // Example contract to interact with Wormhole WTT Bridge contract
 // See more in https://wormhole.com/docs/products/token-transfers/wrapped-token-transfers/overview/
@@ -95,12 +96,12 @@ contract ExampleWTTBridgeIntegration {
         require(peerAddress != bytes32(0), "Invalid peer address!");
 
         // validate the upper 12 bytes of the `recipient` address is zero since we will be casting bytes32 into bytes20 in `receiveETHWithPayload`
-        bool isAddressValid = uint256(recipient) <= type(uint160).max;
-        require(isAddressValid, "Invalid recipient address provided");
+        // we perform this by using the `fromUniversalAddress` function to ensure it is a valid EVM address
+        fromUniversalAddress(recipient);
 
         // encode recipient address in destination chain
         bytes memory payload = abi.encodePacked(
-            bytes32(uint256(uint160(msg.sender))),
+            toUniversalAddress(msg.sender),
             recipient
         );
 
@@ -153,7 +154,7 @@ contract ExampleWTTBridgeIntegration {
         // This is required as we use the unchecked parsing methods above
         BytesParsing.checkLength(offset, twp.payload.length);
 
-        address finalRecipient = address(uint160(uint256(recipient)));
+        address finalRecipient = fromUniversalAddress(recipient);
 
         bool isSenderWhitelisted = isWhitelisted(twp.tokenChainId, sender);
 
