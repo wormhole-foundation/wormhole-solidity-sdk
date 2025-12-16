@@ -112,6 +112,7 @@ contract ExampleCustomConsistencyTokenBridge {
         token.safeTransferFrom(msg.sender, address(this), amount);
 
         // Construct the payload for the token transfer message
+        // It is important to encode the `destinationChainId` into the payload to prevent the same VAA from being redeemed multiple times in different chains
         bytes memory payload = abi.encodePacked(destinationChainId, to, amount);
 
         // We use CONSISTENCY_LEVEL_CUSTOM here so the watcher will read from cclContract to determine our configured consistency levels

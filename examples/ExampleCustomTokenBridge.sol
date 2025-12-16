@@ -50,6 +50,7 @@ contract ExampleCustomTokenBridge {
     }
 
     // Entry point for users to send tokens from this chain (source chain) to destination chain
+    // It is important to encode the `destinationChainId` into the payload to prevent the same VAA from being redeemed multiple times in different chains
     function sendToken(
         uint16 destinationChainId,
         address to,
