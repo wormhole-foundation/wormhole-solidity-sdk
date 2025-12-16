@@ -50,7 +50,7 @@ contract ExampleCCTPIntegration {
     // keccak256(message, attestation) -> unlock timestamp
     mapping(bytes32 => uint) public unlockTimestamps;
 
-    // Map of whitelisted recipients that does not need to wait for 24 hours before redeeming their funds
+    // Map of whitelisted recipients that do not have to wait for 24 hours before redeeming their funds
     // Key: address => isWhitelisted
     mapping(address => bool) public whitelistedRecipients;
 
@@ -74,18 +74,18 @@ contract ExampleCCTPIntegration {
     // Entry point in the source chain to start cross-chain transfers
     function initiateCrossChainTransfer(
         uint256 amount,
-        uint16 destinationChainID, // this is Wormhole chain IDs
+        uint16 destinationChainId, // this is Wormhole chain IDs
         bytes32 mintRecipient,
         address burnToken
     ) external {
         // fetch the peer address
-        bytes32 peerAddress = peers[destinationChainID];
+        bytes32 peerAddress = peers[destinationChainId];
         require(peerAddress != bytes32(0), "Invalid peer address!");
 
         // read the `wormholeChainIdToCctpDomain` mapping to discover the CCTP domain from the given wormhole chain ID
         ChainIdToDomain
             memory chainIdToDomainMapping = wormholeChainIdToCctpDomain[
-                destinationChainID
+                destinationChainId
             ];
 
         // we ensure the `exists` boolean is set to true. This is required because if the entry is not set, it will return 0, which is a valid domain in CCTP
