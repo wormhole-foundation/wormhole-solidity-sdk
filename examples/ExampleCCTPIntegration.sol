@@ -28,10 +28,10 @@ contract ExampleCCTPIntegration {
     }
 
     // Source code: https://github.com/circlefin/evm-cctp-contracts/blob/4061786a5726bc05f99fcdb53b0985599f0dbaf7/src/TokenMessenger.sol
-    ITokenMessenger public immutable tokenMessenger;
+    ITokenMessenger private immutable tokenMessenger;
 
     // Source code: https://github.com/circlefin/evm-cctp-contracts/blob/4061786a5726bc05f99fcdb53b0985599f0dbaf7/src/MessageTransmitter.sol
-    IMessageTransmitter public immutable messageTransmitter;
+    IMessageTransmitter private immutable messageTransmitter;
 
     // List of wormhole chain IDs and their associated peer address and CCTP domain configuration
     // key: Wormhole chain ID => (peer address, CCTP domain)

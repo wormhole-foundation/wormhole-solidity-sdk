@@ -17,13 +17,13 @@ contract ExampleCustomTokenBridge {
 
     // Wormhole core bridge contract
     // Source code: https://github.com/wormhole-foundation/wormhole/blob/main/ethereum/contracts/Implementation.sol
-    ICoreBridge public immutable coreBridge;
+    ICoreBridge private immutable coreBridge;
 
     // The token address
-    IERC20 public immutable token;
+    IERC20 private immutable token;
 
     // Wormhole chain ID for this contract
-    uint16 public immutable wormholeChainId;
+    uint16 private immutable wormholeChainId;
 
     // Owner of this contract
     address public owner;

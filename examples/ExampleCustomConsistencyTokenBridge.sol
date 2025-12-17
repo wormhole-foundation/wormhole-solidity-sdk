@@ -39,18 +39,18 @@ contract ExampleCustomConsistencyTokenBridge {
 
     // Wormhole core bridge contract
     // Source code: https://github.com/wormhole-foundation/wormhole/blob/main/ethereum/contracts/Implementation.sol
-    ICoreBridge public immutable coreBridge;
+    ICoreBridge private immutable coreBridge;
 
     // Custom consistency contract address
     // Allows the owner to define a custom consistency level and additional blocks to elapse before starting to process a message
     // See src/libraries/CustomConsistency.sol
-    address public immutable cclContract;
+    address private immutable cclContract;
 
     // The token address
-    IERC20 public immutable token;
+    IERC20 private immutable token;
 
     // Wormhole chain ID for this contract
-    uint16 public immutable wormholeChainId;
+    uint16 private immutable wormholeChainId;
 
     // Owner of this contract
     address public owner;
