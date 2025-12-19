@@ -149,9 +149,9 @@ const funcs = [
     dl => [
       `uint8 val;`,
       `(val, nextOffset) = asUint8${dlTag(dl)}Unchecked(encoded, offset);`,
-      `if (val & 0xfe != 0)`,
-      `  revert InvalidBoolVal(val);`,
       `uint cleanedVal = uint(val);`,
+      `if (cleanedVal & 0xfe != 0)`,
+      `  revert InvalidBoolVal(val);`,
       `//skip 2x iszero opcode`,
       `/// @solidity memory-safe-assembly`,
       `assembly { ret := cleanedVal }`
@@ -376,9 +376,9 @@ function ${name}${dlTag(dl)}(
   ) internal pure returns (bool ret, uint nextOffset) {
     uint8 val;
     (val, nextOffset) = asUint8CdUnchecked(encoded, offset);
-    if (val & 0xfe != 0)
+    uint cleanedVal = uint(val); //clean up upper 31 bytes
+    if (cleanedVal & 0xfe != 0)
       revert InvalidBoolVal(val);
-    uint cleanedVal = uint(val);
     //skip 2x iszero opcode
     /// @solidity memory-safe-assembly
     assembly { ret := cleanedVal }
@@ -398,9 +398,9 @@ function ${name}${dlTag(dl)}(
   ) internal pure returns (bool ret, uint nextOffset) {
     uint8 val;
     (val, nextOffset) = asUint8MemUnchecked(encoded, offset);
-    if (val & 0xfe != 0)
+    uint cleanedVal = uint(val); //clean up upper 31 bytes
+    if (cleanedVal & 0xfe != 0)
       revert InvalidBoolVal(val);
-    uint cleanedVal = uint(val);
     //skip 2x iszero opcode
     /// @solidity memory-safe-assembly
     assembly { ret := cleanedVal }
