@@ -433,7 +433,7 @@ contract VaaLibTestWrapper {
     return VaaLib.decodeGuardianSignatureCdUnchecked(encodedVaa, offset);
   }
 
-  function decodeGuardianSignatureStructCdUnchecked(bytes calldata encodedVaa, uint attestationOffset) external pure returns (GuardianSignature memory ret, uint envelopeOffset) {
+  function decodeGuardianSignatureStructCdUnchecked(bytes calldata encodedVaa, uint attestationOffset) external pure returns (GuardianSignature memory ret, uint newOffset) {
     return VaaLib.decodeGuardianSignatureStructCdUnchecked(encodedVaa, attestationOffset);
   }
 

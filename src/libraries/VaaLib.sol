@@ -426,8 +426,8 @@ library VaaLib {
       body.envelope.emitterAddress,
       body.envelope.sequence,
       body.envelope.consistencyLevel,
-      body.payload,
-    ) = decodeVaaBodyMemUnchecked(encodedVaa, 0, encodedVaa.length);
+      body.payload
+    ) = decodeVaaBodyMem(encodedVaa);
   }
 
   //legacy decoder for CoreBridgeVM
@@ -1086,8 +1086,8 @@ library VaaLib {
   function decodeGuardianSignatureStructCdUnchecked(
     bytes calldata encodedVaa,
     uint attestationOffset
-  ) internal pure returns (GuardianSignature memory ret, uint envelopeOffset) {
-    (ret.guardianIndex, ret.r, ret.s, ret.v, envelopeOffset) =
+  ) internal pure returns (GuardianSignature memory ret, uint newOffset) {
+    (ret.guardianIndex, ret.r, ret.s, ret.v, newOffset) =
       decodeGuardianSignatureCdUnchecked(encodedVaa, attestationOffset);
   }
 
@@ -1099,7 +1099,7 @@ library VaaLib {
     bytes32 r,
     bytes32 s,
     uint8   v,
-    uint    envelopeOffset
+    uint    newOffset
   ) { unchecked {
     uint offset = attestationOffset;
     (guardianIndex, offset) = encoded.asUint8MemUnchecked(offset);
@@ -1107,7 +1107,7 @@ library VaaLib {
     (s,             offset) = encoded.asBytes32MemUnchecked(offset);
     (v,             offset) = encoded.asUint8MemUnchecked(offset);
     v += SIGNATURE_RECOVERY_MAGIC;
-    envelopeOffset = offset;
+    newOffset = offset;
   }}
 
   function decodeGuardianSignatureStructMemUnchecked(
