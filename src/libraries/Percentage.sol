@@ -26,7 +26,6 @@ library PercentageLib {
   uint internal constant BYTE_SIZE = 2;
 
   uint private constant EXPONENT_BITS = 2;
-  uint private constant EXPONENT_BASE = 1;
   uint private constant EXPONENT_BITS_MASK = (1 << EXPONENT_BITS) - 1;
   uint private constant MAX_MANTISSA = 1e4; //= 1000 % (if exponent = 0)
   //we essentially use a uint128 like an array of 4 uint24s containing [1e6, 1e5, 1e4, 1e3] as a
