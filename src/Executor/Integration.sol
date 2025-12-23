@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache 2
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.19;
 
 import {ICoreBridge}               from "wormhole-sdk/interfaces/ICoreBridge.sol";
@@ -8,23 +8,97 @@ import {RequestLib}                from "wormhole-sdk/Executor/Request.sol";
 import {RelayInstructionLib}       from "wormhole-sdk/Executor/RelayInstruction.sol";
 import {toUniversalAddress}        from "wormhole-sdk/Utils.sol";
 
-//abstract base contract for typical Executor integrations
+//abstract base contracts for typical Executor integrations
+//integrators should inherit from exactly one of:
+// * ExecutorSend
+// * ExecutorReceive
+// * ExecutorSendReceive
+//note: The Impl contracts are a nuisance to deal with the diamond inheritance pattern and
+//      the "Base constructor arguments given twice" error that comes with it.
 
-abstract contract ExecutorIntegration is IVaaV1Receiver {
-  error InvalidPeer();
+// ╭─────────────────────────────╮
+// │   WARNING: Receiving VAAs   │
+// ╰─────────────────────────────╯
+//
+// When reciving a VAA, you must ensure:
+//   1. The VAA was emitted by a known peer to prevent spoofing - see _checkPeer
+//   2. The VAA was intended for this chain - see _checkDestination
+//
+// Emitter information is part of the VAA itself, but due to Wormhole's design as an attestion
+//   mechanism, there is no destination chain in the VAA header itself.
+// It is therefore up to the integrator to include such a field in message payloads of messages
+//   with an intended target.
 
+error InvalidPeer();
+error DestinationMismatch();
+
+abstract contract ExecutorSharedBase {
   ICoreBridge internal immutable _coreBridge;
-  IExecutor   internal immutable _executor;
   uint16      internal immutable _chainId;
 
-  constructor(address coreBridge, address executor) {
+  constructor(address coreBridge) {
     _coreBridge = ICoreBridge(coreBridge);
-    _executor = IExecutor(executor);
     _chainId = _coreBridge.chainId();
   }
 
   //should return bytes32(0) if there is no peer on the given chain
   function _getPeer(uint16 chainId) internal view virtual returns (bytes32);
+
+  function _getExistingPeer(uint16 chainId) internal view virtual returns (bytes32 peer) {
+    peer = _getPeer(chainId);
+    if (peer == bytes32(0))
+      revert InvalidPeer();
+  }
+}
+
+abstract contract ExecutorSendImpl is ExecutorSharedBase {
+  IExecutor internal immutable _executor;
+
+  constructor(address executor) {
+    _executor = IExecutor(executor);
+  }
+
+  function _publishAndRelay(
+    bytes memory   payload,
+    uint8          consistencyLevel,
+    uint256        totalCost, //must equal execution cost + Wormhole message fee for publishing!
+    uint16         peerChain,
+    address        refundAddress,
+    bytes calldata signedQuote,
+    uint128        gasLimit,
+    uint128        msgVal,
+    bytes memory   extraRelayInstructions
+  ) internal returns (uint64 sequence) { unchecked {
+    uint messageFee = _coreBridge.messageFee();
+    uint32 nonce = 0; //unused
+    sequence = _coreBridge.publishMessage{value: messageFee}(nonce, payload, consistencyLevel);
+
+    bytes memory relayInstructions = RelayInstructionLib.encodeGas(gasLimit, msgVal);
+    if (extraRelayInstructions.length > 0)
+      relayInstructions = abi.encodePacked(relayInstructions, extraRelayInstructions);
+
+    bytes32 peerAddress = _getExistingPeer(peerChain);
+
+    //value calculation is unchecked because call will fail on underflow anyway
+    _executor.requestExecution{value: totalCost - messageFee}(
+      peerChain,
+      peerAddress,
+      refundAddress,
+      signedQuote,
+      RequestLib.encodeVaaMultiSigRequest(_chainId, toUniversalAddress(address(this)), sequence),
+      relayInstructions
+    );
+  }}
+}
+
+abstract contract ExecutorReceiveImpl is ExecutorSharedBase, IVaaV1Receiver {
+  constructor(address coreBridge) {}
+
+  //default impl as safeguard - integrators should override this with an empty impl and perform
+  //  appropriate check in their impl of _executeVaa instead, if they allow for non-zero msg.value
+  function _executeVaaDefaultMsgValueCheck() internal virtual {
+    require(msg.value == 0);
+  }
 
   //impl via the appropriate replay protection library from ReplayProtectionLib.sol
   function _replayProtect(
@@ -44,45 +118,23 @@ abstract contract ExecutorIntegration is IVaaV1Receiver {
     uint8   consistencyLevel
   ) internal virtual;
 
+  //ATTENTION: You typically want to ensure that a VAA is intended for this chain
+  //             to protect against VAA submission on other chains.
+  function _checkDestination(uint16 destinationChainId) internal view virtual {
+    if (destinationChainId != _chainId)
+      revert DestinationMismatch();
+  }
+
+  //ATTENTION: You must ensure that the emitter of the VAA does indeed match a known
+  //             peer to prevent spoofing.
   function _checkPeer(uint16 chainId, bytes32 peerAddress) internal view virtual {
     if (_getPeer(chainId) != peerAddress)
       revert InvalidPeer();
   }
 
-  function _publishAndRelay(
-    bytes memory payload,
-    uint8 consistencyLevel,
-    uint16 peerChain,
-    address refundAddress,
-    bytes calldata signedQuote,
-    uint128 gasLimit,
-    uint128 msgVal,
-    bytes memory extraRelayInstructions
-  ) internal returns (uint64 sequence) { unchecked {
-    uint messageFee = _coreBridge.messageFee();
-    uint32 nonce = 0; //unused
-    sequence = _coreBridge.publishMessage{value: messageFee}(nonce, payload, consistencyLevel);
-
-    bytes memory relayInstructions = RelayInstructionLib.encodeGas(gasLimit, msgVal);
-    if (extraRelayInstructions.length > 0)
-      relayInstructions = abi.encodePacked(relayInstructions, extraRelayInstructions);
-
-    bytes32 peerAddress = _getPeer(peerChain);
-    if (peerAddress == bytes32(0))
-      revert InvalidPeer();
-
-    //value calculation is unchecked because call will fail on underflow anyway
-    _executor.requestExecution{value: msg.value - messageFee}(
-      peerChain,
-      peerAddress,
-      refundAddress,
-      signedQuote,
-      RequestLib.encodeVaaMultiSigRequest(_chainId, toUniversalAddress(address(this)), sequence),
-      relayInstructions
-    );
-  }}
-
   function executeVAAv1(bytes calldata multiSigVaa) external payable virtual {
+    _executeVaaDefaultMsgValueCheck();
+
     ( uint32  timestamp,
       , //nonce is ignored
       uint16  emitterChainId,
@@ -106,3 +158,23 @@ abstract contract ExecutorIntegration is IVaaV1Receiver {
   }
 }
 
+abstract contract ExecutorSend is ExecutorSharedBase, ExecutorSendImpl {
+  constructor(address coreBridge, address executor)
+    ExecutorSharedBase(coreBridge)
+    ExecutorSendImpl(executor)
+  {}
+}
+
+abstract contract ExecutorReceive is ExecutorSharedBase, ExecutorReceiveImpl {
+  constructor(address coreBridge)
+    ExecutorSharedBase(coreBridge)
+    ExecutorReceiveImpl(coreBridge)
+  {}
+}
+
+abstract contract ExecutorSendReceive is ExecutorSharedBase, ExecutorSendImpl, ExecutorReceiveImpl {
+  constructor(address coreBridge, address executor)
+    ExecutorSendImpl(executor)
+    ExecutorReceiveImpl(coreBridge)
+    ExecutorSharedBase(coreBridge) {}
+}

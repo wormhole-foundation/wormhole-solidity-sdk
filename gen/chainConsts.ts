@@ -7,11 +7,11 @@ import {
 } from "@wormhole-foundation/sdk-base";
 import { EvmAddress } from "@wormhole-foundation/sdk-evm";
 
-const {coreBridge, tokenBridge, relayer, circleContracts} = contracts;
+const {coreBridge, tokenBridge, relayer, circleContracts, executor} = contracts;
 const {usdcContract, circleChainId} = circle;
 
 console.log(
-`// SPDX-License-Identifier: Apache 2
+`// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
 // ╭──────────────────────────────────────╮
@@ -36,6 +36,7 @@ pragma solidity ^0.8.0;
 //   coreBridge             │  chainId  │  address
 //   tokenBridge            │  chainId  │  address
 //   wormholeRelayer        │  chainId  │  address
+//   executor               │  chainId  │  address
 //   cctpDomain             │  chainId  │ cctpDomain
 //   usdc                   │  chainId  │  address
 //   cctpMessageTransmitter │  chainId  │  address
@@ -98,6 +99,7 @@ const functions = [
   ["coreBridge",             AliasType.Address   ],
   ["tokenBridge",            AliasType.Address   ],
   ["wormholeRelayer",        AliasType.Address   ],
+  ["executor",               AliasType.Address   ],
   ["cctpDomain",             AliasType.CctpDomain],
   ["usdc",                   AliasType.Address   ],
   ["cctpMessageTransmitter", AliasType.Address   ],
@@ -148,6 +150,7 @@ for (const network of networks) {
     coreBridge:             chain => coreBridge.get(network, chain),
     tokenBridge:            chain => tokenBridge.get(network, chain),
     wormholeRelayer:        chain => relayer.get(network, chain),
+    executor:               chain => executor.get(network, chain),
     cctpDomain:             chain => cctpDomainConst(chain),
     usdc:                   chain => usdcContract.get(network, chain),
     cctpMessageTransmitter: chain => circleContracts.get(network, chain)?.messageTransmitter,

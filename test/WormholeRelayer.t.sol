@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache 2
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.4;
 
 import "wormhole-sdk/interfaces/token/IERC20Metadata.sol";
@@ -213,7 +213,7 @@ contract WormholeRelayerDemoIntegration is WormholeRelayerReceiver {
 
 contract WormholeRelayerDemoIntegrationTest is WormholeRelayerTest {
   uint16 private constant SOURCE_CHAIN_ID = CHAIN_ID_ETHEREUM;
-  uint16 private constant TARGET_CHAIN_ID = CHAIN_ID_AVALANCHE;
+  uint16 private constant TARGET_CHAIN_ID = CHAIN_ID_BASE;
 
   WormholeRelayerDemoIntegration private _sourceDemoIntegration;
   DeliveryProviderStub private           _sourceDeliveryProviderStub;

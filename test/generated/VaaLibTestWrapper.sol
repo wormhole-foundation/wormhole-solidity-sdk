@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache 2
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.24;
 
 import "wormhole-sdk/libraries/VaaLib.sol";
@@ -128,32 +128,6 @@ contract VaaLibTestWrapper {
     return VaaLib.decodeVaaAttestationSchnorrStructMem(encodedAttestation);
   }
 
-  function decodeVaaAttestationEcdsaCd(bytes calldata encodedAttestation) external pure returns (
-    uint32 ecdsaKeyIndex,
-    bytes32 r,
-    bytes32 s,
-    uint8 v
-  ) {
-    return VaaLib.decodeVaaAttestationEcdsaCd(encodedAttestation);
-  }
-
-  function decodeVaaAttestationEcdsaMem(bytes calldata encodedAttestation) external pure returns (
-    uint32 ecdsaKeyIndex,
-    bytes32 r,
-    bytes32 s,
-    uint8 v
-  ) {
-    return VaaLib.decodeVaaAttestationEcdsaMem(encodedAttestation);
-  }
-
-  function decodeVaaAttestationEcdsaStructCd(bytes calldata encodedAttestation) external pure returns (VaaAttestationEcdsa memory attestation) {
-    return VaaLib.decodeVaaAttestationEcdsaStructCd(encodedAttestation);
-  }
-
-  function decodeVaaAttestationEcdsaStructMem(bytes calldata encodedAttestation) external pure returns (VaaAttestationEcdsa memory attestation) {
-    return VaaLib.decodeVaaAttestationEcdsaStructMem(encodedAttestation);
-  }
-
   function decodeVaaMultiSigStructCd(bytes calldata encodedVaa) external pure returns (VaaMultiSig memory vaa) {
     return VaaLib.decodeVaaMultiSigStructCd(encodedVaa);
   }
@@ -168,14 +142,6 @@ contract VaaLibTestWrapper {
 
   function decodeVaaSchnorrStructMem(bytes calldata encodedVaa) external pure returns (VaaSchnorr memory vaa) {
     return VaaLib.decodeVaaSchnorrStructMem(encodedVaa);
-  }
-
-  function decodeVaaEcdsaStructCd(bytes calldata encodedVaa) external pure returns (VaaEcdsa memory vaa) {
-    return VaaLib.decodeVaaEcdsaStructCd(encodedVaa);
-  }
-
-  function decodeVaaEcdsaStructMem(bytes calldata encodedVaa) external pure returns (VaaEcdsa memory vaa) {
-    return VaaLib.decodeVaaEcdsaStructMem(encodedVaa);
   }
 
   function decodeVaaVersionCdUnchecked(bytes calldata encodedVaa) external pure returns (uint8 version, uint attestationOffset) {
@@ -266,10 +232,6 @@ contract VaaLibTestWrapper {
     return VaaLib.calcSingleHash(vaa);
   }
 
-  function calcSingleHash(VaaEcdsa calldata vaa) external pure returns (bytes32) {
-    return VaaLib.calcSingleHash(vaa);
-  }
-
   function calcSingleHash(VaaBody calldata body) external pure returns (bytes32) {
     return VaaLib.calcSingleHash(body);
   }
@@ -303,10 +265,6 @@ contract VaaLibTestWrapper {
   }
 
   function calcDoubleHash(VaaSchnorr calldata vaa) external pure returns (bytes32) {
-    return VaaLib.calcDoubleHash(vaa);
-  }
-
-  function calcDoubleHash(VaaEcdsa calldata vaa) external pure returns (bytes32) {
     return VaaLib.calcDoubleHash(vaa);
   }
 
@@ -441,14 +399,6 @@ contract VaaLibTestWrapper {
     return VaaLib.decodeVaaSchnorrStructMemUnchecked(encoded, headerOffset, vaaLength);
   }
 
-  function decodeVaaEcdsaStructMemUnchecked(
-    bytes calldata encoded,
-    uint headerOffset,
-    uint vaaLength
-  ) external pure returns (VaaEcdsa memory vaa, uint newOffset) {
-    return VaaLib.decodeVaaEcdsaStructMemUnchecked(encoded, headerOffset, vaaLength);
-  }
-
   function decodeVaaAttestationMultiSigCdUnchecked(bytes calldata encodedVaa, uint attestationOffset) external pure returns (
     uint32 guardianSetIndex,
     GuardianSignature[] memory signatures,
@@ -483,7 +433,7 @@ contract VaaLibTestWrapper {
     return VaaLib.decodeGuardianSignatureCdUnchecked(encodedVaa, offset);
   }
 
-  function decodeGuardianSignatureStructCdUnchecked(bytes calldata encodedVaa, uint attestationOffset) external pure returns (GuardianSignature memory ret, uint envelopeOffset) {
+  function decodeGuardianSignatureStructCdUnchecked(bytes calldata encodedVaa, uint attestationOffset) external pure returns (GuardianSignature memory ret, uint newOffset) {
     return VaaLib.decodeGuardianSignatureStructCdUnchecked(encodedVaa, attestationOffset);
   }
 
@@ -527,34 +477,6 @@ contract VaaLibTestWrapper {
     return VaaLib.decodeVaaAttestationSchnorrStructMemUnchecked(encoded, attestationOffset);
   }
 
-  function decodeVaaAttestationEcdsaCdUnchecked(bytes calldata encodedVaa, uint attestationOffset) external pure returns (
-    uint32 ecdsaKeyIndex,
-    bytes32 r,
-    bytes32 s,
-    uint8 v,
-    uint newOffset
-  ) {
-    return VaaLib.decodeVaaAttestationEcdsaCdUnchecked(encodedVaa, attestationOffset);
-  }
-
-  function decodeVaaAttestationEcdsaStructCdUnchecked(bytes calldata encodedVaa, uint attestationOffset) external pure returns (VaaAttestationEcdsa memory header, uint envelopeOffset) {
-    return VaaLib.decodeVaaAttestationEcdsaStructCdUnchecked(encodedVaa, attestationOffset);
-  }
-
-  function decodeVaaAttestationEcdsaMemUnchecked(bytes calldata encoded, uint attestationOffset) external pure returns (
-    uint32 ecdsaKeyIndex,
-    bytes32 r,
-    bytes32 s,
-    uint8 v,
-    uint newOffset
-  ) {
-    return VaaLib.decodeVaaAttestationEcdsaMemUnchecked(encoded, attestationOffset);
-  }
-
-  function decodeVaaAttestationEcdsaStructMemUnchecked(bytes calldata encoded, uint attestationOffset) external pure returns (VaaAttestationEcdsa memory header, uint envelopeOffset) {
-    return VaaLib.decodeVaaAttestationEcdsaStructMemUnchecked(encoded, attestationOffset);
-  }
-
   function decodeVaaPayloadCd(bytes calldata encodedVaa, uint payloadOffset) external pure returns (bytes calldata payload) {
     return VaaLib.decodeVaaPayloadCd(encodedVaa, payloadOffset);
   }
@@ -592,19 +514,6 @@ contract VaaLibTestWrapper {
   }
 
   function encode(VaaAttestationSchnorr calldata val) external pure returns (bytes memory) {
-    return VaaLib.encode(val);
-  }
-
-  function encodeVaaAttestationEcdsa(
-    uint32 ecdsaKeyIndex,
-    bytes32 r,
-    bytes32 s,
-    uint8 v
-  ) external pure returns (bytes memory) {
-    return VaaLib.encodeVaaAttestationEcdsa(ecdsaKeyIndex, r, s, v);
-  }
-
-  function encode(VaaAttestationEcdsa calldata val) external pure returns (bytes memory) {
     return VaaLib.encode(val);
   }
 
@@ -648,10 +557,6 @@ contract VaaLibTestWrapper {
   }
 
   function encode(VaaSchnorr calldata vaa) external pure returns (bytes memory) {
-    return VaaLib.encode(vaa);
-  }
-
-  function encode(VaaEcdsa calldata vaa) external pure returns (bytes memory) {
     return VaaLib.encode(vaa);
   }
 

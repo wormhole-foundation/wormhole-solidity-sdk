@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache 2
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.4;
 
 import "wormhole-sdk/libraries/QueryResponse.sol";
@@ -649,6 +649,13 @@ contract QueryResponseTest is WormholeForkTest {
     vm.assume(_queryRequestLen != _perChainQueries.length + 6);
 
     bytes memory resp = concatenateQueryResponseBytesOffChain(version, senderChainId, signature, queryRequestVersion, queryRequestNonce, numPerChainQueries, _perChainQueries, numPerChainResponses, perChainResponses);
+    //manually overwrite length field via read, lshift, or, and finally write at adjusted offset
+    uint reqLenOffset = 1 + 2 + 65; //version + senderChainId + signature
+    uint reqLenSize = 4; //it's stored as a uint32
+    assembly ("memory-safe") {
+      let p := add(resp, reqLenOffset)
+      mstore(add(p, reqLenSize), or(shl(mul(reqLenSize, 8), mload(p)), _queryRequestLen))
+    }
     _expectRevertDecodeAndVerifyQueryResponse(cd, resp, sign(resp));
   }
 

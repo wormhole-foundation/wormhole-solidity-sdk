@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache 2
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.4;
 
 //build Cross Chain Query (CCQ) responses for testing purposes.

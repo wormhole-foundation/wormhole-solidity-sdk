@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache 2
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
@@ -102,27 +102,80 @@ contract TestBytesParsing is Test {
       assertEq(encodedResult, encodedOutOfBounds(expectedNewOffset, data.length), "wrong error");
   }}
 
+  /// forge-config: default.fuzz.runs = 1000
+  function testFuzzBoolParsing(
+    bytes calldata data,
+    uint offset,
+    bool cd,
+    bool checked
+  ) public { unchecked {
+    offset = bound(offset, 0, data.length);
+    uint expectedNewOffset = offset + 1;
+    string memory funcSig = toFunctionSignature("asBool", cd, checked, "(bytes,uint256)");
+    (bool success, bytes memory encodedResult) =
+      address(wrapper).call(abi.encodeWithSignature(funcSig, data, offset));
+
+    if (expectedNewOffset <= data.length) {
+      uint8 byteVal = uint8(data[offset]);
+      bool validBool = byteVal & 0xfe == 0;
+      assertEq(success, validBool, "call success mismatch (invalid bool)");
+      if (success) {
+        (bool result, uint newOffset) = abi.decode(encodedResult, (bool, uint));
+        assertEq(newOffset, expectedNewOffset, "wrong offset");
+        assertEq(result, byteVal == 1, "wrong result");
+      }
+      else
+        assertEq(
+          encodedResult,
+          abi.encodeWithSelector(BytesParsing.InvalidBoolVal.selector, byteVal),
+          "wrong error"
+        );
+    }
+    else {
+      assertEq(success, !checked, "call success mismatch (bounds)");
+      if (!success)
+        assertEq(encodedResult, encodedOutOfBounds(expectedNewOffset, data.length), "wrong error");
+    }
+  }}
+
   uint constant BASEWORD = 0x0101010101010101010101010101010101010101010101010101010101010101;
 
-  function largeBytes() private pure returns (bytes memory data) {
-    data = new bytes(256 * WORD_SIZE);
-    for (uint i = 1; i < 256; ++i)
-      assembly ("memory-safe") { mstore(add(data, mul(add(i,1),WORD_SIZE)), mul(i, BASEWORD)) }
+  //stores multiples of BASEWORD in ascending order in all full words
+  function constructBytes(uint length, uint lowerBound) private view returns (bytes memory data) {
+    length = bound(length, lowerBound, 256 * WORD_SIZE);
+    data = new bytes(length);
+    uint fullWords = length / WORD_SIZE;
+    for (uint i = 0; i < fullWords; ++i)
+      assembly ("memory-safe") {
+        mstore(add(data, mul(add(i, 1), WORD_SIZE)), mul(add(i, 1), BASEWORD))
+      }
+
+    uint remainingBytes = length % WORD_SIZE;
+    assembly ("memory-safe") {
+      mstore(
+        add(data, mul(add(fullWords, 1), WORD_SIZE)),
+        and(BASEWORD, shl(mul(sub(WORD_SIZE, remainingBytes), 8), not(0)))
+      )
+    }
   }
 
-  /// forge-config: default.fuzz.runs = 20
-  function testFuzzLargeBytes(uint word, uint shift) public {
-    bytes memory data = largeBytes();
-    assertEq(data.length, 256*WORD_SIZE, "wrong size");
-    word = bound(word, 0, WORD_SIZE_MINUS_ONE);
-    shift = bound(word, 0, WORD_SIZE_MINUS_ONE);
-    (uint result, ) = data.asUint256MemUnchecked(word*WORD_SIZE + shift);
-    assertEq(result, (word*BASEWORD << 8*shift) + ((word+1)*BASEWORD >> 8*(WORD_SIZE-shift)));
+  /// forge-config: default.fuzz.runs = 200
+  function testFuzzBytes(uint length, uint shift) public {
+    bytes memory data = constructBytes(length, WORD_SIZE);
+    uint fullWords = data.length / WORD_SIZE;
+    shift = bound(shift, 0, fullWords-1);
+    (uint result, ) = data.asUint256MemUnchecked(shift);
+    uint wordIndex = shift / WORD_SIZE + 1;  // +1 because constructBytes stores (i+1)*BASEWORD
+    uint byteOffset = shift % WORD_SIZE;
+    uint expected =
+      (wordIndex * BASEWORD << 8*byteOffset) +
+      ((wordIndex+1) * BASEWORD >> 8*(WORD_SIZE-byteOffset));
+    assertEq(result, expected);
   }
 
   /// forge-config: default.fuzz.runs = 1000
-  function testFuzzSlice(uint offset, uint size, bool cd, bool checked) public {
-    bytes memory data = largeBytes();
+  function testFuzzSlice(uint length, uint offset, uint size, bool cd, bool checked) public {
+    bytes memory data = constructBytes(length, 1);
     offset = bound(offset, 0, data.length);
     //we increase the upper bound of size by 25 % beyond what can be correctly read
     //  hence resulting in an out of bounds error 20% of the time
@@ -155,13 +208,14 @@ contract TestBytesParsing is Test {
 
   /// forge-config: default.fuzz.runs = 1000
   function testFuzzPrefixedSlice(
+    uint length,
     uint offset,
     uint size,
     uint prefixSize,
     bool cd,
     bool checked
   ) public {
-    bytes memory data = largeBytes();
+    bytes memory data = constructBytes(length, 4); // ensure we have enough bytes for the prefix
     prefixSize = 2**bound(prefixSize, 0, 2); //=1, 2, 4
     offset = bound(offset, 0, data.length-prefixSize);
     //we increase the upper bound of size by 25 % beyond what can be correctly read

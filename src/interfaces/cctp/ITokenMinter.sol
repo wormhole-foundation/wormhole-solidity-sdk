@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache 2
+// SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2022, Circle Internet Financial Limited.
 //stripped version of:
 //https://github.com/circlefin/evm-cctp-contracts/blob/master/src/interfaces/ITokenMinter.sol

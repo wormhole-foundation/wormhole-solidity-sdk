@@ -1,7 +1,7 @@
-// SPDX-License-Identifier: Apache 2
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.19;
 
-import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
+import {UncheckedIndexing} from "../libraries/UncheckedIndexing.sol";
 
 //RelayInstructions are concatenated as tightly packed bytes.
 //If the same type of instruction exists multiple times, its values are summed.
@@ -9,93 +9,100 @@ import {BytesParsing} from "wormhole-sdk/libraries/BytesParsing.sol";
 //and also: https://github.com/wormholelabs-xyz/example-executor-ci-test/blob/6bf0e7156bf81d54f3ded707e53815a2ff62555e/src/utils.ts#L37-L71
 
 library RelayInstructionLib {
-  using BytesParsing for bytes;
-  using {BytesParsing.checkLength} for uint;
-
-  uint8 private constant RECV_INST_TYPE_GAS      = 1;
-  uint8 private constant RECV_INST_TYPE_DROP_OFF = 2;
+  uint8 internal constant RECV_INST_TYPE_GAS      = 1;
+  uint8 internal constant RECV_INST_TYPE_DROP_OFF = 2;
 
   function encodeGas(uint128 gasLimit, uint128 msgVal) internal pure returns (bytes memory) {
     return abi.encodePacked(RECV_INST_TYPE_GAS, gasLimit, msgVal);
   }
 
-  function encodeGasDropOffInstructions(
+  function encodeGasDropOffInstruction(
     uint128 dropOff,
     bytes32 recipient
   ) internal pure returns (bytes memory) {
     return abi.encodePacked(RECV_INST_TYPE_DROP_OFF, dropOff, recipient);
   }
 
-  // ---- only testing functionality below ----
+  function encodeGasDropOffInstructions(
+    uint128[] memory dropOffs,
+    bytes32[] memory recipients
+  ) internal pure returns (bytes memory instructions) { unchecked {
+    uint instructionCount = dropOffs.length;
+    assert(instructionCount == recipients.length);
 
-  error InvalidInstructionType(uint8 instructionType);
+    instructions = new bytes(instructionCount * GAS_DROP_OFF_INSTRUCTION_SIZE);
+    encodeGasDropOffInstructionsUnchecked(dropOffs, recipients, instructions, 0);
+  }}
 
-  struct GasDropOff {
-    uint256 dropOff;
-    bytes32 recipient;
+  //more complex implementations for higher gas efficiency below:
+  using UncheckedIndexing for uint128[];
+  using UncheckedIndexing for bytes32[];
+
+  uint256 internal constant GAS_INSTRUCTION_SIZE          = 33;
+  uint256 internal constant GAS_DROP_OFF_INSTRUCTION_SIZE = 49;
+
+  function calcBytesSize(
+    uint gasInstructionCount,
+    uint gasDropOffInstructionCount
+  ) internal pure returns (uint) { unchecked {
+    return gasInstructionCount        * GAS_INSTRUCTION_SIZE +
+           gasDropOffInstructionCount * GAS_DROP_OFF_INSTRUCTION_SIZE;
+  }}
+
+  function encodeGasDropOffInstructionUnchecked(
+    uint128 gasLimit,
+    uint128 msgVal,
+    bytes memory buffer,
+    uint offset
+  ) internal pure returns (uint newOffset) {
+    assembly ("memory-safe") {
+      let ptr := add(buffer, offset)
+      let word := mload(ptr)
+      //store type while keeping higher order bits intact
+      word := or(shl(8, word), RECV_INST_TYPE_GAS)
+      mstore(add(ptr, 1), word)
+
+      //store gas limit and msg val
+      word := or(shl(128, gasLimit), msgVal)
+      newOffset := add(offset, GAS_INSTRUCTION_SIZE) //equal to add(ptr, 32)
+      mstore(add(buffer, newOffset), word)
+    }
   }
 
-  function decodeRelayInstructions(
-    bytes memory encoded
-  ) internal pure returns (
-    uint totalGasLimit,
-    uint totalMsgVal, //only from gas instructions, does not include gas drop offs
-    GasDropOff[] memory gasDropOffs
-  ) { unchecked {
-    uint dropoffRequests = 0;
-    uint offset = 0;
-    while (offset < encoded.length) {
-      uint8 instructionType;
-      (instructionType, offset) = encoded.asUint8MemUnchecked(offset);
-      if (instructionType == RECV_INST_TYPE_GAS) {
-        uint gasLimit; uint msgVal;
-        (gasLimit, offset) = encoded.asUint128MemUnchecked(offset);
-        (msgVal,   offset) = encoded.asUint128MemUnchecked(offset);
-        totalGasLimit += gasLimit;
-        totalMsgVal   += msgVal;
-      } else if (instructionType == RECV_INST_TYPE_DROP_OFF) {
-        offset += 48; // 16 dropOff amount + 32 universal recipient
-        ++dropoffRequests;
-      }
-      else
-        revert InvalidInstructionType(instructionType);
-    }
-    encoded.length.checkLength(offset);
+  function encodeGasDropOffInstructionUnchecked(
+    uint128 dropOff,
+    bytes32 recipient,
+    bytes memory buffer,
+    uint offset
+  ) internal pure returns (uint newOffset) {
+    assembly ("memory-safe") {
+      //store type and amount while keeping higher order bits intact
+      let ptr := add(buffer, offset)
+      let word := mload(ptr)
+      word := or(shl(8, word), RECV_INST_TYPE_DROP_OFF)
+      word := or(shl(128, word), dropOff)
+      mstore(add(ptr, 17), word)
 
-    if (dropoffRequests > 0) {
-      gasDropOffs = new GasDropOff[](dropoffRequests);
-      offset = 0;
-      uint requestIndex = 0;
-      uint uniqueRecipientCount = 0;
-      while (true) {
-        uint8 instructionType;
-        (instructionType, offset) = encoded.asUint8MemUnchecked(offset);
-        if (instructionType == RECV_INST_TYPE_GAS)
-          offset += 32; // 16 gas limit + 16 msg val
-        else {
-          //must be RECV_INST_TYPE_DROP_OFF
-          uint dropOff; bytes32 recipient;
-          (dropOff,   offset) = encoded.asUint256MemUnchecked(offset);
-          (recipient, offset) = encoded.asBytes32MemUnchecked(offset);
-          uint i = 0;
-          for (; i < uniqueRecipientCount; ++i)
-            if (gasDropOffs[i].recipient == recipient) {
-              gasDropOffs[i].dropOff += dropOff;
-              break;
-            }
-          if (i == uniqueRecipientCount) {
-            gasDropOffs[i] = GasDropOff(dropOff, recipient);
-            ++uniqueRecipientCount;
-          }
-
-          ++requestIndex;
-          if (requestIndex == dropoffRequests)
-            break;
-        }
-      }
-      assembly ("memory-safe") {
-        mstore(gasDropOffs, uniqueRecipientCount)
-      }
+      //store recipient
+      newOffset := add(offset, GAS_DROP_OFF_INSTRUCTION_SIZE) //equal to add(ptr, 32)
+      mstore(add(buffer, newOffset), recipient)
     }
+  }
+
+  function encodeGasDropOffInstructionsUnchecked(
+    uint128[] memory dropOffs,
+    bytes32[] memory recipients,
+    bytes memory buffer,
+    uint offset
+  ) internal pure returns (uint newOffset) { unchecked {
+    uint instructionCount = dropOffs.length;
+    newOffset = offset;
+    for (uint i = 0; i < instructionCount; ++i)
+      newOffset = encodeGasDropOffInstructionUnchecked(
+        dropOffs.readUnchecked(i),
+        recipients.readUnchecked(i),
+        buffer,
+        newOffset
+      );
   }}
 }

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache 2
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.19;
 
 // ╭────────────────────────────────────────────────────────────╮
@@ -26,7 +26,6 @@ library PercentageLib {
   uint internal constant BYTE_SIZE = 2;
 
   uint private constant EXPONENT_BITS = 2;
-  uint private constant EXPONENT_BASE = 1;
   uint private constant EXPONENT_BITS_MASK = (1 << EXPONENT_BITS) - 1;
   uint private constant MAX_MANTISSA = 1e4; //= 1000 % (if exponent = 0)
   //we essentially use a uint128 like an array of 4 uint24s containing [1e6, 1e5, 1e4, 1e3] as a
@@ -54,6 +53,9 @@ library PercentageLib {
       revert InvalidArguments(value, fractionalDigits);
 
     if (fractionalDigits == 0) {
+      if (value > MAX_MANTISSA) //prevents silent overflow of subsequent *= 10
+        revert InvalidArguments(value, fractionalDigits);
+
       value *= 10;
       fractionalDigits = 1;
     }
