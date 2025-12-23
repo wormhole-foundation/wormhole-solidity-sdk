@@ -149,7 +149,7 @@ contract TestBytesParsing is Test {
       assembly ("memory-safe") {
         mstore(add(data, mul(add(i, 1), WORD_SIZE)), mul(add(i, 1), BASEWORD))
       }
-    
+
     uint remainingBytes = length % WORD_SIZE;
     assembly ("memory-safe") {
       mstore(
