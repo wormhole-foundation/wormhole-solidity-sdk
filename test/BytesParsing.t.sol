@@ -102,6 +102,42 @@ contract TestBytesParsing is Test {
       assertEq(encodedResult, encodedOutOfBounds(expectedNewOffset, data.length), "wrong error");
   }}
 
+  /// forge-config: default.fuzz.runs = 1000
+  function testFuzzBoolParsing(
+    bytes calldata data,
+    uint offset,
+    bool cd,
+    bool checked
+  ) public { unchecked {
+    offset = bound(offset, 0, data.length);
+    uint expectedNewOffset = offset + 1;
+    string memory funcSig = toFunctionSignature("asBool", cd, checked, "(bytes,uint256)");
+    (bool success, bytes memory encodedResult) =
+      address(wrapper).call(abi.encodeWithSignature(funcSig, data, offset));
+
+    if (expectedNewOffset <= data.length) {
+      uint8 byteVal = uint8(data[offset]);
+      bool validBool = byteVal & 0xfe == 0;
+      assertEq(success, validBool, "call success mismatch (invalid bool)");
+      if (success) {
+        (bool result, uint newOffset) = abi.decode(encodedResult, (bool, uint));
+        assertEq(newOffset, expectedNewOffset, "wrong offset");
+        assertEq(result, byteVal == 1, "wrong result");
+      }
+      else
+        assertEq(
+          encodedResult,
+          abi.encodeWithSelector(BytesParsing.InvalidBoolVal.selector, byteVal),
+          "wrong error"
+        );
+    }
+    else {
+      assertEq(success, !checked, "call success mismatch (bounds)");
+      if (!success)
+        assertEq(encodedResult, encodedOutOfBounds(expectedNewOffset, data.length), "wrong error");
+    }
+  }}
+
   uint constant BASEWORD = 0x0101010101010101010101010101010101010101010101010101010101010101;
 
   //stores multiples of BASEWORD in ascending order in all full words

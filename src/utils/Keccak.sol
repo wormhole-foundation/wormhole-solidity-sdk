@@ -11,6 +11,9 @@ function keccak256Word(bytes32 word) pure returns (bytes32 hash) {
   }
 }
 
+//WARNING: The same considerations for `Unchecked` apply as in BytesParsing.sol, namely:
+// * does not use safe math, hence adding offset to encoded can overflow
+// * does not check that [offset, offset + length) is within the bounds of encoded
 function keccak256SliceUnchecked(
   bytes memory encoded,
   uint offset,
