@@ -16,13 +16,29 @@ import {toUniversalAddress}        from "wormhole-sdk/Utils.sol";
 //note: The Impl contracts are a nuisance to deal with the diamond inheritance pattern and
 //      the "Base constructor arguments given twice" error that comes with it.
 
-abstract contract ExecutorSharedBase {
-  error InvalidPeer();
+// ╭─────────────────────────────╮
+// │   WARNING: Receiving VAAs   │
+// ╰─────────────────────────────╯
+//
+// When reciving a VAA, you must ensure:
+//   1. The VAA was emitted by a known peer to prevent spoofing - see _checkPeer
+//   2. The VAA was intended for this chain - see _checkDestination
+//
+// Emitter information is part of the VAA itself, but due to Wormhole's design as an attestion
+//   mechanism, there is no destination chain in the VAA header itself.
+// It is therefore up to the integrator to include such a field in message payloads of messages
+//   with an intended target.
 
+error InvalidPeer();
+error DestinationMismatch();
+
+abstract contract ExecutorSharedBase {
   ICoreBridge internal immutable _coreBridge;
+  uint16      internal immutable _chainId;
 
   constructor(address coreBridge) {
     _coreBridge = ICoreBridge(coreBridge);
+    _chainId = _coreBridge.chainId();
   }
 
   //should return bytes32(0) if there is no peer on the given chain
@@ -36,24 +52,22 @@ abstract contract ExecutorSharedBase {
 }
 
 abstract contract ExecutorSendImpl is ExecutorSharedBase {
-  IExecutor   internal immutable _executor;
-  uint16      internal immutable _chainId;
+  IExecutor internal immutable _executor;
 
   constructor(address executor) {
     _executor = IExecutor(executor);
-    _chainId = _coreBridge.chainId();
   }
 
   function _publishAndRelay(
-    bytes memory payload,
-    uint8 consistencyLevel,
-    uint256 totalCost, //must equal execution cost + Wormhole message fee for publishing!
-    uint16 peerChain,
-    address refundAddress,
+    bytes memory   payload,
+    uint8          consistencyLevel,
+    uint256        totalCost, //must equal execution cost + Wormhole message fee for publishing!
+    uint16         peerChain,
+    address        refundAddress,
     bytes calldata signedQuote,
-    uint128 gasLimit,
-    uint128 msgVal,
-    bytes memory extraRelayInstructions
+    uint128        gasLimit,
+    uint128        msgVal,
+    bytes memory   extraRelayInstructions
   ) internal returns (uint64 sequence) { unchecked {
     uint messageFee = _coreBridge.messageFee();
     uint32 nonce = 0; //unused
@@ -104,6 +118,15 @@ abstract contract ExecutorReceiveImpl is ExecutorSharedBase, IVaaV1Receiver {
     uint8   consistencyLevel
   ) internal virtual;
 
+  //ATTENTION: You typically want to ensure that a VAA is intended for this chain
+  //             to protect against VAA submission on other chains.
+  function _checkDestination(uint16 destinationChainId) internal view virtual {
+    if (destinationChainId != _chainId)
+      revert DestinationMismatch();
+  }
+
+  //ATTENTION: You must ensure that the emitter of the VAA does indeed match a known
+  //             peer to prevent spoofing.
   function _checkPeer(uint16 chainId, bytes32 peerAddress) internal view virtual {
     if (_getPeer(chainId) != peerAddress)
       revert InvalidPeer();

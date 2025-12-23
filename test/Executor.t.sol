@@ -4,23 +4,27 @@ pragma solidity ^0.8.19;
 import {IERC20}          from "wormhole-sdk/interfaces/token/IERC20.sol";
 import {ICoreBridge}     from "wormhole-sdk/interfaces/ICoreBridge.sol";
 import {ITokenMessenger} from "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol";
-import {
-  CHAIN_ID_ETHEREUM,
-  CHAIN_ID_BASE,
-  CHAIN_ID_POLYGON
-} from "wormhole-sdk/constants/Chains.sol";
+
+import {CHAIN_ID_ETHEREUM,
+        CHAIN_ID_BASE,
+        CHAIN_ID_POLYGON}            from "wormhole-sdk/constants/Chains.sol";
 import {CONSISTENCY_LEVEL_FINALIZED} from "wormhole-sdk/constants/ConsistencyLevel.sol";
-import {
-  eagerOr,
-  tokenOrNativeTransfer,
-  toUniversalAddress
-} from "wormhole-sdk/Utils.sol";
+
+import {eagerOr,
+        toUniversalAddress,
+        tokenOrNativeTransfer} from "wormhole-sdk/Utils.sol";
+
 import {BytesParsing}                from "wormhole-sdk/libraries/BytesParsing.sol";
 import {SequenceReplayProtectionLib} from "wormhole-sdk/libraries/ReplayProtection.sol";
-import {ExecutorSendReceive} from "wormhole-sdk/Executor/Integration.sol";
+
+import {InvalidPeer,
+        DestinationMismatch,
+        ExecutorSendReceive} from "wormhole-sdk/Executor/Integration.sol";
 import {RequestLib}          from "wormhole-sdk/Executor/Request.sol";
 import {RelayInstructionLib} from "wormhole-sdk/Executor/RelayInstruction.sol";
-import {ExecutorTest} from "wormhole-sdk/testing/ExecutorTest.sol";
+
+import {WormholeOverride} from "wormhole-sdk/testing/WormholeOverride.sol";
+import {ExecutorTest}     from "wormhole-sdk/testing/ExecutorTest.sol";
 
 //demo integration for Executor:
 //A cross-chain vault that allows the owner to "live" on only one chain but distribute
@@ -126,6 +130,12 @@ contract ToyCrossChainUsdcVault is ExecutorSendReceive {
     uint32, uint16, bytes32, uint64, uint8
   ) internal override {
     uint offset = 0;
+    uint16 destinationChainId;
+    (destinationChainId, offset) = payload.asUint16CdUnchecked(offset);
+
+    //ensure the VAA was intended for our chain to avoid execution against multiple vaults
+    _checkDestination(destinationChainId);
+
     while (offset < payload.length) {
       uint usdcAmount; address recipient;
       (usdcAmount, offset) = payload.asUint96CdUnchecked(offset);
@@ -165,7 +175,7 @@ contract ToyCrossChainUsdcVault is ExecutorSendReceive {
   }
 
   function withdrawCrossChain(
-    uint16 chainId,
+    uint16 destinationChainId,
     WithdrawalParams[] calldata params,
     bytes calldata signedQuote
   ) external payable onlyOwner { unchecked {
@@ -198,13 +208,13 @@ contract ToyCrossChainUsdcVault is ExecutorSendReceive {
     //  and 20 bytes for the recipient address into 32 bytes, hence wasting 4 bytes per item,
     //  but it's easier to implement given Solidity's lacking packing support
     //in general, there's a lot of stuff that should be optimized for gas here in production
-    bytes memory payload = abi.encodePacked(payloadArr);
+    bytes memory payload = abi.encodePacked(destinationChainId, payloadArr);
 
     _publishAndRelay(
       payload,
       CONSISTENCY_LEVEL_FINALIZED,
       msg.value, //must equal execution cost + Wormhole message fee for publishing!
-      chainId,
+      destinationChainId,
       msg.sender,
       signedQuote,
       uint128(gasLimit),
@@ -231,16 +241,23 @@ contract ToyCrossChainUsdcVault is ExecutorSendReceive {
 }
 
 contract ExecutorDemoIntegrationTest is ExecutorTest {
+  using WormholeOverride for ICoreBridge;
+  using {toUniversalAddress} for address;
+
   uint16[] private chains;
   ToyCrossChainUsdcVault[] private vaults;
   address private owner;
   address private rebalancer;
   address[] private recipients;
 
+  uint initialUsdc;
+
   constructor() {
     chains.push(CHAIN_ID_ETHEREUM);
     chains.push(CHAIN_ID_BASE);
     chains.push(CHAIN_ID_POLYGON);
+
+    initialUsdc = 1e8;
   }
 
   function setUp() public override {
@@ -287,12 +304,11 @@ contract ExecutorDemoIntegrationTest is ExecutorTest {
     }
 
     selectFork(chains[0]);
+    dealUsdc(address(vaults[0]), initialUsdc);
   }
 
   function testHappyPath() public {
-    uint count = chains.length - 1;
-    uint initialUsdc = 1e8;
-    dealUsdc(address(vaults[0]), initialUsdc);
+    uint count = 2;
 
     //-- rebalance --
 
@@ -380,5 +396,30 @@ contract ExecutorDemoIntegrationTest is ExecutorTest {
       assertEq(usdc().balanceOf(recipients[i]), wParams[i].usdcAmount);
       assertEq(recipients[i].balance, wParams[i].gasAmount);
     }
+  }
+
+  function testSpoofingProtection() public {
+    address spoofer = makeAddr("spoofer");
+    bytes memory payload = abi.encodePacked(
+      CHAIN_ID_ETHEREUM,
+      uint256(initialUsdc << 160 | uint160(spoofer))
+    );
+    bytes memory spoofedVaa =
+      coreBridge().craftVaa(CHAIN_ID_BASE, spoofer.toUniversalAddress(), payload);
+
+    vm.expectRevert(InvalidPeer.selector);
+    vaults[0].executeVAAv1(spoofedVaa);
+  }
+
+  function testDestinationCheck() public {
+    bytes memory payload = abi.encodePacked(
+      CHAIN_ID_POLYGON,
+      uint256(initialUsdc << 160 | uint160(address(vaults[1])))
+    );
+    bytes memory vaa =
+      coreBridge().craftVaa(CHAIN_ID_BASE, address(vaults[1]).toUniversalAddress(), payload);
+
+    vm.expectRevert(DestinationMismatch.selector);
+    vaults[0].executeVAAv1(vaa);
   }
 }
