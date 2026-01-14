@@ -21,7 +21,7 @@ The `main` branch is considered the nightly version of the SDK. Stick to tagged 
 **Foundry and Forge**
 
 ```bash
-forge install wormhole-foundation/wormhole-solidity-sdk@v0.1.0
+forge install wormhole-foundation/wormhole-solidity-sdk@v1.0.0
 ```
 
 **EVM Version**
@@ -29,6 +29,10 @@ forge install wormhole-foundation/wormhole-solidity-sdk@v0.1.0
 One hazard of developing EVM contracts in a cross-chain environment is that different chains have varying levels of "EVM-equivalence". This means you have to ensure that all chains that you are planning to deploy to support all EIPs/opcodes that you rely on.
 
 For example, if you are using a solc version newer than `0.8.19` and are planning to deploy to a chain that does not support [PUSH0 opcode](https://eips.ethereum.org/EIPS/eip-3855) (introduced as part of the Shanghai hardfork), you should set `evm_version = "paris"` in your `foundry.toml`, since the default EVM version of solc was advanced from Paris to Shanghai as part of solc's `0.8.20` release.
+
+**Via-IR Support**
+
+Some of the components of this SDK require the use of intermediate representation to enable more powerful optimization passes that span across functions. This also resolves `stack-too-deep` issues that the standard compiler cannot resolve currently. The tradeoff for enabling this feature is slightly longer compilation times (up to 15 seconds). This functionality is not to be considered experimental (read [comments](https://forum.soliditylang.org/t/can-someone-explain-how-via-ir-works/1898/5) from the Solidity Development Team) but a tradeoff until there is a better handling of the stack by the solidity compiler.
 
 **Testing**
 
@@ -42,27 +46,33 @@ This SDK comes with its own IERC20 interface and SafeERC20 implementation. Given
 
 For additional documentation of components and how to test integrations, see the docs directory.
 
+## Security
+
+This repository has been thoroughly reviewed by Wormhole Contributors and key files have been audited by a 3rd party. To ensure you are using production-ready code, always use tagged releases. If you need to use newer code from `main`, please contact the team for any security concerns.
+
 ## Style
 
 This SDK largely follows [the Solidity style guide](https://docs.soliditylang.org/en/latest/style-guide.html) with some exceptions/modifications:
-* indentation uses 2 instead of 4 spaces
-* maximum line length where feasible is 100 characters (urls in comments are an exception)
-* [order of functions](https://docs.soliditylang.org/en/latest/style-guide.html) is roughly followed but more important functions might be sorted to the top.
-* additional whitespace is at times added to create more compelling visual blocks (e.g. for a block of related assignments)
-* function modifiers do not get a separate line each once line length is exceeded
-* NatSpec is avoided because it favors a "box-checking" approach towards documentation rather than focusing on essentials and rationales
+
+-   indentation uses 2 instead of 4 spaces
+-   maximum line length where feasible is 100 characters (urls in comments are an exception)
+-   [order of functions](https://docs.soliditylang.org/en/latest/style-guide.html) is roughly followed but more important functions might be sorted to the top.
+-   additional whitespace is at times added to create more compelling visual blocks (e.g. for a block of related assignments)
+-   function modifiers do not get a separate line each once line length is exceeded
+-   NatSpec is avoided because it favors a "box-checking" approach towards documentation rather than focusing on essentials and rationales
 
 ## Philosophy/Creeds
 
 In This House We Believe:
-* clarity breeds security
-* Do NOT trust in the Lord (i.e. the community, auditors, fellow devs, FOSS, ...) with any of your heart (i.e. with your or your users' security), but lean _hard_ on your own understanding.
-* _Nothing_ is considered safe unless you have _personally_ verified it as such.
-* git gud
-* shut up and suffer
+
+-   clarity breeds security
+-   Do NOT trust in the Lord (i.e. the community, auditors, fellow devs, FOSS, ...) with any of your heart (i.e. with your or your users' security), but lean _hard_ on your own understanding.
+-   _Nothing_ is considered safe unless you have _personally_ verified it as such.
+-   git gud
+-   shut up and suffer
 
 ## Notable Solidity Repos
 
-* [OpenZeppelin](https://github.com/OpenZeppelin/openzeppelin-contracts)
-* [Solmate](https://github.com/transmissions11/solmate) / [Solady](https://github.com/Vectorized/solady)
-* [Uniswap Permit2](https://github.com/Uniswap/permit2) + [explanation](https://github.com/dragonfly-xyz/useful-solidity-patterns/tree/main/patterns/permit2)
+-   [OpenZeppelin](https://github.com/OpenZeppelin/openzeppelin-contracts)
+-   [Solmate](https://github.com/transmissions11/solmate) / [Solady](https://github.com/Vectorized/solady)
+-   [Uniswap Permit2](https://github.com/Uniswap/permit2) + [explanation](https://github.com/dragonfly-xyz/useful-solidity-patterns/tree/main/patterns/permit2)
