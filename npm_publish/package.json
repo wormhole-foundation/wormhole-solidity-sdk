@@ -1,0 +1,22 @@
+{
+  "name": "@wormhole-foundation/solidity-sdk",
+  "version": "1.0.0",
+  "description": "Wormhole Solidity SDK",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wormhole-foundation/wormhole-solidity-sdk.git"
+  },
+  "files": [
+    "contracts/**/*.sol"
+  ],
+  "keywords": [
+    "solidity",
+    "wormhole",
+    "cross-chain",
+    "evm",
+    "foundry",
+    "hardhat",
+    "sdk"
+  ]
+}
