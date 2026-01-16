@@ -76,10 +76,18 @@ check_version_increment
 
 echo "2. Git Status Checks"
 if [ "${NPM_TAG}" = "latest" ] && [ "$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then
-  fail "Publishing to 'latest' tag but not on the 'main' branch."
+  if [ "${DRY_RUN}" = "true" ]; then
+    echo "Warning: not on 'main' branch, but continuing because dry-run."
+  else
+    fail "Publishing to 'latest' tag but not on the 'main' branch."
+  fi
 fi
 if ! git diff-index --quiet HEAD --; then
-  fail "There are uncommitted changes. Please commit or stash them before publishing."
+  if [ "${DRY_RUN}" = "true" ]; then
+    echo "Warning: There are uncommitted changes — continuing because dry-run."
+  else
+    fail "There are uncommitted changes. Please commit or stash them before publishing."
+  fi
 fi
 
 echo "3. Cleaning up and setting up temporary publish directory"
@@ -91,6 +99,10 @@ mkdir -p "${TEMP_PUBLISH_DIR}"
   mv "src" "contracts"
   rm -rf "contracts/testing" "contracts/legacy" # remove stuff that depends on forge-std
   cp "${SCRIPT_DIR}/package.json" "${PROJECT_ROOT_DIR}/README.md" "${PROJECT_ROOT_DIR}/LICENSE" .
+  # Make sure the temporary package.json marks the project as ESM so Hardhat (which requires ESM) runs
+  if [ -f package.json ] && command -v node >/dev/null 2>&1; then
+    node -e 'const fs=require("fs");const p=JSON.parse(fs.readFileSync("package.json","utf8")||"{}");p.type="module";fs.writeFileSync("package.json",JSON.stringify(p,null,2)+"\n");'
+  fi
 )
 
 echo "4. Transforming Foundry remappings to relative paths for Hardhat..."
@@ -99,7 +111,8 @@ node "${SCRIPT_DIR}/clean_remappings.js" "${PROJECT_ROOT_DIR}" "${TEMP_PUBLISH_D
 echo "5. Hardhat compilation check"
 ( 
   cd "${TEMP_PUBLISH_DIR}"
-  echo "module.exports = { solidity: { version: '${SOLC_VERSION}', settings: { viaIR: true, optimizer: { enabled: true } } } };" > hardhat.config.js
+  # Write an ESM Hardhat config (Hardhat requires ESM projects when package.json.type = "module")
+  echo "export default { solidity: { version: '${SOLC_VERSION}', settings: { viaIR: true, optimizer: { enabled: true } } } };" > hardhat.config.js
   npm install --no-save --silent hardhat
   if ! npx hardhat compile > /dev/null 2>&1; then
     fail "Hardhat compilation failed. Aborting."
@@ -109,13 +122,13 @@ echo "5. Hardhat compilation check"
 echo "6. Cleaning up temporary files before publishing"
 ( 
   cd "${TEMP_PUBLISH_DIR}"
-  rm -rf hardhat.config.js node_modules cache artifacts
+  rm -rf hardhat.config.cjs hardhat.config.js node_modules cache artifacts
 )
 
 echo "7. Publishing version ${NPM_PACKAGE_VERSION} with tag '${NPM_TAG}'"
 ( 
   cd "${TEMP_PUBLISH_DIR}"
-  npm publish --silent --tag "${NPM_TAG}" $([ "${DRY_RUN}" = "true" ] && echo "--dry-run")
+  npm publish --access public --tag "${NPM_TAG}" $([ "${DRY_RUN}" = "true" ] && echo "--dry-run")
 )
 
 echo "8. Cleaning up temporary publish directory: ${TEMP_PUBLISH_DIR}"
