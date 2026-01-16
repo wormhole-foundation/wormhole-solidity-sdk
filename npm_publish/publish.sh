@@ -128,7 +128,7 @@ echo "6. Cleaning up temporary files before publishing"
 echo "7. Publishing version ${NPM_PACKAGE_VERSION} with tag '${NPM_TAG}'"
 ( 
   cd "${TEMP_PUBLISH_DIR}"
-  npm publish --provenance --access public --tag "${NPM_TAG}" $([ "${DRY_RUN}" = "true" ] && echo "--dry-run")
+  npm publish --access public --tag "${NPM_TAG}" $([ "${DRY_RUN}" = "true" ] && echo "--dry-run")
 )
 
 echo "8. Cleaning up temporary publish directory: ${TEMP_PUBLISH_DIR}"
