@@ -75,11 +75,20 @@ echo "1. Check Version Against NPM Registry"
 check_version_increment
 
 echo "2. Git Status Checks"
-if [ "${NPM_TAG}" = "latest" ] && [ "$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then
-  if [ "${DRY_RUN}" = "true" ]; then
-    echo "Warning: not on 'main' branch, but continuing because dry-run."
-  else
-    fail "Publishing to 'latest' tag but not on the 'main' branch."
+# Allow publishing 'latest' only from 'main' OR from an exact tag (tagged release).
+if [ "${NPM_TAG}" = "latest" ]; then
+  current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+  if [ "${current_branch}" != "main" ]; then
+    # If HEAD matches an exact tag, allow (this is typical for GitHub Actions tagged releases)
+    if git describe --exact-match --tags HEAD >/dev/null 2>&1; then
+      echo "Info: HEAD is at a tag; allowing publish of 'latest' from tagged commit."
+    else
+      if [ "${DRY_RUN}" = "true" ]; then
+        echo "Warning: not on 'main' branch, but continuing because dry-run."
+      else
+        fail "Publishing to 'latest' tag but not on the 'main' branch."
+      fi
+    fi
   fi
 fi
 if ! git diff-index --quiet HEAD --; then
