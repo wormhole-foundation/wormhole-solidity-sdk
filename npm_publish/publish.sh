@@ -43,6 +43,12 @@ get_npm_version() {
 }
 
 check_version_increment() {
+  # When running inside GitHub Actions, skip version checks to let the workflow control publishing.
+  if [ "${GITHUB_ACTIONS:-false}" = "true" ]; then
+    echo "Info: running in GitHub Actions; skipping version checks."
+    return 0
+  fi
+
   LATEST_VERSION=$(get_npm_version "${NPM_PACKAGE_NAME}" "version" "0.0.0")
   if [ "${LATEST_VERSION}" = "0.0.0" ]; then
     echo "Package not found on npm registry. Assuming first publish."
@@ -75,27 +81,26 @@ echo "1. Check Version Against NPM Registry"
 check_version_increment
 
 echo "2. Git Status Checks"
-# Allow publishing 'latest' only from 'main' OR from an exact tag (tagged release).
-if [ "${NPM_TAG}" = "latest" ]; then
-  current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
-  if [ "${current_branch}" != "main" ]; then
-    # If HEAD matches an exact tag, allow (this is typical for GitHub Actions tagged releases)
-    if git describe --exact-match --tags HEAD >/dev/null 2>&1; then
-      echo "Info: HEAD is at a tag; allowing publish of 'latest' from tagged commit."
+# If running inside GitHub Actions, skip local-only git checks.
+if [ "${GITHUB_ACTIONS:-false}" = "true" ]; then
+  echo "Info: running in GitHub Actions; skipping git status checks."
+else
+  # Only enforce 'main' branch requirement for local publishes of the 'latest' tag.
+  if [ "${NPM_TAG}" = "latest" ] && [ "$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then
+    if [ "${DRY_RUN}" = "true" ]; then
+      echo "Warning: not on 'main' branch, but continuing because dry-run."
     else
-      if [ "${DRY_RUN}" = "true" ]; then
-        echo "Warning: not on 'main' branch, but continuing because dry-run."
-      else
-        fail "Publishing to 'latest' tag but not on the 'main' branch."
-      fi
+      fail "Publishing to 'latest' tag from local environment requires being on the 'main' branch."
     fi
   fi
-fi
-if ! git diff-index --quiet HEAD --; then
-  if [ "${DRY_RUN}" = "true" ]; then
-    echo "Warning: There are uncommitted changes — continuing because dry-run."
-  else
-    fail "There are uncommitted changes. Please commit or stash them before publishing."
+
+  # Do not allow uncommitted changes when publishing locally (except for dry-run).
+  if ! git diff-index --quiet HEAD --; then
+    if [ "${DRY_RUN}" = "true" ]; then
+      echo "Warning: There are uncommitted changes — continuing because dry-run."
+    else
+      fail "There are uncommitted changes. Please commit or stash them before publishing."
+    fi
   fi
 fi
 
