@@ -36,10 +36,10 @@ pragma solidity ^0.8.0;
 //
 // Additional free standing evmChainId-based functions:
 //
-//          Function                │  Parameter   │  Returns
-//  ────────────────────────────────┼──────────────┼────────────────────────────────
-//   isSupported                    │  evmChainId  │  bool
-//   evmChainIdToNetworkAndChainId  │  evmChainId  │ (bool mainnet, uint16 chainId)
+//       Function       │  Parameter   │  Returns
+//  ────────────────────┼──────────────┼────────────────────────────────
+//   isSupported        │  evmChainId  │  bool
+//   networkAndChainId  │  evmChainId  │ (bool mainnet, uint16 chainId)
 
 import "wormhole-sdk/constants/Chains.sol";
 import "wormhole-sdk/constants/CctpDomains.sol";
@@ -47,72 +47,8 @@ import "wormhole-sdk/constants/CctpDomains.sol";
 uint32 constant INVALID_CCTP_DOMAIN = type(uint32).max;
 error UnsupportedEvmChainId(uint256 evmChainId);
 error UnsupportedChainId(uint16 chainId);
-error UnsupportedCctpDomain(uint32 cctpDomain);
 
-function isSupported(uint256 evmChainId) pure returns (bool) {
-  return (
-    evmChainId == 42161 ||
-    evmChainId == 43114 ||
-    evmChainId == 8453 ||
-    evmChainId == 56 ||
-    evmChainId == 42220 ||
-    evmChainId == 1 ||
-    evmChainId == 250 ||
-    evmChainId == 8217 ||
-    evmChainId == 1284 ||
-    evmChainId == 10 ||
-    evmChainId == 137 ||
-    evmChainId == 5000 ||
-    evmChainId == 534352 ||
-    evmChainId == 196 ||
-    evmChainId == 59144 ||
-    evmChainId == 80094 ||
-    evmChainId == 1329 ||
-    evmChainId == 130 ||
-    evmChainId == 480 ||
-    evmChainId == 57073 ||
-    evmChainId == 999 ||
-    evmChainId == 143 ||
-    evmChainId == 31612 ||
-    evmChainId == 98866 ||
-    evmChainId == 1440000 ||
-    evmChainId == 102030 ||
-    evmChainId == 2288 ||
-    evmChainId == 4326 ||
-    evmChainId == 43113 ||
-    evmChainId == 97 ||
-    evmChainId == 44787 ||
-    evmChainId == 4002 ||
-    evmChainId == 1001 ||
-    evmChainId == 1287 ||
-    evmChainId == 11155111 ||
-    evmChainId == 421614 ||
-    evmChainId == 84532 ||
-    evmChainId == 11155420 ||
-    evmChainId == 17000 ||
-    evmChainId == 80002 ||
-    evmChainId == 5003 ||
-    evmChainId == 534351 ||
-    evmChainId == 195 ||
-    evmChainId == 59141 ||
-    evmChainId == 80069 ||
-    evmChainId == 1328 ||
-    evmChainId == 1301 ||
-    evmChainId == 4801 ||
-    evmChainId == 763373 ||
-    evmChainId == 998 ||
-    evmChainId == 31611 ||
-    evmChainId == 52085145 ||
-    evmChainId == 98867 ||
-    evmChainId == 1449000 ||
-    evmChainId == 102031 ||
-    evmChainId == 9746 ||
-    evmChainId == 222888 ||
-    evmChainId == 6343 ||
-    evmChainId == 10143
-  );
-}
-function evmChainIdToNetworkAndChainId(uint256 evmChainId) pure returns (bool mainnet, uint16 chainId) {
+function _networkAndChainIdImpl(uint256 evmChainId) pure returns (bool mainnet, uint16 chainId) {
   if (evmChainId == 42161)
     return (true, CHAIN_ID_ARBITRUM);
   if (evmChainId == 43114)
@@ -221,9 +157,9 @@ function evmChainIdToNetworkAndChainId(uint256 evmChainId) pure returns (bool ma
     return (false, CHAIN_ID_PLUME);
   if (evmChainId == 1449000)
     return (false, CHAIN_ID_XRPLEVM);
-  if (evmChainId == 102031)
-    return (false, CHAIN_ID_PLASMA);
   if (evmChainId == 9746)
+    return (false, CHAIN_ID_PLASMA);
+  if (evmChainId == 102031)
     return (false, CHAIN_ID_CREDIT_COIN);
   if (evmChainId == 222888)
     return (false, CHAIN_ID_MOCA);
@@ -231,8 +167,21 @@ function evmChainIdToNetworkAndChainId(uint256 evmChainId) pure returns (bool ma
     return (false, CHAIN_ID_MEGA_ETH);
   if (evmChainId == 10143)
     return (false, CHAIN_ID_MONAD_TESTNET);
+  return (false, CHAIN_ID_UNSET);
+}
+
+function isSupported(uint256 evmChainId) pure returns (bool) {
+  (, uint16 chainId) = _networkAndChainIdImpl(evmChainId);
+  return chainId != CHAIN_ID_UNSET;
+}
+
+function networkAndChainId(uint256 evmChainId) pure returns (bool mainnet, uint16 chainId) {
+  (mainnet, chainId) = _networkAndChainIdImpl(evmChainId);
+  if (chainId != CHAIN_ID_UNSET)
+    return (mainnet, chainId);
   revert UnsupportedEvmChainId(evmChainId);
 }
+
 function chainName(bool mainnet, uint16 chainId) pure returns (string memory) {
   return mainnet
     ? MainnetChainConstants._chainName(chainId)
@@ -292,6 +241,7 @@ function cctpTokenMessenger(bool mainnet, uint16 chainId) pure returns (address)
     ? MainnetChainConstants._cctpTokenMessenger(chainId)
     : TestnetChainConstants._cctpTokenMessenger(chainId);
 }
+
 library MainnetChainConstants {
   function _chainName(uint16 chainId) internal pure returns (string memory) {
     if (chainId == CHAIN_ID_ARBITRUM)
@@ -893,6 +843,7 @@ library MainnetChainConstants {
     revert UnsupportedChainId(chainId);
   }
 }
+
 library TestnetChainConstants {
   function _chainName(uint16 chainId) internal pure returns (string memory) {
     if (chainId == CHAIN_ID_AVALANCHE)

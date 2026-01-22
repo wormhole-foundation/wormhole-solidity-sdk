@@ -51,10 +51,10 @@ pragma solidity ^0.8.0;
 //
 // Additional free standing evmChainId-based functions:
 //
-//          Function                │  Parameter   │  Returns
-//  ────────────────────────────────┼──────────────┼────────────────────────────────
-//   isSupported                    │  evmChainId  │  bool
-//   evmChainIdToNetworkAndChainId  │  evmChainId  │ (bool mainnet, uint16 chainId)
+//       Function       │  Parameter   │  Returns
+//  ────────────────────┼──────────────┼────────────────────────────────
+//   isSupported        │  evmChainId  │  bool
+//   networkAndChainId  │  evmChainId  │ (bool mainnet, uint16 chainId)
 
 import "wormhole-sdk/constants/Chains.sol";
 import "wormhole-sdk/constants/CctpDomains.sol";
@@ -62,7 +62,6 @@ import "wormhole-sdk/constants/CctpDomains.sol";
 uint32 constant INVALID_CCTP_DOMAIN = type(uint32).max;
 error UnsupportedEvmChainId(uint256 evmChainId);
 error UnsupportedChainId(uint16 chainId);
-error UnsupportedCctpDomain(uint32 cctpDomain);
 `
 );
 
@@ -97,28 +96,34 @@ const block = (head: string, body: Lines, curly: boolean) =>
 
 const functionBlock = (head: string, body: Lines) => block("function " + head, body, true);
 
-console.log(functionBlock(
-  `isSupported(uint256 evmChainId) pure returns (bool)`,
-  block(
-    `return`,
-    networks.flatMap(network => networkChains[network].map(chain =>
-      `evmChainId == ${networkChainToNativeChainId(network, chain as any)}`
-    )).join(" ||\n"),
-    false,
-  )
-));
-
-console.log(functionBlock(
-  `evmChainIdToNetworkAndChainId(uint256 evmChainId) pure returns (bool mainnet, uint16 chainId)`,
-  [ ...networks.flatMap(network =>
-      networkChains[network].flatMap(chain => [
-        `if (evmChainId == ${networkChainToNativeChainId(network, chain as any)})`,
-        ...indent(`return (${network === "Mainnet"}, CHAIN_ID_${toCapsSnakeCase(chain)});`),
-      ]),
+console.log(
+  [ functionBlock(
+      `_networkAndChainIdImpl(uint256 evmChainId) pure returns (bool mainnet, uint16 chainId)`,
+      [ ...networks.flatMap(network =>
+          networkChains[network].flatMap(chain => [
+            `if (evmChainId == ${networkChainToNativeChainId(network, chain as any)})`,
+            ...indent(`return (${network === "Mainnet"}, CHAIN_ID_${toCapsSnakeCase(chain)});`),
+          ]),
+        ),
+        `return (false, CHAIN_ID_UNSET);`,
+      ]
     ),
-    `revert UnsupportedEvmChainId(evmChainId);`,
-  ]
-));
+    functionBlock(
+      `isSupported(uint256 evmChainId) pure returns (bool)`,
+      [ `(, uint16 chainId) = _networkAndChainIdImpl(evmChainId);`,
+        `return chainId != CHAIN_ID_UNSET;`,
+      ]
+    ),
+    functionBlock(
+      `networkAndChainId(uint256 evmChainId) pure returns (bool mainnet, uint16 chainId)`,
+      [ `(mainnet, chainId) = _networkAndChainIdImpl(evmChainId);`,
+        `if (chainId != CHAIN_ID_UNSET)`,
+        ...indent(`return (mainnet, chainId);`),
+        `revert UnsupportedEvmChainId(evmChainId);`,
+      ]
+    )
+  ].join("\n\n") + "\n"
+);
 
 enum AliasType {
   String     = "string",
@@ -167,7 +172,7 @@ console.log(
         ...indent(`: TestnetChainConstants._${name}(chainId);`),
       ]
     ),
-  ).join("\n\n")
+  ).join("\n\n") + "\n"
 );
 
 console.log(
@@ -211,5 +216,5 @@ console.log(
         .join("\n\n"),
       true,
     );
-  }).join("\n")
+  }).join("\n\n")
 );
