@@ -1,18 +1,32 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.19;
 
-import {ICoreBridge}               from "wormhole-sdk/interfaces/ICoreBridge.sol";
-import {IExecutor, IVaaV1Receiver} from "wormhole-sdk/interfaces/IExecutor.sol";
-import {CoreBridgeLib}             from "wormhole-sdk/libraries/CoreBridge.sol";
-import {RequestLib}                from "wormhole-sdk/Executor/Request.sol";
-import {RelayInstructionLib}       from "wormhole-sdk/Executor/RelayInstruction.sol";
-import {toUniversalAddress}        from "wormhole-sdk/Utils.sol";
+import {ICoreBridge}            from "wormhole-sdk/interfaces/ICoreBridge.sol";
+import {IExecutor,
+        IExecutorQuoterRouter,
+        IVaaV1Receiver}         from "wormhole-sdk/interfaces/IExecutor.sol";
+import {CoreBridgeLib}          from "wormhole-sdk/libraries/CoreBridge.sol";
+import {RequestLib}             from "wormhole-sdk/Executor/Request.sol";
+import {RelayInstructionLib}    from "wormhole-sdk/Executor/RelayInstruction.sol";
+import {toUniversalAddress}     from "wormhole-sdk/Utils.sol";
 
 //abstract base contracts for typical Executor integrations
-//integrators should inherit from exactly one of:
-// * ExecutorSend
+//
+//executor supports off-chain and on-chain quoting so there are two flavors of send contracts.
+//
+//send-only contracts should inherit from exactly one of:
+// * ExecutorSendQuoteOffChain
+// * ExecutorSendQuoteOnChain
+// * ExecutorSendQuoteBoth
+//
+//receive-only contracts should inherit from:
 // * ExecutorReceive
-// * ExecutorSendReceive
+//
+//send-and-receive contracts should inherit from exactly one of:
+// * ExecutorSendReceiveQuoteOffChain
+// * ExecutorSendReceiveQuoteOnChain
+// * ExecutorSendReceiveQuoteBoth
+//
 //note: The Impl contracts are a nuisance to deal with the diamond inheritance pattern and
 //      the "Base constructor arguments given twice" error that comes with it.
 
@@ -51,7 +65,40 @@ abstract contract ExecutorSharedBase {
   }
 }
 
-abstract contract ExecutorSendImpl is ExecutorSharedBase {
+abstract contract ExecutorSendBase is ExecutorSharedBase {
+  function _publishAndCompose(
+    bytes memory payload,
+    uint8        consistencyLevel,
+    uint256      totalCost, //must equal execution cost + Wormhole message fee for publishing!
+    uint16       peerChain,
+    uint128      gasLimit,
+    uint128      msgVal,
+    bytes memory extraRelayInstructions
+  ) internal returns (
+    uint64       sequence,
+    bytes32      peerAddress,
+    bytes memory relayInstructions,
+    bytes memory requestBytes,
+    uint256      executorFee
+  ) {
+    uint messageFee = _coreBridge.messageFee();
+    uint32 nonce = 0; //unused
+    sequence = _coreBridge.publishMessage{value: messageFee}(nonce, payload, consistencyLevel);
+
+    relayInstructions = RelayInstructionLib.encodeGas(gasLimit, msgVal);
+    if (extraRelayInstructions.length > 0)
+      relayInstructions = abi.encodePacked(relayInstructions, extraRelayInstructions);
+
+    peerAddress = _getExistingPeer(peerChain);
+    requestBytes =
+      RequestLib.encodeVaaMultiSigRequest(_chainId, toUniversalAddress(address(this)), sequence);
+
+    //value calculation is unchecked because executor call will fail on underflow anyway
+    unchecked { executorFee = totalCost - messageFee; }
+  }
+}
+
+abstract contract ExecutorSendQuoteOffChainImpl is ExecutorSendBase {
   IExecutor internal immutable _executor;
 
   constructor(address executor) {
@@ -69,31 +116,79 @@ abstract contract ExecutorSendImpl is ExecutorSharedBase {
     uint128        msgVal,
     bytes memory   extraRelayInstructions
   ) internal returns (uint64 sequence) { unchecked {
-    uint messageFee = _coreBridge.messageFee();
-    uint32 nonce = 0; //unused
-    sequence = _coreBridge.publishMessage{value: messageFee}(nonce, payload, consistencyLevel);
+    ( uint64 sequence_,
+      bytes32 peerAddress,
+      bytes memory relayInstructions,
+      bytes memory requestBytes,
+      uint256 executorFee
+    ) = _publishAndCompose(
+      payload,
+      consistencyLevel,
+      totalCost, peerChain,
+      gasLimit,
+      msgVal,
+      extraRelayInstructions
+    );
 
-    bytes memory relayInstructions = RelayInstructionLib.encodeGas(gasLimit, msgVal);
-    if (extraRelayInstructions.length > 0)
-      relayInstructions = abi.encodePacked(relayInstructions, extraRelayInstructions);
-
-    bytes32 peerAddress = _getExistingPeer(peerChain);
-
-    //value calculation is unchecked because call will fail on underflow anyway
-    _executor.requestExecution{value: totalCost - messageFee}(
+    _executor.requestExecution{value: executorFee}(
       peerChain,
       peerAddress,
       refundAddress,
       signedQuote,
-      RequestLib.encodeVaaMultiSigRequest(_chainId, toUniversalAddress(address(this)), sequence),
+      requestBytes,
       relayInstructions
     );
+
+    sequence = sequence_;
+  }}
+}
+
+abstract contract ExecutorSendQuoteOnChainImpl is ExecutorSendBase {
+  IExecutorQuoterRouter internal immutable _executorQuoterRouter;
+
+  constructor(address executorQuoterRouter) {
+    _executorQuoterRouter = IExecutorQuoterRouter(executorQuoterRouter);
+  }
+
+  function _publishAndRelay(
+    bytes memory payload,
+    uint8        consistencyLevel,
+    uint256      totalCost, //must equal execution cost + Wormhole message fee for publishing!
+    uint16       peerChain,
+    address      refundAddress,
+    address      quoterAddress,
+    uint128      gasLimit,
+    uint128      msgVal,
+    bytes memory extraRelayInstructions
+  ) internal returns (uint64 sequence) { unchecked {
+    ( uint64 sequence_,
+      bytes32 peerAddress,
+      bytes memory relayInstructions,
+      bytes memory requestBytes,
+      uint256 executorFee
+    ) = _publishAndCompose(
+      payload,
+      consistencyLevel,
+      totalCost, peerChain,
+      gasLimit,
+      msgVal,
+      extraRelayInstructions
+    );
+
+    _executorQuoterRouter.requestExecution{value: executorFee}(
+      peerChain,
+      peerAddress,
+      refundAddress,
+      quoterAddress,
+      requestBytes,
+      relayInstructions
+    );
+
+    sequence = sequence_;
   }}
 }
 
 abstract contract ExecutorReceiveImpl is ExecutorSharedBase, IVaaV1Receiver {
-  constructor(address coreBridge) {}
-
   //default impl as safeguard - integrators should override this with an empty impl and perform
   //  appropriate check in their impl of _executeVaa instead, if they allow for non-zero msg.value
   function _executeVaaDefaultMsgValueCheck() internal virtual {
@@ -158,23 +253,46 @@ abstract contract ExecutorReceiveImpl is ExecutorSharedBase, IVaaV1Receiver {
   }
 }
 
-abstract contract ExecutorSend is ExecutorSharedBase, ExecutorSendImpl {
+abstract contract ExecutorSendQuoteOffChain is ExecutorSharedBase, ExecutorSendQuoteOffChainImpl {
   constructor(address coreBridge, address executor)
     ExecutorSharedBase(coreBridge)
-    ExecutorSendImpl(executor)
-  {}
+    ExecutorSendQuoteOffChainImpl(executor) {}
+}
+
+abstract contract ExecutorSendQuoteOnChain is ExecutorSharedBase, ExecutorSendQuoteOnChainImpl {
+  constructor(address coreBridge, address executorQuoterRouter)
+    ExecutorSharedBase(coreBridge)
+    ExecutorSendQuoteOnChainImpl(executorQuoterRouter) {}
+}
+
+abstract contract ExecutorSendQuoteBoth is
+  ExecutorSharedBase, ExecutorSendQuoteOffChainImpl, ExecutorSendQuoteOnChainImpl {
+  constructor(address coreBridge, address executor, address executorQuoterRouter)
+    ExecutorSharedBase(coreBridge)
+    ExecutorSendQuoteOffChainImpl(executor)
+    ExecutorSendQuoteOnChainImpl(executorQuoterRouter) {}
 }
 
 abstract contract ExecutorReceive is ExecutorSharedBase, ExecutorReceiveImpl {
   constructor(address coreBridge)
-    ExecutorSharedBase(coreBridge)
-    ExecutorReceiveImpl(coreBridge)
-  {}
+    ExecutorSharedBase(coreBridge) {}
 }
 
-abstract contract ExecutorSendReceive is ExecutorSharedBase, ExecutorSendImpl, ExecutorReceiveImpl {
+abstract contract ExecutorSendReceiveQuoteOffChain is
+    ExecutorSharedBase, ExecutorSendQuoteOffChainImpl, ExecutorReceiveImpl {
   constructor(address coreBridge, address executor)
-    ExecutorSendImpl(executor)
-    ExecutorReceiveImpl(coreBridge)
-    ExecutorSharedBase(coreBridge) {}
+    ExecutorSharedBase(coreBridge)
+    ExecutorSendQuoteOffChainImpl(executor) {}
+}
+
+abstract contract ExecutorSendReceiveQuoteOnChain is
+    ExecutorSharedBase, ExecutorSendQuoteOnChainImpl, ExecutorReceiveImpl {
+  constructor(address coreBridge, address executorQuoterRouter)
+    ExecutorSharedBase(coreBridge)
+    ExecutorSendQuoteOnChainImpl(executorQuoterRouter) {}
+}
+
+abstract contract ExecutorSendReceiveQuoteBoth is ExecutorReceiveImpl, ExecutorSendQuoteBoth {
+  constructor(address coreBridge, address executor, address executorQuoterRouter)
+    ExecutorSendQuoteBoth(coreBridge, executor, executorQuoterRouter) {}
 }
