@@ -1,12 +1,14 @@
 import { toCapsSnakeCase } from "./utils";
 import {
   platformToChains,
+  nativeChainIds,
   contracts,
   rpc,
   circle,
 } from "@wormhole-foundation/sdk-base";
 import { EvmAddress } from "@wormhole-foundation/sdk-evm";
 
+const {networkChainToNativeChainId} = nativeChainIds;
 const {coreBridge, tokenBridge, relayer, circleContracts, executor} = contracts;
 const {usdcContract, circleChainId} = circle;
 
@@ -48,6 +50,7 @@ import "wormhole-sdk/constants/Chains.sol";
 import "wormhole-sdk/constants/CctpDomains.sol";
 
 uint32 constant INVALID_CCTP_DOMAIN = type(uint32).max;
+error UnsupportedEvmChainId(uint256 evmChainId);
 error UnsupportedChainId(uint16 chainId);
 error UnsupportedCctpDomain(uint32 cctpDomain);
 `
@@ -67,6 +70,45 @@ const networkChains = {
     !evmChains.includes(chain + "Sepolia" as EvmChain)
   )
 }
+
+type Lines = string | string[];
+const indent = <const L extends Lines>(lines: L): string[] =>
+  ( typeof lines === "string"
+  ? indent(lines.split("\n"))
+  : lines.map(line =>
+    line === "" ? "" : "  " + line)
+  ) as any;
+
+const block = (head: string, body: Lines, curly: boolean) =>
+  [ head + ` ` + (curly ? "{" : "("),
+    ...indent(body),
+    curly ? "}" : ");",
+  ].join("\n");
+
+const functionBlock = (head: string, body: Lines) => block("function " + head, body, true);
+
+console.log(functionBlock(
+  `isSupported(uint256 evmChainId) pure returns (bool)`,
+  block(
+    `return`,
+    networks.flatMap(network => networkChains[network].map(chain =>
+      `evmChainId == ${networkChainToNativeChainId(network, chain as any)}`
+    )).join(" ||\n"),
+    false,
+  )
+));
+
+console.log(functionBlock(
+  `evmChainIdToNetworkAndChainId(uint256 evmChainId) pure returns (bool mainnet, uint16 chainId)`,
+  [ ...networks.flatMap(network =>
+      networkChains[network].flatMap(chain => [
+        `if (evmChainId == ${networkChainToNativeChainId(network, chain as any)})`,
+        ...indent(`return (${network === "Mainnet"}, CHAIN_ID_${toCapsSnakeCase(chain)});`),
+      ]),
+    ),
+    `revert UnsupportedEvmChainId(evmChainId);`,
+  ]
+));
 
 enum AliasType {
   String     = "string",
@@ -106,64 +148,58 @@ const functions = [
   ["cctpTokenMessenger",     AliasType.Address   ],
 ] as const;
 
-const indent = (lines: string[]) => lines.map(line => `  ${line}`);
-
 console.log(
-  functions.map(([name, returnType]) => [
-      `function ${name}(bool mainnet, uint16 chainId)` +
-        ` pure returns (${returnParam(returnType)}) {`,
-      ...indent([
-        `return mainnet`,
-        `  ? MainnetChainConstants._${name}(chainId)`,
-        `  : TestnetChainConstants._${name}(chainId);`,
-      ]),
-      `}`
-    ].join("\n")
+  functions.map(([name, returnType]) =>
+    functionBlock(
+      `${name}(bool mainnet, uint16 chainId) pure returns (${returnParam(returnType)})`,
+      [ `return mainnet`,
+        ...indent(`? MainnetChainConstants._${name}(chainId)`),
+        ...indent(`: TestnetChainConstants._${name}(chainId);`),
+      ]
+    ),
   ).join("\n\n")
 );
 
-for (const network of networks) {
-  const functionDefinition = (
-    name: string,
-    returnType: AliasType,
-    mapping: (chain: EvmChain) => string,
-  ) => indent([
-    `function _${name}(uint16 chainId) internal pure returns (${returnParam(returnType)}) {`,
-    ...indent([
-      ...networkChains[network].map(chain => [
-        `if (chainId == CHAIN_ID_${toCapsSnakeCase(chain)})`,
-        `  return ${toReturnValue(mapping(chain), returnType)};`
-      ]).flat(),
-      `revert UnsupportedChainId(chainId);`
-    ]),
-    `}`
-  ]).join("\n");
+console.log(
+  networks.map(network => {
+    const functionDefinition = (
+      name: string,
+      returnType: AliasType,
+      mapping: (chain: EvmChain) => string,
+    ) => functionBlock(
+      `_${name}(uint16 chainId) internal pure returns (${returnParam(returnType)})`,
+      [ ...networkChains[network].flatMap(chain => [
+          `if (chainId == CHAIN_ID_${toCapsSnakeCase(chain)})`,
+          ...indent(`return ${toReturnValue(mapping(chain), returnType)};`),
+        ]),
+        `revert UnsupportedChainId(chainId);`
+      ]
+    );
 
-  const cctpDomainConst = (chain: EvmChain) =>
-    circleChainId.has(network, chain)
-      ? `CCTP_DOMAIN_${toCapsSnakeCase(chain)}`
-      : "INVALID_CCTP_DOMAIN";
+    const cctpDomainConst = (chain: EvmChain) =>
+      circleChainId.has(network, chain)
+        ? `CCTP_DOMAIN_${toCapsSnakeCase(chain)}`
+        : "INVALID_CCTP_DOMAIN";
 
-  const mappings = {
-    chainName:              chain => chain,
-    defaultRPC:             chain => rpc.rpcAddress(network, chain),
-    coreBridge:             chain => coreBridge.get(network, chain),
-    tokenBridge:            chain => tokenBridge.get(network, chain),
-    wormholeRelayer:        chain => relayer.get(network, chain),
-    executor:               chain => executor.get(network, chain),
-    cctpDomain:             chain => cctpDomainConst(chain),
-    usdc:                   chain => usdcContract.get(network, chain),
-    cctpMessageTransmitter: chain => circleContracts.get(network, chain)?.messageTransmitter,
-    cctpTokenMessenger:     chain => circleContracts.get(network, chain)?.tokenMessenger,
-  };
+    const mappings = {
+      chainName:              chain => chain,
+      defaultRPC:             chain => rpc.rpcAddress(network, chain),
+      coreBridge:             chain => coreBridge.get(network, chain),
+      tokenBridge:            chain => tokenBridge.get(network, chain),
+      wormholeRelayer:        chain => relayer.get(network, chain),
+      executor:               chain => executor.get(network, chain),
+      cctpDomain:             chain => cctpDomainConst(chain),
+      usdc:                   chain => usdcContract.get(network, chain),
+      cctpMessageTransmitter: chain => circleContracts.get(network, chain)?.messageTransmitter,
+      cctpTokenMessenger:     chain => circleContracts.get(network, chain)?.tokenMessenger,
+    };
 
-  console.log([
-      ``,
-      `library ${network}ChainConstants {`,
+    return block(
+      `library ${network}ChainConstants`,
       functions
         .map(([name, returnType]) => functionDefinition(name, returnType, mappings[name]))
         .join("\n\n"),
-      `}`
-    ].join("\n")
-  );
-}
+      true,
+    );
+  }).join("\n")
+);

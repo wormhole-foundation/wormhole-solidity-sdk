@@ -35,9 +35,194 @@ import "wormhole-sdk/constants/Chains.sol";
 import "wormhole-sdk/constants/CctpDomains.sol";
 
 uint32 constant INVALID_CCTP_DOMAIN = type(uint32).max;
+error UnsupportedEvmChainId(uint256 evmChainId);
 error UnsupportedChainId(uint16 chainId);
 error UnsupportedCctpDomain(uint32 cctpDomain);
 
+function isSupported(uint256 evmChainId) pure returns (bool) {
+  return (
+    evmChainId == 42161 ||
+    evmChainId == 43114 ||
+    evmChainId == 8453 ||
+    evmChainId == 56 ||
+    evmChainId == 42220 ||
+    evmChainId == 1 ||
+    evmChainId == 250 ||
+    evmChainId == 8217 ||
+    evmChainId == 1284 ||
+    evmChainId == 10 ||
+    evmChainId == 137 ||
+    evmChainId == 5000 ||
+    evmChainId == 534352 ||
+    evmChainId == 196 ||
+    evmChainId == 59144 ||
+    evmChainId == 80094 ||
+    evmChainId == 1329 ||
+    evmChainId == 130 ||
+    evmChainId == 480 ||
+    evmChainId == 57073 ||
+    evmChainId == 999 ||
+    evmChainId == 143 ||
+    evmChainId == 31612 ||
+    evmChainId == 98866 ||
+    evmChainId == 1440000 ||
+    evmChainId == 102030 ||
+    evmChainId == 2288 ||
+    evmChainId == 4326 ||
+    evmChainId == 43113 ||
+    evmChainId == 97 ||
+    evmChainId == 44787 ||
+    evmChainId == 4002 ||
+    evmChainId == 1001 ||
+    evmChainId == 1287 ||
+    evmChainId == 11155111 ||
+    evmChainId == 421614 ||
+    evmChainId == 84532 ||
+    evmChainId == 11155420 ||
+    evmChainId == 17000 ||
+    evmChainId == 80002 ||
+    evmChainId == 5003 ||
+    evmChainId == 534351 ||
+    evmChainId == 195 ||
+    evmChainId == 59141 ||
+    evmChainId == 80069 ||
+    evmChainId == 1328 ||
+    evmChainId == 1301 ||
+    evmChainId == 4801 ||
+    evmChainId == 763373 ||
+    evmChainId == 998 ||
+    evmChainId == 31611 ||
+    evmChainId == 52085145 ||
+    evmChainId == 98867 ||
+    evmChainId == 1449000 ||
+    evmChainId == 102031 ||
+    evmChainId == 9746 ||
+    evmChainId == 222888 ||
+    evmChainId == 6343 ||
+    evmChainId == 10143
+  );
+}
+function evmChainIdToNetworkAndChainId(uint256 evmChainId) pure returns (bool mainnet, uint16 chainId) {
+  if (evmChainId == 42161)
+    return (true, CHAIN_ID_ARBITRUM);
+  if (evmChainId == 43114)
+    return (true, CHAIN_ID_AVALANCHE);
+  if (evmChainId == 8453)
+    return (true, CHAIN_ID_BASE);
+  if (evmChainId == 56)
+    return (true, CHAIN_ID_BSC);
+  if (evmChainId == 42220)
+    return (true, CHAIN_ID_CELO);
+  if (evmChainId == 1)
+    return (true, CHAIN_ID_ETHEREUM);
+  if (evmChainId == 250)
+    return (true, CHAIN_ID_FANTOM);
+  if (evmChainId == 8217)
+    return (true, CHAIN_ID_KLAYTN);
+  if (evmChainId == 1284)
+    return (true, CHAIN_ID_MOONBEAM);
+  if (evmChainId == 10)
+    return (true, CHAIN_ID_OPTIMISM);
+  if (evmChainId == 137)
+    return (true, CHAIN_ID_POLYGON);
+  if (evmChainId == 5000)
+    return (true, CHAIN_ID_MANTLE);
+  if (evmChainId == 534352)
+    return (true, CHAIN_ID_SCROLL);
+  if (evmChainId == 196)
+    return (true, CHAIN_ID_XLAYER);
+  if (evmChainId == 59144)
+    return (true, CHAIN_ID_LINEA);
+  if (evmChainId == 80094)
+    return (true, CHAIN_ID_BERACHAIN);
+  if (evmChainId == 1329)
+    return (true, CHAIN_ID_SEIEVM);
+  if (evmChainId == 130)
+    return (true, CHAIN_ID_UNICHAIN);
+  if (evmChainId == 480)
+    return (true, CHAIN_ID_WORLDCHAIN);
+  if (evmChainId == 57073)
+    return (true, CHAIN_ID_INK);
+  if (evmChainId == 999)
+    return (true, CHAIN_ID_HYPER_EVM);
+  if (evmChainId == 143)
+    return (true, CHAIN_ID_MONAD);
+  if (evmChainId == 31612)
+    return (true, CHAIN_ID_MEZO);
+  if (evmChainId == 98866)
+    return (true, CHAIN_ID_PLUME);
+  if (evmChainId == 1440000)
+    return (true, CHAIN_ID_XRPLEVM);
+  if (evmChainId == 102030)
+    return (true, CHAIN_ID_CREDIT_COIN);
+  if (evmChainId == 2288)
+    return (true, CHAIN_ID_MOCA);
+  if (evmChainId == 4326)
+    return (true, CHAIN_ID_MEGA_ETH);
+  if (evmChainId == 43113)
+    return (false, CHAIN_ID_AVALANCHE);
+  if (evmChainId == 97)
+    return (false, CHAIN_ID_BSC);
+  if (evmChainId == 44787)
+    return (false, CHAIN_ID_CELO);
+  if (evmChainId == 4002)
+    return (false, CHAIN_ID_FANTOM);
+  if (evmChainId == 1001)
+    return (false, CHAIN_ID_KLAYTN);
+  if (evmChainId == 1287)
+    return (false, CHAIN_ID_MOONBEAM);
+  if (evmChainId == 11155111)
+    return (false, CHAIN_ID_SEPOLIA);
+  if (evmChainId == 421614)
+    return (false, CHAIN_ID_ARBITRUM_SEPOLIA);
+  if (evmChainId == 84532)
+    return (false, CHAIN_ID_BASE_SEPOLIA);
+  if (evmChainId == 11155420)
+    return (false, CHAIN_ID_OPTIMISM_SEPOLIA);
+  if (evmChainId == 17000)
+    return (false, CHAIN_ID_HOLESKY);
+  if (evmChainId == 80002)
+    return (false, CHAIN_ID_POLYGON_SEPOLIA);
+  if (evmChainId == 5003)
+    return (false, CHAIN_ID_MANTLE);
+  if (evmChainId == 534351)
+    return (false, CHAIN_ID_SCROLL);
+  if (evmChainId == 195)
+    return (false, CHAIN_ID_XLAYER);
+  if (evmChainId == 59141)
+    return (false, CHAIN_ID_LINEA);
+  if (evmChainId == 80069)
+    return (false, CHAIN_ID_BERACHAIN);
+  if (evmChainId == 1328)
+    return (false, CHAIN_ID_SEIEVM);
+  if (evmChainId == 1301)
+    return (false, CHAIN_ID_UNICHAIN);
+  if (evmChainId == 4801)
+    return (false, CHAIN_ID_WORLDCHAIN);
+  if (evmChainId == 763373)
+    return (false, CHAIN_ID_INK);
+  if (evmChainId == 998)
+    return (false, CHAIN_ID_HYPER_EVM);
+  if (evmChainId == 31611)
+    return (false, CHAIN_ID_MEZO);
+  if (evmChainId == 52085145)
+    return (false, CHAIN_ID_CONVERGE);
+  if (evmChainId == 98867)
+    return (false, CHAIN_ID_PLUME);
+  if (evmChainId == 1449000)
+    return (false, CHAIN_ID_XRPLEVM);
+  if (evmChainId == 102031)
+    return (false, CHAIN_ID_PLASMA);
+  if (evmChainId == 9746)
+    return (false, CHAIN_ID_CREDIT_COIN);
+  if (evmChainId == 222888)
+    return (false, CHAIN_ID_MOCA);
+  if (evmChainId == 6343)
+    return (false, CHAIN_ID_MEGA_ETH);
+  if (evmChainId == 10143)
+    return (false, CHAIN_ID_MONAD_TESTNET);
+  revert UnsupportedEvmChainId(evmChainId);
+}
 function chainName(bool mainnet, uint16 chainId) pure returns (string memory) {
   return mainnet
     ? MainnetChainConstants._chainName(chainId)
@@ -97,7 +282,6 @@ function cctpTokenMessenger(bool mainnet, uint16 chainId) pure returns (address)
     ? MainnetChainConstants._cctpTokenMessenger(chainId)
     : TestnetChainConstants._cctpTokenMessenger(chainId);
 }
-
 library MainnetChainConstants {
   function _chainName(uint16 chainId) internal pure returns (string memory) {
     if (chainId == CHAIN_ID_ARBITRUM)
@@ -142,6 +326,8 @@ library MainnetChainConstants {
       return "Ink";
     if (chainId == CHAIN_ID_HYPER_EVM)
       return "HyperEVM";
+    if (chainId == CHAIN_ID_MONAD)
+      return "Monad";
     if (chainId == CHAIN_ID_MEZO)
       return "Mezo";
     if (chainId == CHAIN_ID_PLUME)
@@ -150,6 +336,10 @@ library MainnetChainConstants {
       return "XRPLEVM";
     if (chainId == CHAIN_ID_CREDIT_COIN)
       return "CreditCoin";
+    if (chainId == CHAIN_ID_MOCA)
+      return "Moca";
+    if (chainId == CHAIN_ID_MEGA_ETH)
+      return "MegaETH";
     revert UnsupportedChainId(chainId);
   }
 
@@ -163,7 +353,7 @@ library MainnetChainConstants {
     if (chainId == CHAIN_ID_BSC)
       return "https://bsc-rpc.publicnode.com";
     if (chainId == CHAIN_ID_CELO)
-      return "https://celo-rpc.publicnode.com";
+      return "https://forno.celo.org";
     if (chainId == CHAIN_ID_ETHEREUM)
       return "https://ethereum-rpc.publicnode.com";
     if (chainId == CHAIN_ID_FANTOM)
@@ -187,7 +377,7 @@ library MainnetChainConstants {
     if (chainId == CHAIN_ID_BERACHAIN)
       return "https://rpc.berachain.com";
     if (chainId == CHAIN_ID_SEIEVM)
-      return "";
+      return "https://evm-rpc.sei-apis.com";
     if (chainId == CHAIN_ID_UNICHAIN)
       return "https://mainnet.unichain.org";
     if (chainId == CHAIN_ID_WORLDCHAIN)
@@ -196,6 +386,8 @@ library MainnetChainConstants {
       return "https://rpc-qnd.inkonchain.com";
     if (chainId == CHAIN_ID_HYPER_EVM)
       return "https://rpc.hyperliquid.xyz/evm";
+    if (chainId == CHAIN_ID_MONAD)
+      return "https://rpc3.monad.xyz";
     if (chainId == CHAIN_ID_MEZO)
       return "https://jsonrpc-mezo.boar.network/";
     if (chainId == CHAIN_ID_PLUME)
@@ -204,6 +396,10 @@ library MainnetChainConstants {
       return "https://rpc.xrplevm.org/";
     if (chainId == CHAIN_ID_CREDIT_COIN)
       return "https://mainnet3.creditcoin.network/";
+    if (chainId == CHAIN_ID_MOCA)
+      return "https://rpc.mocachain.dev/";
+    if (chainId == CHAIN_ID_MEGA_ETH)
+      return "https://mainnet.megaeth.com/rpc";
     revert UnsupportedChainId(chainId);
   }
 
@@ -250,6 +446,8 @@ library MainnetChainConstants {
       return 0xCa1D5a146B03f6303baF59e5AD5615ae0b9d146D;
     if (chainId == CHAIN_ID_HYPER_EVM)
       return 0x7C0faFc4384551f063e05aee704ab943b8B53aB3;
+    if (chainId == CHAIN_ID_MONAD)
+      return 0x194B123c5E96B9b2E49763619985790Dc241CAC0;
     if (chainId == CHAIN_ID_MEZO)
       return 0xaBf89de706B583424328B54dD05a8fC986750Da8;
     if (chainId == CHAIN_ID_PLUME)
@@ -257,6 +455,10 @@ library MainnetChainConstants {
     if (chainId == CHAIN_ID_XRPLEVM)
       return 0xaBf89de706B583424328B54dD05a8fC986750Da8;
     if (chainId == CHAIN_ID_CREDIT_COIN)
+      return 0xaBf89de706B583424328B54dD05a8fC986750Da8;
+    if (chainId == CHAIN_ID_MOCA)
+      return 0xaBf89de706B583424328B54dD05a8fC986750Da8;
+    if (chainId == CHAIN_ID_MEGA_ETH)
       return 0xaBf89de706B583424328B54dD05a8fC986750Da8;
     revert UnsupportedChainId(chainId);
   }
@@ -304,6 +506,8 @@ library MainnetChainConstants {
       return 0x3Ff72741fd67D6AD0668d93B41a09248F4700560;
     if (chainId == CHAIN_ID_HYPER_EVM)
       return address(0);
+    if (chainId == CHAIN_ID_MONAD)
+      return 0x0B2719cdA2F10595369e6673ceA3Ee2EDFa13BA7;
     if (chainId == CHAIN_ID_MEZO)
       return address(0);
     if (chainId == CHAIN_ID_PLUME)
@@ -312,6 +516,10 @@ library MainnetChainConstants {
       return 0x47F5195163270345fb4d7B9319Eda8C64C75E278;
     if (chainId == CHAIN_ID_CREDIT_COIN)
       return address(0);
+    if (chainId == CHAIN_ID_MOCA)
+      return address(0);
+    if (chainId == CHAIN_ID_MEGA_ETH)
+      return 0xF97B81E513f53c7a6B57Bd0b103a6c295b3096C5;
     revert UnsupportedChainId(chainId);
   }
 
@@ -358,6 +566,8 @@ library MainnetChainConstants {
       return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
     if (chainId == CHAIN_ID_HYPER_EVM)
       return address(0);
+    if (chainId == CHAIN_ID_MONAD)
+      return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
     if (chainId == CHAIN_ID_MEZO)
       return 0x27428DD2d3DD32A4D7f7C497eAaa23130d894911;
     if (chainId == CHAIN_ID_PLUME)
@@ -365,6 +575,10 @@ library MainnetChainConstants {
     if (chainId == CHAIN_ID_XRPLEVM)
       return address(0);
     if (chainId == CHAIN_ID_CREDIT_COIN)
+      return address(0);
+    if (chainId == CHAIN_ID_MOCA)
+      return address(0);
+    if (chainId == CHAIN_ID_MEGA_ETH)
       return address(0);
     revert UnsupportedChainId(chainId);
   }
@@ -412,6 +626,8 @@ library MainnetChainConstants {
       return 0x3e44a5F45cbD400acBEF534F51e616043B211Ddd;
     if (chainId == CHAIN_ID_HYPER_EVM)
       return 0xd7717899cc4381033Bc200431286D0AC14265F78;
+    if (chainId == CHAIN_ID_MONAD)
+      return 0xC04dE634982cAdF2A677310b73630B7Ac56A3f65;
     if (chainId == CHAIN_ID_MEZO)
       return 0x0f9b8E144Cc5C5e7C0073829Afd30F26A50c5606;
     if (chainId == CHAIN_ID_PLUME)
@@ -420,6 +636,10 @@ library MainnetChainConstants {
       return 0x8345E90Dcd92f5Cf2FAb0C8E2A56A5bc2c30d896;
     if (chainId == CHAIN_ID_CREDIT_COIN)
       return 0xd2e420188f17607Aa6344ee19c3e76Cf86CA7BDe;
+    if (chainId == CHAIN_ID_MOCA)
+      return 0x7b8097af5459846c5A72fCc960D94F31C05915aD;
+    if (chainId == CHAIN_ID_MEGA_ETH)
+      return 0xD405E0A1f3f9edc25Ea32d0B079d6118328b2EcB;
     revert UnsupportedChainId(chainId);
   }
 
@@ -466,6 +686,8 @@ library MainnetChainConstants {
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_HYPER_EVM)
       return INVALID_CCTP_DOMAIN;
+    if (chainId == CHAIN_ID_MONAD)
+      return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_MEZO)
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_PLUME)
@@ -473,6 +695,10 @@ library MainnetChainConstants {
     if (chainId == CHAIN_ID_XRPLEVM)
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_CREDIT_COIN)
+      return INVALID_CCTP_DOMAIN;
+    if (chainId == CHAIN_ID_MOCA)
+      return INVALID_CCTP_DOMAIN;
+    if (chainId == CHAIN_ID_MEGA_ETH)
       return INVALID_CCTP_DOMAIN;
     revert UnsupportedChainId(chainId);
   }
@@ -520,6 +746,8 @@ library MainnetChainConstants {
       return 0x2D270e6886d130D724215A266106e6832161EAEd;
     if (chainId == CHAIN_ID_HYPER_EVM)
       return 0xb88339CB7199b77E23DB6E890353E22632Ba630f;
+    if (chainId == CHAIN_ID_MONAD)
+      return 0x754704Bc059F8C67012fEd69BC8A327a5aafb603;
     if (chainId == CHAIN_ID_MEZO)
       return address(0);
     if (chainId == CHAIN_ID_PLUME)
@@ -527,6 +755,10 @@ library MainnetChainConstants {
     if (chainId == CHAIN_ID_XRPLEVM)
       return address(0);
     if (chainId == CHAIN_ID_CREDIT_COIN)
+      return address(0);
+    if (chainId == CHAIN_ID_MOCA)
+      return address(0);
+    if (chainId == CHAIN_ID_MEGA_ETH)
       return address(0);
     revert UnsupportedChainId(chainId);
   }
@@ -574,6 +806,8 @@ library MainnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_HYPER_EVM)
       return address(0);
+    if (chainId == CHAIN_ID_MONAD)
+      return address(0);
     if (chainId == CHAIN_ID_MEZO)
       return address(0);
     if (chainId == CHAIN_ID_PLUME)
@@ -581,6 +815,10 @@ library MainnetChainConstants {
     if (chainId == CHAIN_ID_XRPLEVM)
       return address(0);
     if (chainId == CHAIN_ID_CREDIT_COIN)
+      return address(0);
+    if (chainId == CHAIN_ID_MOCA)
+      return address(0);
+    if (chainId == CHAIN_ID_MEGA_ETH)
       return address(0);
     revert UnsupportedChainId(chainId);
   }
@@ -628,6 +866,8 @@ library MainnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_HYPER_EVM)
       return address(0);
+    if (chainId == CHAIN_ID_MONAD)
+      return address(0);
     if (chainId == CHAIN_ID_MEZO)
       return address(0);
     if (chainId == CHAIN_ID_PLUME)
@@ -636,10 +876,13 @@ library MainnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_CREDIT_COIN)
       return address(0);
+    if (chainId == CHAIN_ID_MOCA)
+      return address(0);
+    if (chainId == CHAIN_ID_MEGA_ETH)
+      return address(0);
     revert UnsupportedChainId(chainId);
   }
 }
-
 library TestnetChainConstants {
   function _chainName(uint16 chainId) internal pure returns (string memory) {
     if (chainId == CHAIN_ID_AVALANCHE)
@@ -686,8 +929,6 @@ library TestnetChainConstants {
       return "Ink";
     if (chainId == CHAIN_ID_HYPER_EVM)
       return "HyperEVM";
-    if (chainId == CHAIN_ID_MONAD)
-      return "Monad";
     if (chainId == CHAIN_ID_MEZO)
       return "Mezo";
     if (chainId == CHAIN_ID_CONVERGE)
@@ -700,6 +941,12 @@ library TestnetChainConstants {
       return "Plasma";
     if (chainId == CHAIN_ID_CREDIT_COIN)
       return "CreditCoin";
+    if (chainId == CHAIN_ID_MOCA)
+      return "Moca";
+    if (chainId == CHAIN_ID_MEGA_ETH)
+      return "MegaETH";
+    if (chainId == CHAIN_ID_MONAD_TESTNET)
+      return "MonadTestnet";
     revert UnsupportedChainId(chainId);
   }
 
@@ -748,8 +995,6 @@ library TestnetChainConstants {
       return "https://rpc-qnd-sepolia.inkonchain.com";
     if (chainId == CHAIN_ID_HYPER_EVM)
       return "https://api.hyperliquid-testnet.xyz/evm";
-    if (chainId == CHAIN_ID_MONAD)
-      return "https://testnet-rpc.monad.xyz";
     if (chainId == CHAIN_ID_MEZO)
       return "https://rpc.test.mezo.org";
     if (chainId == CHAIN_ID_CONVERGE)
@@ -762,6 +1007,12 @@ library TestnetChainConstants {
       return "https://testnet-rpc.plasma.to";
     if (chainId == CHAIN_ID_CREDIT_COIN)
       return "https://rpc.cc3-testnet.creditcoin.network";
+    if (chainId == CHAIN_ID_MOCA)
+      return "https://testnet-rpc.mocachain.org/";
+    if (chainId == CHAIN_ID_MEGA_ETH)
+      return "https://timothy.megaeth.com/rpc";
+    if (chainId == CHAIN_ID_MONAD_TESTNET)
+      return "https://testnet-rpc.monad.xyz";
     revert UnsupportedChainId(chainId);
   }
 
@@ -810,8 +1061,6 @@ library TestnetChainConstants {
       return 0xBB73cB66C26740F31d1FabDC6b7A46a038A300dd;
     if (chainId == CHAIN_ID_HYPER_EVM)
       return 0xBB73cB66C26740F31d1FabDC6b7A46a038A300dd;
-    if (chainId == CHAIN_ID_MONAD)
-      return 0xBB73cB66C26740F31d1FabDC6b7A46a038A300dd;
     if (chainId == CHAIN_ID_MEZO)
       return 0x268557122Ffd64c85750d630b716471118F323c8;
     if (chainId == CHAIN_ID_CONVERGE)
@@ -823,6 +1072,12 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_PLASMA)
       return 0xaBf89de706B583424328B54dD05a8fC986750Da8;
     if (chainId == CHAIN_ID_CREDIT_COIN)
+      return 0xaBf89de706B583424328B54dD05a8fC986750Da8;
+    if (chainId == CHAIN_ID_MOCA)
+      return 0xaBf89de706B583424328B54dD05a8fC986750Da8;
+    if (chainId == CHAIN_ID_MEGA_ETH)
+      return 0x81705b969cDcc6FbFde91a0C6777bE0EF3A75855;
+    if (chainId == CHAIN_ID_MONAD_TESTNET)
       return 0xaBf89de706B583424328B54dD05a8fC986750Da8;
     revert UnsupportedChainId(chainId);
   }
@@ -872,8 +1127,6 @@ library TestnetChainConstants {
       return 0x376428e7f26D5867e69201b275553C45B09EE090;
     if (chainId == CHAIN_ID_HYPER_EVM)
       return 0x4a8bc80Ed5a4067f1CCf107057b8270E0cC11A78;
-    if (chainId == CHAIN_ID_MONAD)
-      return 0xF323dcDe4d33efe83cf455F78F9F6cc656e6B659;
     if (chainId == CHAIN_ID_MEZO)
       return 0xA31aa3FDb7aF7Db93d18DDA4e19F811342EDF780;
     if (chainId == CHAIN_ID_CONVERGE)
@@ -886,6 +1139,12 @@ library TestnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_CREDIT_COIN)
       return address(0);
+    if (chainId == CHAIN_ID_MOCA)
+      return 0xF97B81E513f53c7a6B57Bd0b103a6c295b3096C5;
+    if (chainId == CHAIN_ID_MEGA_ETH)
+      return 0x3D5c2c2BEA15Af5D45F084834c535628C48c42A4;
+    if (chainId == CHAIN_ID_MONAD_TESTNET)
+      return 0xF97B81E513f53c7a6B57Bd0b103a6c295b3096C5;
     revert UnsupportedChainId(chainId);
   }
 
@@ -934,8 +1193,6 @@ library TestnetChainConstants {
       return 0x362fca37E45fe1096b42021b543f462D49a5C8df;
     if (chainId == CHAIN_ID_HYPER_EVM)
       return address(0);
-    if (chainId == CHAIN_ID_MONAD)
-      return 0x362fca37E45fe1096b42021b543f462D49a5C8df;
     if (chainId == CHAIN_ID_MEZO)
       return 0x362fca37E45fe1096b42021b543f462D49a5C8df;
     if (chainId == CHAIN_ID_CONVERGE)
@@ -948,6 +1205,12 @@ library TestnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_CREDIT_COIN)
       return address(0);
+    if (chainId == CHAIN_ID_MOCA)
+      return address(0);
+    if (chainId == CHAIN_ID_MEGA_ETH)
+      return address(0);
+    if (chainId == CHAIN_ID_MONAD_TESTNET)
+      return address(0);
     revert UnsupportedChainId(chainId);
   }
 
@@ -955,7 +1218,7 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_AVALANCHE)
       return 0x4661F0E629E4ba8D04Ee90080Aee079740B00381;
     if (chainId == CHAIN_ID_BSC)
-      return address(0);
+      return 0xeC8cCCD058DbF28e5D002869Aa9aFa3992bf4ee0;
     if (chainId == CHAIN_ID_CELO)
       return address(0);
     if (chainId == CHAIN_ID_FANTOM)
@@ -975,7 +1238,7 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_HOLESKY)
       return address(0);
     if (chainId == CHAIN_ID_POLYGON_SEPOLIA)
-      return address(0);
+      return 0x7056721C33De437f0997F67BC87521cA86b721d3;
     if (chainId == CHAIN_ID_MANTLE)
       return address(0);
     if (chainId == CHAIN_ID_SCROLL)
@@ -989,15 +1252,13 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_SEIEVM)
       return 0x25f1c923Fb7A5aEFA5F0A2b419fC70f2368e66e5;
     if (chainId == CHAIN_ID_UNICHAIN)
-      return address(0);
+      return 0x764dD868eAdD27ce57BCB801E4ca4a193d231Aed;
     if (chainId == CHAIN_ID_WORLDCHAIN)
       return address(0);
     if (chainId == CHAIN_ID_INK)
       return address(0);
     if (chainId == CHAIN_ID_HYPER_EVM)
       return address(0);
-    if (chainId == CHAIN_ID_MONAD)
-      return 0xC04dE634982cAdF2A677310b73630B7Ac56A3f65;
     if (chainId == CHAIN_ID_MEZO)
       return 0x0f9b8E144Cc5C5e7C0073829Afd30F26A50c5606;
     if (chainId == CHAIN_ID_CONVERGE)
@@ -1009,6 +1270,12 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_PLASMA)
       return address(0);
     if (chainId == CHAIN_ID_CREDIT_COIN)
+      return address(0);
+    if (chainId == CHAIN_ID_MOCA)
+      return 0xc4a03f2c47caA4b961101bAD6338DEf37376F052;
+    if (chainId == CHAIN_ID_MEGA_ETH)
+      return address(0);
+    if (chainId == CHAIN_ID_MONAD_TESTNET)
       return address(0);
     revert UnsupportedChainId(chainId);
   }
@@ -1058,8 +1325,6 @@ library TestnetChainConstants {
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_HYPER_EVM)
       return INVALID_CCTP_DOMAIN;
-    if (chainId == CHAIN_ID_MONAD)
-      return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_MEZO)
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_CONVERGE)
@@ -1071,6 +1336,12 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_PLASMA)
       return INVALID_CCTP_DOMAIN;
     if (chainId == CHAIN_ID_CREDIT_COIN)
+      return INVALID_CCTP_DOMAIN;
+    if (chainId == CHAIN_ID_MOCA)
+      return INVALID_CCTP_DOMAIN;
+    if (chainId == CHAIN_ID_MEGA_ETH)
+      return INVALID_CCTP_DOMAIN;
+    if (chainId == CHAIN_ID_MONAD_TESTNET)
       return INVALID_CCTP_DOMAIN;
     revert UnsupportedChainId(chainId);
   }
@@ -1120,8 +1391,6 @@ library TestnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_HYPER_EVM)
       return 0x2B3370eE501B4a559b57D449569354196457D8Ab;
-    if (chainId == CHAIN_ID_MONAD)
-      return address(0);
     if (chainId == CHAIN_ID_MEZO)
       return address(0);
     if (chainId == CHAIN_ID_CONVERGE)
@@ -1133,6 +1402,12 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_PLASMA)
       return address(0);
     if (chainId == CHAIN_ID_CREDIT_COIN)
+      return address(0);
+    if (chainId == CHAIN_ID_MOCA)
+      return address(0);
+    if (chainId == CHAIN_ID_MEGA_ETH)
+      return address(0);
+    if (chainId == CHAIN_ID_MONAD_TESTNET)
       return address(0);
     revert UnsupportedChainId(chainId);
   }
@@ -1182,8 +1457,6 @@ library TestnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_HYPER_EVM)
       return address(0);
-    if (chainId == CHAIN_ID_MONAD)
-      return address(0);
     if (chainId == CHAIN_ID_MEZO)
       return address(0);
     if (chainId == CHAIN_ID_CONVERGE)
@@ -1195,6 +1468,12 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_PLASMA)
       return address(0);
     if (chainId == CHAIN_ID_CREDIT_COIN)
+      return address(0);
+    if (chainId == CHAIN_ID_MOCA)
+      return address(0);
+    if (chainId == CHAIN_ID_MEGA_ETH)
+      return address(0);
+    if (chainId == CHAIN_ID_MONAD_TESTNET)
       return address(0);
     revert UnsupportedChainId(chainId);
   }
@@ -1244,8 +1523,6 @@ library TestnetChainConstants {
       return address(0);
     if (chainId == CHAIN_ID_HYPER_EVM)
       return address(0);
-    if (chainId == CHAIN_ID_MONAD)
-      return address(0);
     if (chainId == CHAIN_ID_MEZO)
       return address(0);
     if (chainId == CHAIN_ID_CONVERGE)
@@ -1257,6 +1534,12 @@ library TestnetChainConstants {
     if (chainId == CHAIN_ID_PLASMA)
       return address(0);
     if (chainId == CHAIN_ID_CREDIT_COIN)
+      return address(0);
+    if (chainId == CHAIN_ID_MOCA)
+      return address(0);
+    if (chainId == CHAIN_ID_MEGA_ETH)
+      return address(0);
+    if (chainId == CHAIN_ID_MONAD_TESTNET)
       return address(0);
     revert UnsupportedChainId(chainId);
   }
