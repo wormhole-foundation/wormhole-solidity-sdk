@@ -124,7 +124,8 @@ abstract contract ExecutorSendQuoteOffChainImpl is ExecutorSendBase {
     ) = _publishAndCompose(
       payload,
       consistencyLevel,
-      totalCost, peerChain,
+      totalCost,
+      peerChain,
       gasLimit,
       msgVal,
       extraRelayInstructions
@@ -169,7 +170,8 @@ abstract contract ExecutorSendQuoteOnChainImpl is ExecutorSendBase {
     ) = _publishAndCompose(
       payload,
       consistencyLevel,
-      totalCost, peerChain,
+      totalCost,
+      peerChain,
       gasLimit,
       msgVal,
       extraRelayInstructions

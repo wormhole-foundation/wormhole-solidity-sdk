@@ -5,12 +5,40 @@ import {
   contracts,
   rpc,
   circle,
+  constMap, //TODO remove once the SDK is updated
 } from "@wormhole-foundation/sdk-base";
 import { EvmAddress } from "@wormhole-foundation/sdk-evm";
 
 const {networkChainToNativeChainId} = nativeChainIds;
-const {coreBridge, tokenBridge, relayer, circleContracts, executor} = contracts;
+const {
+  coreBridge,
+  tokenBridge,
+  relayer,
+  circleContracts,
+  executor,
+  //executorQuoter //TODO comment in once available in the SDK
+} = contracts;
 const {usdcContract, circleChainId} = circle;
+
+//TODO remove once the SDK is updated
+export const executorQuoterRouterContracts = [[
+  "Mainnet", [
+    ["Monad",   "0x3d9282A8e9a3cdd9b25AE969eff4705a1Fe75F34"],
+    ["Polygon", "0x2a856931603930B827B1A4352FB4D66fA029F123"],
+  ]], [
+  "Testnet", [
+    ["Sepolia",         "0xc0C35D7bfBc4175e0991Ae294f561b433eA4158f"],
+    ["ArbitrumSepolia", "0x5E8c14F436c9ed2ff2E8B042B0542136bf108C6f"],
+    ["OptimismSepolia", "0x6a829dF7C91f35f9aD72Cd5d05550b95BbC9fd2F"],
+    ["BaseSepolia",     "0x2507d6899C3D4b93BF46b555d0cB401f44065772"],
+    ["Solana",          "qtrrrV7W3E1jnX1145wXR6ZpthG19ur5xHC1n6PPhDV"],
+  ]],
+] as const;
+const executorQuoterRouter = constMap(executorQuoterRouterContracts, [[0, 1], 2]);
+
+//TODO comment in once available in the SDK
+//fixing the naming inconsistency in the SDK: it calls the QuoterRouter addresses just "Quoter":
+//const executorQuoterRouter = executorQuoter;
 
 console.log(
 `// SPDX-License-Identifier: Apache-2.0
@@ -157,6 +185,7 @@ const functions = [
   ["tokenBridge",            AliasType.Address   ],
   ["wormholeRelayer",        AliasType.Address   ],
   ["executor",               AliasType.Address   ],
+  ["executorQuoterRouter",   AliasType.Address   ],
   ["cctpDomain",             AliasType.CctpDomain],
   ["usdc",                   AliasType.Address   ],
   ["cctpMessageTransmitter", AliasType.Address   ],
@@ -203,6 +232,7 @@ console.log(
       tokenBridge:            chain => tokenBridge.get(network, chain),
       wormholeRelayer:        chain => relayer.get(network, chain),
       executor:               chain => executor.get(network, chain),
+      executorQuoterRouter:   chain => executorQuoterRouter.get(network, chain),
       cctpDomain:             chain => cctpDomainConst(chain),
       usdc:                   chain => usdcContract.get(network, chain),
       cctpMessageTransmitter: chain => circleContracts.get(network, chain)?.messageTransmitter,
