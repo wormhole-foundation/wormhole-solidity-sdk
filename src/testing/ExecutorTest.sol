@@ -25,6 +25,8 @@ import "wormhole-sdk/libraries/CctpMessages.sol";
 //  with real world applications
 library QuoteLib {
   bytes4 internal constant QUOTE_PREFIX_V1 = "EQ01";
+  bytes4 internal constant QUOTE_PREFIX_V2 = "EQ02";
+  bytes4 internal constant GOVERNANCE_PREFIX = "EG01";
 
   function encodeQuote(
     bytes4 prefix,
@@ -61,6 +63,37 @@ library QuoteLib {
     return encodeQuote(QUOTE_PREFIX_V1, quoter, payee, srcChain, dstChain, expiryTime, data);
   }
 
+  function encodeV2Quote(
+    address quoter,
+    address payee,
+    uint16 srcChain,
+    uint16 dstChain,
+    uint64 baseFee,
+    uint64 dstGasPrice,
+    uint64 srcPrice,
+    uint64 dstPrice
+  ) internal pure returns (bytes memory) {
+    bytes memory data = abi.encodePacked(baseFee, dstGasPrice, srcPrice, dstPrice);
+    return encodeQuote(QUOTE_PREFIX_V2, quoter, payee, srcChain, dstChain, type(uint64).max, data);
+  }
+
+  function encodeGovernance(
+    uint16 chainId,
+    address quoter,
+    address contractAddress,
+    address msgSender,
+    uint64 expiryTime
+  ) internal pure returns (bytes memory) {
+    return abi.encodePacked(
+      GOVERNANCE_PREFIX,
+      chainId,
+      quoter,
+      toUniversalAddress(contractAddress),
+      toUniversalAddress(msgSender),
+      expiryTime
+    );
+  }
+
   function signAndPackQuote(
     bytes memory quote,
     uint256 quoterSecret
@@ -71,9 +104,158 @@ library QuoteLib {
   }
 }
 
+interface IExecutorQuoterRouterGovernance {
+  function quoterContract(address quoterAddr) external view returns (address);
+  function updateQuoterContract(bytes calldata gov) external;
+}
+
 struct GasDropOff {
   uint256 dropOff;
   bytes32 recipient;
+}
+
+library RelayInstructionDecode {
+  using BytesParsing for bytes;
+  using {BytesParsing.checkLength} for uint;
+
+  function decodeRelayInstructions(
+    bytes memory encoded
+  ) internal pure returns (
+    uint totalGasLimit,
+    uint totalMsgVal, //only from gas instructions, does not include gas drop offs
+    GasDropOff[] memory gasDropOffs
+  ) { unchecked {
+    uint dropoffRequests = 0;
+    uint offset = 0;
+    while (offset < encoded.length) {
+      uint8 instructionType;
+      (instructionType, offset) = encoded.asUint8MemUnchecked(offset);
+      if (instructionType == RelayInstructionLib.RECV_INST_TYPE_GAS) {
+        uint gasLimit; uint msgVal;
+        (gasLimit, offset) = encoded.asUint128MemUnchecked(offset);
+        (msgVal,   offset) = encoded.asUint128MemUnchecked(offset);
+        totalGasLimit += gasLimit;
+        totalMsgVal   += msgVal;
+      }
+      else if (instructionType == RelayInstructionLib.RECV_INST_TYPE_DROP_OFF) {
+        offset += 48; // 16 dropOff amount + 32 universal recipient
+        ++dropoffRequests;
+      }
+      else
+        revert("Invalid instruction type");
+    }
+    encoded.length.checkLength(offset);
+
+    if (dropoffRequests > 0) {
+      gasDropOffs = new GasDropOff[](dropoffRequests);
+      offset = 0;
+      uint requestIndex = 0;
+      uint uniqueRecipientCount = 0;
+      while (true) {
+        uint8 instructionType;
+        (instructionType, offset) = encoded.asUint8MemUnchecked(offset);
+        if (instructionType == RelayInstructionLib.RECV_INST_TYPE_GAS)
+          offset += 32; // 16 gas limit + 16 msg val
+        else {
+          //must be RECV_INST_TYPE_DROP_OFF
+          uint dropOff; bytes32 recipient;
+          (dropOff,   offset) = encoded.asUint128MemUnchecked(offset);
+          (recipient, offset) = encoded.asBytes32MemUnchecked(offset);
+          uint i = 0;
+          for (; i < uniqueRecipientCount; ++i)
+            if (gasDropOffs[i].recipient == recipient) {
+              gasDropOffs[i].dropOff += dropOff;
+              break;
+            }
+          if (i == uniqueRecipientCount) {
+            gasDropOffs[i] = GasDropOff(dropOff, recipient);
+            ++uniqueRecipientCount;
+          }
+
+          ++requestIndex;
+          if (requestIndex == dropoffRequests)
+            break;
+        }
+      }
+      assembly ("memory-safe") {
+        mstore(gasDropOffs, uniqueRecipientCount)
+      }
+    }
+  }}
+}
+
+contract OnChainQuoterStub is IExecutorQuoter {
+  //prices can use arbitrary units because they only describe relative values
+  //so if the source token is twice as expensive as the destination token
+  //then srcTokenPrice = 2 and dstTokenPrice = 1 are prefectly fine choices
+  //alternative, using USD prices might be more intuitive
+  address private immutable _payee;
+
+  constructor(address payee) {
+    _payee = payee;
+  }
+
+  struct QuoteParams {
+    uint64 baseFeeInSrcToken;
+    uint64 gasPriceInDstToken; //e.g. 1 gwei
+    uint64 dstTokenPrice;
+  }
+
+  uint public srcTokenPrice;
+
+  mapping(uint16 => QuoteParams) public quoteParams;
+
+  function setSrcTokenPrice(uint64 price) external {
+    srcTokenPrice = price;
+  }
+
+  function setQuoteParams(uint16 dstChain, QuoteParams memory params) external {
+    quoteParams[dstChain] = params;
+  }
+
+  function requestQuote(
+    uint16 dstChain,
+    bytes32 dstAddr,
+    address refundAddr,
+    bytes calldata requestBytes,
+    bytes calldata relayInstructions
+  ) external view returns (uint256 requiredMsgValue) {
+    (requiredMsgValue, , ) =
+      requestExecutionQuote(dstChain, dstAddr, refundAddr, requestBytes, relayInstructions);
+  }
+
+  function requestExecutionQuote(
+    uint16 dstChain,
+    bytes32, //dstAddr
+    address, //refundAddr
+    bytes calldata, //requestBytes
+    bytes calldata relayInstructions
+  ) public view returns (uint256 requiredMsgValue, bytes32 payee, bytes32 quoteBody) { unchecked {
+    ( uint dstGasLimit,
+      uint dstMsgVal,
+      GasDropOff[] memory gasDropOffs
+    ) = RelayInstructionDecode.decodeRelayInstructions(relayInstructions);
+
+    uint dstTotalDropoff;
+    for (uint i = 0; i < gasDropOffs.length; ++i)
+      dstTotalDropoff += gasDropOffs[i].dropOff;
+
+    QuoteParams storage params = quoteParams[dstChain];
+    uint baseFee       = params.baseFeeInSrcToken;
+    uint gasPrice      = params.gasPriceInDstToken;
+    uint dstTokenPrice = params.dstTokenPrice;
+
+    uint totalDstTokenCost = (dstGasLimit * gasPrice) + dstMsgVal + dstTotalDropoff;
+
+    requiredMsgValue = baseFee + (totalDstTokenCost * dstTokenPrice / srcTokenPrice);
+    payee = toUniversalAddress(_payee);
+    quoteBody = bytes32((((((
+      baseFee        << 64) +
+      gasPrice)      << 64) +
+      srcTokenPrice) << 64) +
+      dstTokenPrice
+    );
+  }}
 }
 
 struct ExecutionRequest {
@@ -126,6 +308,54 @@ abstract contract ExecutorTest is WormholeForkTest {
   constructor() {
     (quoter, quoterSecret) = makeAddrAndKey("quoter");
     payee = makeAddr("payee");
+  }
+
+  function setUpOverrides(Fork memory fork) internal virtual override {
+    super.setUpOverrides(fork);
+    IExecutorQuoterRouterGovernance(address(fork.executorQuoterRouter)).updateQuoterContract(
+      QuoteLib.signAndPackQuote(
+        QuoteLib.encodeGovernance(
+          fork.chainId,
+          quoter,
+          address(new OnChainQuoterStub(payee)),
+          address(this),
+          type(uint64).max
+        ),
+        quoterSecret
+      )
+    );
+  }
+
+  function onChainQuoterStub() internal view virtual returns (OnChainQuoterStub) {
+    return OnChainQuoterStub(
+      IExecutorQuoterRouterGovernance(address(executorQuoterRouter())).quoterContract(quoter)
+    );
+  }
+
+  function getOnChainQuoteCost(
+    uint16 dstChain,
+    uint128 gasLimit,
+    uint128 msgVal
+  ) internal view virtual returns (uint256) {
+    return getOnChainQuoteCost(dstChain, gasLimit, msgVal, new bytes(0));
+  }
+
+  function getOnChainQuoteCost(
+    uint16 dstChain,
+    uint128 gasLimit,
+    uint128 msgVal,
+    bytes memory extraRelayInstructions
+  ) internal view virtual returns (uint256) {
+    return onChainQuoterStub().requestQuote(
+      dstChain,
+      bytes32(0), //dstAddr does not matter for the quote
+      address(0), //neither does refundAddr
+      new bytes(0), //nor do the request bytes...
+      abi.encodePacked(
+        RelayInstructionLib.encodeGas(gasLimit, msgVal),
+        extraRelayInstructions
+      )
+    );
   }
 
   function craftSignedQuote(uint16 dstChain) internal view virtual returns (bytes memory) {
@@ -262,7 +492,7 @@ abstract contract ExecutorTest is WormholeForkTest {
       (requestData, offset) = requestBytes.sliceMemUnchecked(requestDataOffset, requestDataSize);
 
       (uint gasLimit, uint msgVal, GasDropOff[] memory gasDropOffs) =
-        _decodeRelayInstructions(relayInstructions);
+        RelayInstructionDecode.decodeRelayInstructions(relayInstructions);
 
       requests[i] = ExecutionRequest(
         requestType,
@@ -354,69 +584,4 @@ abstract contract ExecutorTest is WormholeForkTest {
 
     revert("Failed to find CCTP Message");
   }
-
-  function _decodeRelayInstructions(
-    bytes memory encoded
-  ) private pure returns (
-    uint totalGasLimit,
-    uint totalMsgVal, //only from gas instructions, does not include gas drop offs
-    GasDropOff[] memory gasDropOffs
-  ) { unchecked {
-    uint dropoffRequests = 0;
-    uint offset = 0;
-    while (offset < encoded.length) {
-      uint8 instructionType;
-      (instructionType, offset) = encoded.asUint8MemUnchecked(offset);
-      if (instructionType == RelayInstructionLib.RECV_INST_TYPE_GAS) {
-        uint gasLimit; uint msgVal;
-        (gasLimit, offset) = encoded.asUint128MemUnchecked(offset);
-        (msgVal,   offset) = encoded.asUint128MemUnchecked(offset);
-        totalGasLimit += gasLimit;
-        totalMsgVal   += msgVal;
-      }
-      else if (instructionType == RelayInstructionLib.RECV_INST_TYPE_DROP_OFF) {
-        offset += 48; // 16 dropOff amount + 32 universal recipient
-        ++dropoffRequests;
-      }
-      else
-        revert("Invalid instruction type");
-    }
-    encoded.length.checkLength(offset);
-
-    if (dropoffRequests > 0) {
-      gasDropOffs = new GasDropOff[](dropoffRequests);
-      offset = 0;
-      uint requestIndex = 0;
-      uint uniqueRecipientCount = 0;
-      while (true) {
-        uint8 instructionType;
-        (instructionType, offset) = encoded.asUint8MemUnchecked(offset);
-        if (instructionType == RelayInstructionLib.RECV_INST_TYPE_GAS)
-          offset += 32; // 16 gas limit + 16 msg val
-        else {
-          //must be RECV_INST_TYPE_DROP_OFF
-          uint dropOff; bytes32 recipient;
-          (dropOff,   offset) = encoded.asUint128MemUnchecked(offset);
-          (recipient, offset) = encoded.asBytes32MemUnchecked(offset);
-          uint i = 0;
-          for (; i < uniqueRecipientCount; ++i)
-            if (gasDropOffs[i].recipient == recipient) {
-              gasDropOffs[i].dropOff += dropOff;
-              break;
-            }
-          if (i == uniqueRecipientCount) {
-            gasDropOffs[i] = GasDropOff(dropOff, recipient);
-            ++uniqueRecipientCount;
-          }
-
-          ++requestIndex;
-          if (requestIndex == dropoffRequests)
-            break;
-        }
-      }
-      assembly ("memory-safe") {
-        mstore(gasDropOffs, uniqueRecipientCount)
-      }
-    }
-  }}
 }

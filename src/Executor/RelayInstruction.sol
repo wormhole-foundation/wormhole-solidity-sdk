@@ -49,7 +49,7 @@ library RelayInstructionLib {
            gasDropOffInstructionCount * GAS_DROP_OFF_INSTRUCTION_SIZE;
   }}
 
-  function encodeGasDropOffInstructionUnchecked(
+  function encodeGasInstructionUnchecked(
     uint128 gasLimit,
     uint128 msgVal,
     bytes memory buffer,

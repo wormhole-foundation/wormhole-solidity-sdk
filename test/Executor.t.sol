@@ -5,9 +5,9 @@ import {IERC20}          from "wormhole-sdk/interfaces/token/IERC20.sol";
 import {ICoreBridge}     from "wormhole-sdk/interfaces/ICoreBridge.sol";
 import {ITokenMessenger} from "wormhole-sdk/interfaces/cctp/ITokenMessenger.sol";
 
-import {CHAIN_ID_ETHEREUM,
-        CHAIN_ID_BASE,
-        CHAIN_ID_POLYGON}            from "wormhole-sdk/constants/Chains.sol";
+import {CHAIN_ID_SEPOLIA,
+        CHAIN_ID_BASE_SEPOLIA,
+        CHAIN_ID_ARBITRUM_SEPOLIA}   from "wormhole-sdk/constants/Chains.sol";
 import {CONSISTENCY_LEVEL_FINALIZED} from "wormhole-sdk/constants/ConsistencyLevel.sol";
 
 import {eagerOr,
@@ -19,12 +19,13 @@ import {SequenceReplayProtectionLib} from "wormhole-sdk/libraries/ReplayProtecti
 
 import {InvalidPeer,
         DestinationMismatch,
-        ExecutorSendReceive} from "wormhole-sdk/Executor/Integration.sol";
-import {RequestLib}          from "wormhole-sdk/Executor/Request.sol";
-import {RelayInstructionLib} from "wormhole-sdk/Executor/RelayInstruction.sol";
+        ExecutorSendReceiveQuoteBoth} from "wormhole-sdk/Executor/Integration.sol";
+import {RequestLib}                   from "wormhole-sdk/Executor/Request.sol";
+import {RelayInstructionLib}          from "wormhole-sdk/Executor/RelayInstruction.sol";
 
-import {WormholeOverride} from "wormhole-sdk/testing/WormholeOverride.sol";
-import {ExecutorTest}     from "wormhole-sdk/testing/ExecutorTest.sol";
+import {WormholeOverride}  from "wormhole-sdk/testing/WormholeOverride.sol";
+import {ExecutorTest,
+        OnChainQuoterStub} from "wormhole-sdk/testing/ExecutorTest.sol";
 
 //demo integration for Executor:
 //A cross-chain vault that allows the owner to "live" on only one chain but distribute
@@ -33,7 +34,22 @@ import {ExecutorTest}     from "wormhole-sdk/testing/ExecutorTest.sol";
 //This example is ofc contrived because in practice one would just have the owner sign a message
 //  and vaults verify against the owner key, this way the owner doesn't have to "live" on any chain
 //  at all.
-contract ToyCrossChainUsdcVault is ExecutorSendReceive {
+
+//coarse approximations of gas costs:
+//verifying and replay protecting the VAA, etc.
+uint256 constant GAS_COST_BASE = 200_000;
+//updating balances, emitting events, etc.
+uint256 constant GAS_COST_PER_USDC_TRANSFER = 40_000;
+//rebalancing CCTP transfers - usually CCTP v1 transfers are aabout ~165k gas
+uint128 constant GAS_COST_CCTP_TRANSFER = 200_000;
+//we constrain the number of max recipients to ensure that we stay within reasonable bounds:
+// 1. 120 * 40k + 200k = max 5M gas
+// 2. 120 * 32 bytes (12 bytes amount, 20 bytes recipient) = 3841 bytes max payload size
+//Notice that if we wanted to go to Solana, we'd probably significantly reduce payload size
+//  and hence max recipients even further
+uint256 constant MAX_RECIPIENTS = 120;
+
+contract ToyCrossChainUsdcVault is ExecutorSendReceiveQuoteBoth {
   using BytesParsing for bytes;
   using {toUniversalAddress} for address;
 
@@ -52,25 +68,13 @@ contract ToyCrossChainUsdcVault is ExecutorSendReceive {
     uint16  chainId;
     uint64  usdcAmount;
     uint256 cost; //in native/gas tokens
-    bytes   signedQuote;
+    bytes   signedQuoteOrQuoter; //either a signed quote or the quoter address
   }
 
   struct PeerParams {
     uint16     chainId;
     PeerConfig config;
   }
-
-  //coarse approximations of gas costs:
-  //verifying and replay protecting the VAA, etc.
-  uint256 private constant _GAS_COST_BASE = 200_000;
-  //updating balances, emitting events, etc.
-  uint256 private constant _GAS_COST_USDC_TRANSFER = 40_000;
-  //we constrain the number of max recipients to ensure that we stay within reasonable bounds:
-  // 1. 120 * 40k + 200k = max 5M gas
-  // 2. 120 * 32 bytes (12 bytes amount, 20 bytes recipient) = 3841 bytes max payload size
-  //Notice that if we wanted to go to Solana, we'd probably significantly reduce payload size
-  //  and hence max recipients even further
-  uint256 private constant _MAX_RECIPIENTS = 120;
 
   address private immutable _usdc;
   address private immutable _cctpTokenMessenger;
@@ -85,10 +89,11 @@ contract ToyCrossChainUsdcVault is ExecutorSendReceive {
     address rebalancer,
     address coreBridge,
     address executor,
+    address executorQuoterRouter,
     address usdc,
     address cctpTokenMessenger,
     PeerParams[] memory peers
-  ) ExecutorSendReceive(coreBridge, executor) {
+  ) ExecutorSendReceiveQuoteBoth(coreBridge, executor, executorQuoterRouter) {
     _usdc               = usdc;
     _cctpTokenMessenger = cctpTokenMessenger;
 
@@ -162,14 +167,28 @@ contract ToyCrossChainUsdcVault is ExecutorSendReceive {
       );
 
       //request relay of CCTP transfer
-      _executor.requestExecution{value: param.cost}(
-        peerChain,
-        peerAddress,
-        msg.sender,
-        param.signedQuote,
-        RequestLib.encodeCctpV1Request(_cctpDomain, cctpNonce),
-        new bytes(0)
-      );
+      bytes memory requestBytes = RequestLib.encodeCctpV1Request(_cctpDomain, cctpNonce);
+      bytes memory relayInstruction = RelayInstructionLib.encodeGas(GAS_COST_CCTP_TRANSFER, 0);
+      if (param.signedQuoteOrQuoter.length == 20) {
+        (address quoter, ) = param.signedQuoteOrQuoter.asAddressCdUnchecked(0);
+        _executorQuoterRouter.requestExecution{value: param.cost}(
+          peerChain,
+          peerAddress,
+          msg.sender,
+          quoter,
+          requestBytes,
+          relayInstruction
+        );
+      }
+      else
+        _executor.requestExecution{value: param.cost}(
+          peerChain,
+          peerAddress,
+          msg.sender,
+          param.signedQuoteOrQuoter,
+          requestBytes,
+          relayInstruction
+        );
     }
     _checkMsgValue(totalCost);
   }
@@ -177,10 +196,10 @@ contract ToyCrossChainUsdcVault is ExecutorSendReceive {
   function withdrawCrossChain(
     uint16 destinationChainId,
     WithdrawalParams[] calldata params,
-    bytes calldata signedQuote
+    bytes calldata signedQuoteOrQuoter
   ) external payable onlyOwner { unchecked {
     uint count = params.length;
-    require(count <= _MAX_RECIPIENTS, "Too many recipients");
+    require(count <= MAX_RECIPIENTS, "Too many recipients");
     uint gasDropOffRequests = 0;
     for (uint i = 0; i < count; ++i)
       if (params[i].gasAmount > 0)
@@ -202,7 +221,7 @@ contract ToyCrossChainUsdcVault is ExecutorSendReceive {
 
     //this exact value must also be used when querying for the executor quote
     //it's tighter to (cheaply) calculate it here, than to pass it in as a parameter
-    uint gasLimit = _GAS_COST_BASE + recipients.length * _GAS_COST_USDC_TRANSFER;
+    uint gasLimit = GAS_COST_BASE + recipients.length * GAS_COST_PER_USDC_TRANSFER;
 
     //this encoding is inefficient because we pack an array of 8 bytes for the usdc amount
     //  and 20 bytes for the recipient address into 32 bytes, hence wasting 4 bytes per item,
@@ -210,17 +229,34 @@ contract ToyCrossChainUsdcVault is ExecutorSendReceive {
     //in general, there's a lot of stuff that should be optimized for gas here in production
     bytes memory payload = abi.encodePacked(destinationChainId, payloadArr);
 
-    _publishAndRelay(
-      payload,
-      CONSISTENCY_LEVEL_FINALIZED,
-      msg.value, //must equal execution cost + Wormhole message fee for publishing!
-      destinationChainId,
-      msg.sender,
-      signedQuote,
-      uint128(gasLimit),
-      0,
-      RelayInstructionLib.encodeGasDropOffInstructions(gasDropOffs, recipients)
-    );
+    bytes memory relayInstruction =
+      RelayInstructionLib.encodeGasDropOffInstructions(gasDropOffs, recipients);
+    if (signedQuoteOrQuoter.length == 20) {
+      (address quoter, ) = signedQuoteOrQuoter.asAddressCdUnchecked(0);
+      _publishAndRelay(
+        payload,
+        CONSISTENCY_LEVEL_FINALIZED,
+        msg.value, //must equal execution cost + Wormhole message fee for publishing!
+        destinationChainId,
+        msg.sender,
+        quoter,
+        uint128(gasLimit),
+        0,
+        relayInstruction
+      );
+    }
+    else
+      _publishAndRelay(
+        payload,
+        CONSISTENCY_LEVEL_FINALIZED,
+        msg.value, //must equal execution cost + Wormhole message fee for publishing!
+        destinationChainId,
+        msg.sender,
+        signedQuoteOrQuoter,
+        uint128(gasLimit),
+        0,
+        relayInstruction
+      );
   }}
 
   //just for completeness sake (so it's not totally contrived)
@@ -253,11 +289,12 @@ contract ExecutorDemoIntegrationTest is ExecutorTest {
   uint initialUsdc;
 
   constructor() {
-    chains.push(CHAIN_ID_ETHEREUM);
-    chains.push(CHAIN_ID_BASE);
-    chains.push(CHAIN_ID_POLYGON);
+    chains.push(CHAIN_ID_SEPOLIA);
+    chains.push(CHAIN_ID_BASE_SEPOLIA);
+    chains.push(CHAIN_ID_ARBITRUM_SEPOLIA);
 
     initialUsdc = 1e8;
+    isMainnet = false; //we're testing on testnet because on-chain quoting is only on 2 mainnets atm
   }
 
   function setUp() public override {
@@ -266,6 +303,24 @@ contract ExecutorDemoIntegrationTest is ExecutorTest {
 
     selectFork(chains[0]);
     setMessageFee(10 gwei);
+
+    onChainQuoterStub().setSrcTokenPrice(4);
+    onChainQuoterStub().setQuoteParams(
+      CHAIN_ID_BASE_SEPOLIA,
+      OnChainQuoterStub.QuoteParams({
+        baseFeeInSrcToken:  2e15,
+        gasPriceInDstToken: 1 gwei,
+        dstTokenPrice:      2
+      })
+    );
+    onChainQuoterStub().setQuoteParams(
+      CHAIN_ID_ARBITRUM_SEPOLIA,
+      OnChainQuoterStub.QuoteParams({
+        baseFeeInSrcToken:  1e15,
+        gasPriceInDstToken: 1 gwei,
+        dstTokenPrice:      1
+      })
+    );
 
     rebalancer = makeAddr("rebalancer");
     for (uint i = 0; i < chains.length; ++i)
@@ -296,6 +351,7 @@ contract ExecutorDemoIntegrationTest is ExecutorTest {
         rebalancer,
         address(coreBridge()),
         address(executor()),
+        address(executorQuoterRouter()),
         address(usdc()),
         address(cctpTokenMessenger()),
         peerParams
@@ -303,19 +359,34 @@ contract ExecutorDemoIntegrationTest is ExecutorTest {
       assert(address(vaults[i]) == vaultAddrs[i]);
     }
 
+    //clear any pre-existing balances on testnet forks for deterministic addresses
+    vm.deal(payee, 0);
+    for (uint i = 1; i < chains.length; ++i) {
+      selectFork(chains[i]);
+      for (uint j = 0; j < recipients.length; ++j) {
+        vm.deal(recipients[j], 0);
+        uint usdcBal = usdc().balanceOf(recipients[j]);
+        if (usdcBal > 0) {
+          vm.prank(recipients[j]);
+          usdc().transfer(address(1), usdcBal);
+        }
+      }
+    }
     selectFork(chains[0]);
+
     dealUsdc(address(vaults[0]), initialUsdc);
   }
 
-  function testHappyPath() public {
+  function happyPath(bool onChainQuote) public {
     uint count = 2;
 
     //-- rebalance --
 
+    //only relevant if onChainQuote is false:
     //in the real world, these quote costs would be queried from the off-chain quoter endpoint
-    uint256[] memory quoteCosts  = new uint256[](count);
-    quoteCosts[0]  = uint256(0.5 ether);
-    quoteCosts[1]  = uint256(1.5 ether);
+    uint256[] memory offChainQuoteCosts  = new uint256[](count);
+    offChainQuoteCosts[0]  = uint256(0.5 ether);
+    offChainQuoteCosts[1]  = uint256(1.5 ether);
 
     uint64[]  memory usdcAmounts = new uint64[](count);
     usdcAmounts[0] = uint64(20e6);
@@ -327,13 +398,18 @@ contract ExecutorDemoIntegrationTest is ExecutorTest {
     uint usdcDistributed = 0;
     for (uint i = 0; i < count; ++i) {
       uint16 dstChain = chains[i + 1];
-      uint cost = quoteCosts[i];
+      uint cost = onChainQuote
+        ? getOnChainQuoteCost(dstChain, GAS_COST_CCTP_TRANSFER, 0)
+        : offChainQuoteCosts[i];
+
       rTotalCost += cost;
       usdcDistributed += usdcAmounts[i];
-      rParams[i].chainId     = dstChain;
-      rParams[i].usdcAmount  = usdcAmounts[i];
-      rParams[i].cost        = cost;
-      rParams[i].signedQuote = craftSignedQuote(dstChain);
+      rParams[i].chainId             = dstChain;
+      rParams[i].usdcAmount          = usdcAmounts[i];
+      rParams[i].cost                = cost;
+      rParams[i].signedQuoteOrQuoter = onChainQuote
+        ? abi.encodePacked(quoter)
+        : craftSignedQuote(dstChain);
     }
 
     hoax(rebalancer);
@@ -374,9 +450,28 @@ contract ExecutorDemoIntegrationTest is ExecutorTest {
     wParams[1].gasAmount  = 0.5 ether;
     wParams[2].gasAmount  = 0.25 ether;
 
-    uint wQuoteCost = 4 ether;
+    uint wQuoteCost;
+    if (onChainQuote) {
+      uint128[] memory gasDropOffs = new uint128[](recipients.length);
+      bytes32[] memory uRecipients = new bytes32[](recipients.length);
+      for (uint i = 0; i < recipients.length; ++i) {
+        gasDropOffs[i] = uint128(wParams[i].gasAmount);
+        uRecipients[i] = recipients[i].toUniversalAddress();
+      }
+      bytes memory extraRelayInstructions =
+        RelayInstructionLib.encodeGasDropOffInstructions(gasDropOffs, uRecipients);
+      uint128 wGasLimit = uint128(GAS_COST_BASE + recipients.length * GAS_COST_PER_USDC_TRANSFER);
+      uint128 wMsgVal = 0;
+
+      wQuoteCost = getOnChainQuoteCost(wChain, wGasLimit, wMsgVal, extraRelayInstructions);
+    }
+    else
+      wQuoteCost = 4 ether; //some made up off-chain quote cost
+
     uint wTotalCost = messageFee + wQuoteCost;
-    bytes memory wSignedQuote = craftSignedQuote(wChain);
+    bytes memory wSignedQuote = onChainQuote
+      ? abi.encodePacked(quoter)
+      : craftSignedQuote(wChain);
 
     hoax(owner);
     vm.recordLogs();
@@ -398,14 +493,25 @@ contract ExecutorDemoIntegrationTest is ExecutorTest {
     }
   }
 
+  function testHappyPathOnChainQuote() public {
+    happyPath(true);
+  }
+
+  function testHappyPathOffChainQuote() public {
+    happyPath(false);
+  }
+
   function testSpoofingProtection() public {
     address spoofer = makeAddr("spoofer");
     bytes memory payload = abi.encodePacked(
-      CHAIN_ID_ETHEREUM,
+      CHAIN_ID_SEPOLIA,
       uint256(initialUsdc << 160 | uint160(spoofer))
     );
-    bytes memory spoofedVaa =
-      coreBridge().craftVaa(CHAIN_ID_BASE, spoofer.toUniversalAddress(), payload);
+    bytes memory spoofedVaa = coreBridge().craftVaa(
+      CHAIN_ID_BASE_SEPOLIA,
+      spoofer.toUniversalAddress(),
+      payload
+    );
 
     vm.expectRevert(InvalidPeer.selector);
     vaults[0].executeVAAv1(spoofedVaa);
@@ -413,11 +519,14 @@ contract ExecutorDemoIntegrationTest is ExecutorTest {
 
   function testDestinationCheck() public {
     bytes memory payload = abi.encodePacked(
-      CHAIN_ID_POLYGON,
+      CHAIN_ID_ARBITRUM_SEPOLIA,
       uint256(initialUsdc << 160 | uint160(address(vaults[1])))
     );
-    bytes memory vaa =
-      coreBridge().craftVaa(CHAIN_ID_BASE, address(vaults[1]).toUniversalAddress(), payload);
+    bytes memory vaa = coreBridge().craftVaa(
+      CHAIN_ID_BASE_SEPOLIA,
+      address(vaults[1]).toUniversalAddress(),
+      payload
+    );
 
     vm.expectRevert(DestinationMismatch.selector);
     vaults[0].executeVAAv1(vaa);

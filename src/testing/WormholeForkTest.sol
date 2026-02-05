@@ -21,6 +21,7 @@ import {
   tokenBridge as tokenBridge_,
   wormholeRelayer as wormholeRelayer_,
   executor as executor_,
+  executorQuoterRouter as executorQuoterRouter_,
   cctpDomain as cctpDomain_,
   usdc as usdc_,
   cctpMessageTransmitter as cctpMessageTransmitter_,
@@ -41,7 +42,7 @@ struct Fork {
   ITokenBridge tokenBridge;
   IWormholeRelayer relayer;
   IExecutor executor;
-
+  IExecutorQuoterRouter executorQuoterRouter;
   IUSDC usdc;
   uint32 cctpDomain;
   IMessageTransmitter cctpMessageTransmitter;
@@ -94,6 +95,7 @@ abstract contract WormholeForkTest is Test {
       ITokenBridge(tokenBridge_(isMainnet, chainId_)),
       IWormholeRelayer(wormholeRelayer_(isMainnet, chainId_)),
       IExecutor(executor_(isMainnet, chainId_)),
+      IExecutorQuoterRouter(executorQuoterRouter_(isMainnet, chainId_)),
       IUSDC(usdc_(isMainnet, chainId_)),
       cctpDomain_(isMainnet, chainId_),
       IMessageTransmitter(cctpMessageTransmitter_(isMainnet, chainId_)),
@@ -147,6 +149,10 @@ abstract contract WormholeForkTest is Test {
 
   function executor() internal view virtual returns (IExecutor) {
     return activeFork().executor;
+  }
+
+  function executorQuoterRouter() internal view virtual returns (IExecutorQuoterRouter) {
+    return activeFork().executorQuoterRouter;
   }
 
   function usdc() internal view virtual returns (IUSDC) {
