@@ -140,9 +140,14 @@ echo "6. Cleaning up temporary files before publishing"
 )
 
 echo "7. Publishing version ${NPM_PACKAGE_VERSION} with tag '${NPM_TAG}'"
-( 
+(
   cd "${TEMP_PUBLISH_DIR}"
-  npm publish --access public --tag "${NPM_TAG}" $([ "${DRY_RUN}" = "true" ] && echo "--dry-run")
+  # Use --provenance when running in GitHub Actions (for npm trusted publishers)
+  PROVENANCE_FLAG=""
+  if [ "${GITHUB_ACTIONS:-false}" = "true" ]; then
+    PROVENANCE_FLAG="--provenance"
+  fi
+  npm publish --access public --tag "${NPM_TAG}" ${PROVENANCE_FLAG} $([ "${DRY_RUN}" = "true" ] && echo "--dry-run")
 )
 
 echo "8. Cleaning up temporary publish directory: ${TEMP_PUBLISH_DIR}"

@@ -1,47 +1,41 @@
 name: Publish Package to npmjs
 on:
-    release:
-        types: [published]
-
-permissions:
-  id-token: write  # Required for OIDC
-  contents: read
+  release:
+    types: [published]
 
 jobs:
-    publish:
-        if: "!startsWith(github.event.release.tag_name, 'beta')"
-        runs-on: ubuntu-latest
-        permissions:
-            contents: read
-            id-token: write
-        env:
-            NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        steps:
-            - uses: actions/checkout@v6
-            - uses: actions/setup-node@v6
-              with:
-                  node-version: '22.x'
-                  registry-url: 'https://registry.npmjs.org'
-            - name: Ensure publish script is executable
-              run: chmod +x ./npm_publish/publish.sh
-            - name: Publish latest via script
-              run: ./npm_publish/publish.sh latest false
+  publish:
+    if: "!startsWith(github.event.release.tag_name, 'beta')"
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24.x"
+          registry-url: "https://registry.npmjs.org"
+      - name: Ensure publish script is executable
+        run: chmod +x ./npm_publish/publish.sh
+      - name: Publish latest via script
+        run: ./npm_publish/publish.sh latest false
 
-    publish-beta:
-        if: "startsWith(github.event.release.tag_name, 'beta')"
-        runs-on: ubuntu-latest
-        permissions:
-            contents: read
-            id-token: write
-        env:
-            NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        steps:
-            - uses: actions/checkout@v6
-            - uses: actions/setup-node@v6
-              with:
-                  node-version: '22.x'
-                  registry-url: 'https://registry.npmjs.org'
-            - name: Ensure publish script is executable
-              run: chmod +x ./npm_publish/publish.sh
-            - name: Publish beta via script
-              run: ./npm_publish/publish.sh beta false
+  publish-beta:
+    if: "startsWith(github.event.release.tag_name, 'beta')"
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24.x"
+          registry-url: "https://registry.npmjs.org"
+      - name: Ensure publish script is executable
+        run: chmod +x ./npm_publish/publish.sh
+      - name: Publish beta via script
+        run: ./npm_publish/publish.sh beta false
