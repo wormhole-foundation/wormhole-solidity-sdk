@@ -3,6 +3,10 @@ on:
     release:
         types: [published]
 
+permissions:
+  id-token: write  # Required for OIDC
+  contents: read
+
 jobs:
     publish:
         if: "!startsWith(github.event.release.tag_name, 'beta')"
