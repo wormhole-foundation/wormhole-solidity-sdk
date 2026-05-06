@@ -36,6 +36,7 @@ Some of the components of this SDK require the use of intermediate representatio
 
 **Testing**
 
+<<<<<<< HEAD
 It is strongly recommended that you run the forge test suite of this SDK with your own compiler version to catch potential errors that stem from differences in compiler versions early. Yes, strictly speaking the Solidity version pragma should prevent these issues, but better to be safe than sorry, especially given that some components make extensive use of inline assembly.
 
 **IERC20 and SafeERC20 Remapping**
@@ -76,3 +77,5 @@ In This House We Believe:
 -   [OpenZeppelin](https://github.com/OpenZeppelin/openzeppelin-contracts)
 -   [Solmate](https://github.com/transmissions11/solmate) / [Solady](https://github.com/Vectorized/solady)
 -   [Uniswap Permit2](https://github.com/Uniswap/permit2) + [explanation](https://github.com/dragonfly-xyz/useful-solidity-patterns/tree/main/patterns/permit2)
+**Note: This code is meant to be used as starter / reference code. Feel free to modify for use in your contracts, and also make sure to audit any code used from here as part of your contracts before deploying to mainnet.**
+
