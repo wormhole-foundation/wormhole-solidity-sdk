@@ -303,6 +303,27 @@ library CoreBridgeLib {
       guardians = guardianSet.keys;
   }
 
+  /// @dev Returns the guardian set for the given index, or the latest if expired.
+  /// When `allowFallback` is false, reverts if the specified guardian set is expired
+  /// instead of silently falling back to the current set. Use `false` in security-critical
+  /// contexts where signature validity must be strictly bounded to the specified guardian set.
+  function getGuardiansOrLatest(
+    address coreBridge,
+    uint32 guardianSetIndex,
+    bool allowFallback
+  ) internal view returns (address[] memory guardians) {
+    GuardianSet memory guardianSet = ICoreBridge(coreBridge).getGuardianSet(guardianSetIndex);
+    if (_isExpired(guardianSet)) {
+      if (!allowFallback) {
+        revert VerificationFailed();
+      }
+      guardianSet = ICoreBridge(coreBridge).getGuardianSet(
+        ICoreBridge(coreBridge).getCurrentGuardianSetIndex()
+      );
+    }
+    guardians = guardianSet.keys;
+  }
+
   //returns associated guardian set or latest guardian set if the specified one is expired
   //returns empty array if the guardian set does not exist
   //has more variable gas costs but has a chance of doing an ad-hoc "repair" of the VAA in case
@@ -310,19 +331,13 @@ library CoreBridgeLib {
   //  (At least a 30 % chance for the typical guardian set rotation where one guardian gets
   //  replaced by another, though likely higher, given that the departing guardian likely
   //  stopped signing messages way before the actual rotation).
+  /// @dev Legacy overload — always allows fallback. Prefer the explicit `allowFallback`
+  /// version for new code to make the security decision visible.
   function getGuardiansOrLatest(
     address coreBridge,
     uint32 guardianSetIndex
   ) internal view returns (address[] memory guardians) {
-    GuardianSet memory guardianSet = ICoreBridge(coreBridge).getGuardianSet(guardianSetIndex);
-    if (_isExpired(guardianSet))
-      //if the specified guardian set is expired, we try using the current guardian set as an adhoc
-      //  repair attempt (there's almost certainly never more than 2 valid guardian sets at a time)
-      guardianSet = ICoreBridge(coreBridge).getGuardianSet(
-        ICoreBridge(coreBridge).getCurrentGuardianSetIndex()
-      );
-
-    guardians = guardianSet.keys;
+    return getGuardiansOrLatest(coreBridge, guardianSetIndex, true);
   }
 
   //negated for optimization because we always want to act on incorrect signatures and so save a NOT
